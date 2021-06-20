@@ -1,0 +1,45 @@
+# Circle chair with 3 circle legs
+bodies: # List of named bodies
+  - name: chair_seat
+    color: [0.3, 0.0, 0.1, 0.5] # braun # slightly transparent, so that from a bird eye view the legs of the table are also visible
+    #pose: [0, 0, 0] # ?
+    #type: static # ?
+    footprints:
+      - type: circle
+        radius: 0.25
+        center: [0.0, 0.0]
+        density: 1
+        layers: ["static"]
+        collision: false
+
+- name: leg_front_middle 
+    color: [0.3, 0.0, 0.1, 1.0]
+    footprints:
+      - type: circle
+        radius: 0.05
+        center: [0, -0.15]
+        density: 1
+        layers: ["static"]
+        collision: false
+
+  - name: leg_back_right
+    color: [0.3, 0.0, 0.1, 1.0]
+    footprints:
+      - type: circle
+        radius: 0.05
+        center: [0.15, 0.15]
+        density: 1
+        layers: ["static"]
+        collision: false
+
+  - name: leg_back_right
+    color: [0.3, 0.0, 0.1, 1.0]
+    footprints:
+      - type: circle
+        radius: 0.05
+        center: [-0.15, 0.15]
+        density: 1
+        layers: ["static"]
+        collision: false
+
+  #- name: safety_dist_circle # necessary?
