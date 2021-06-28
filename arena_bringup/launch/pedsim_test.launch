@@ -138,11 +138,8 @@
     "
     /> -->
 
-<<<<<<< Updated upstream
   <include file="$(find teleop_twist_joy)/launch/teleop.launch" if="$(arg use_joystick)">
     <arg name="config_filepath" value="/home/daniel/git/behaviormodels/xd3.config.yaml" />
   </include>
 
-=======
->>>>>>> Stashed changes
 </launch>
