@@ -239,7 +239,7 @@ class RewardCalculator():
         :param goal_in_robot_frame (Tuple[float,float]): position (rho, theta) of the goal in robot frame (Polar coordinate) 
         :param reward (float, optional): reward amount for reaching. defaults to 15
         """
-        if goal_in_robot_frame[2] in [0,2]   :
+        if goal_in_robot_frame[2] in [0,2,5]   :
             if goal_in_robot_frame[0] < self.goal_radius :
                 self.curr_reward = reward
                 self.info['is_done'] = True
@@ -434,7 +434,7 @@ class RewardCalculator():
 
     def _reward_goal_approached3(self, goal_in_robot_frame, current_time_step):
         
-            if goal_in_robot_frame[2] == 0 :
+            if goal_in_robot_frame[2] in [0,5] :
                 if self.last_goal_dist is not None:
                     # print(self.last_goal_dist ,goal_in_robot_frame[0])
                     # higher negative weight when moving away from goal (to avoid driving unnecessary circles when train in contin. action space)
@@ -493,27 +493,14 @@ class RewardCalculator():
                 if self.last_following_goal_dist is not None:
                     # higher negative weight when moving away from goal (to avoid driving unnecessary circles when train in contin. action space)
                     w = 0.0
-                    if (self.last_following_goal_dist - goal_in_robot_frame[3]) > 0 and goal_in_robot_frame[3] >= 3.0:
+                    if (self.last_following_goal_dist - goal_in_robot_frame[3]) > 0 and goal_in_robot_frame[3] >= 4.0:
                         w = 0.018*np.exp(1-current_time_step)
-                        # print(' safe  getting closer')
-                    elif (self.last_following_goal_dist - goal_in_robot_frame[3] ) < 0 and goal_in_robot_frame[3] >= 3.0 :
-                        # print(' safe  getting further')
+                    elif (self.last_following_goal_dist - goal_in_robot_frame[3] ) < 0 or goal_in_robot_frame[3] < 4.0 :
                         w = -0.05*np.exp(1)
-                    elif goal_in_robot_frame[3] >= 3.0 :
+                    else    :
                         w = -0.03
-                    elif (self.last_following_goal_dist - goal_in_robot_frame[3]) < 0 and goal_in_robot_frame[3] < 3.0:
-                        w = 0.018*np.exp(1-current_time_step)
-                        # print(' NOOOOO  getting furthr')
-
-                    elif (self.last_following_goal_dist - goal_in_robot_frame[3] ) > 0 and goal_in_robot_frame[3] < 3.0 :
-                        # print(' NOOOOO  getting closer')
                  
-                        w = -0.05*np.exp(1)
-                    elif goal_in_robot_frame[3] < 3.0 :
-                        w = -0.03
 
-                    
-                  
                     reward = round(w, 5)
                     self.curr_reward += reward
                     
@@ -692,14 +679,14 @@ class RewardCalculator():
 
     def read_saftey_distance_parameter_from_yaml(self):
         
-        file_location = os.path.join(rospkg.RosPack().get_path('simulator_setup'), 'saftey_distance_parameter.yaml')
+        file_location = os.path.join(rospkg.RosPack().get_path('simulator_setup'), 'saftey_distance_parameter_none.yaml')
         
         
         if os.path.isfile(file_location):
             with open(file_location, "r") as file:
                 saftey_distance_parameter = yaml.load(file, Loader=yaml.FullLoader)       
         assert isinstance(
-             saftey_distance_parameter, dict), "'saftey_distance_parameter.yaml' has wrong fromat! Has to encode dictionary!"
+             saftey_distance_parameter, dict), "'saftey_distance_parameter_none.yaml' has wrong fromat! Has to encode dictionary!"
                 
         return saftey_distance_parameter
         

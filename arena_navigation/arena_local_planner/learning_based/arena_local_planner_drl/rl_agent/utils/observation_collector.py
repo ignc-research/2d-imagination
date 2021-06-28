@@ -242,6 +242,11 @@ class ObservationCollector():
             self.currentgoal.x = pos.x
             self.currentgoal.y = pos.y
             self.currentgoal.theta = pos.theta
+            if self.rho_to_via <= 4.0 : 
+                # print('writing -1')
+                self.currentgoal.x = -1
+                self.currentgoal.y = -1
+                self.currentgoal.theta = -1
         
         elif self._human_behavior.size > 0 and 'StateGuideToGoal' in self._human_behavior: 
             index_agent_requesting_via =numpy.where(self._human_behavior== 'StateGuideToGoal')
@@ -254,11 +259,23 @@ class ObservationCollector():
             self.currentgoal.x = pos.x
             self.currentgoal.y = pos.y
             self.currentgoal.theta = pos.theta
-            if self.rho_to_via <= 2.5 : 
+            if self.rho_to_via <= 4.0 : 
                 # print('writing -1')
                 self.currentgoal.x = -1
                 self.currentgoal.y = -1
                 self.currentgoal.theta = -1
+
+        elif self._human_behavior.size > 0 and 'StateClearingGoal' in self._human_behavior: 
+            # index_agent_requesting_via =numpy.where(self._human_behavior== 'StateClearingGoal')
+            # pos = self._human_position[index_agent_requesting_via[0]][0]
+            # rho__, _ = ObservationCollector._get_pose_in_robot_frame(pos, self._robot_pose)
+            # if rho__ <= 2.5 : 
+            #     # print('writing -1')
+            #     self.currentgoal.x = -1
+            #     self.currentgoal.y = -1
+            #     self.currentgoal.theta = -1
+            self.flag_requesting_via = 5
+
 
         self.robot_to_via_state=[self._robot_pose.x, self._robot_pose.y, self.robot_vx_to_via, self.robot_vy_to_via,
         self._robot_pose.theta, self._robot_vel.angular.z, self._radius_robot, self.rho_to_via, self.theta_to_via]
@@ -633,14 +650,14 @@ class ObservationCollector():
 
     def read_saftey_distance_parameter_from_yaml(self):
         
-        file_location = os.path.join(rospkg.RosPack().get_path('simulator_setup'), 'saftey_distance_parameter.yaml')
+        file_location = os.path.join(rospkg.RosPack().get_path('simulator_setup'), 'saftey_distance_parameter_none.yaml')
         
         
         if os.path.isfile(file_location):
             with open(file_location, "r") as file:
                 saftey_distance_parameter = yaml.load(file, Loader=yaml.FullLoader)       
         assert isinstance(
-             saftey_distance_parameter, dict), "'saftey_distance_parameter.yaml' has wrong fromat! Has to encode dictionary!"
+             saftey_distance_parameter, dict), "'saftey_distance_parameter_none.yaml' has wrong fromat! Has to encode dictionary!"
                 
         return saftey_distance_parameter
 
