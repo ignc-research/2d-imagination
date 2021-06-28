@@ -15,7 +15,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[-0.35, -0.35], [-0.35, -0.35], [-0.35, -0.35], [-0.35, -0.35]]
+        points: [[-0.35, -0.35], [-0.4, -0.35], [-0.35, -0.4], [-0.4, -0.4]]
         density: 1
         layers: ["static"]
         collision: false
@@ -24,7 +24,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[0.35, -0.35], [0.35, -0.35], [0.35, -0.35], [0.35, -0.35]]
+        points: [[0.35, -0.35], [0.4, -0.35], [0.35, -0.4], [0.4, -0.4]]
         density: 1
         layers: ["static"]
         collision: false
@@ -33,16 +33,16 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[0.35, 0.35], [0.35, 0.35], [0.35, 0.35], [0.35, 0.35]]
+        points: [[0.35, 0.35], [0.4, 0.35], [0.35, 0.4], [0.4, 0.4]]
         density: 1
         layers: ["static"]
         collision: false
 
-  - name: leg_back_right
+  - name: leg_back_left
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[-0.35, 0.35], [-0.35, 0.35], [-0.35, 0.35], [-0.35, 0.35]]
+        points: [[-0.35, 0.35], [-0.4, 0.35], [-0.35, 0.4], [-0.4, 0.4]]
         density: 1
         layers: ["static"]
         collision: false

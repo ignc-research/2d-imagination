@@ -258,10 +258,11 @@ class ObstaclesManager:
             max_obstacle_radius (float, optional): the maximum radius of the obstacle. Defaults to 2.
         """
         model_path = os.path.join(rospkg.RosPack().get_path('simulator_setup'), 'obstacles/shelf.yaml')       
+        #model_path = os.path.join(rospkg.RosPack().get_path('simulator_setup'), 'static_obstacles/table1_polygon_4legs_circle.yaml')
         self.num_static_obstacles = num_obstacles
         self.register_obstacles( num_obstacles, model_path, type_obstacle='static')
 
-    def register_walls(self, num_walls: int):
+    def register_walls(self, num_walls: int, num_vertices_min=3, num_vertices_max=5):
         """register walls with polygon shape.
         Args:
             num_walls (int): number of the obstacles.

@@ -100,7 +100,7 @@ class LabelPublisher:
                     id = agent.id
                     pos_x = agent.pose.position.x
                     pos_y = agent.pose.position.y
-                    text = f"{agent.id} {agent.type}\n{agent.social_state}"
+                    text = 'f"{agent.id} {agent.type}\n{agent.social_state}"'
                     marker = self.create_label_marker(id, pos_x, pos_y, text)
 
                     markers.markers.append(marker)

@@ -3,6 +3,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 1
@@ -28,6 +31,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 1
@@ -53,6 +59,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 1
@@ -78,6 +87,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 1
@@ -103,6 +115,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 2
@@ -128,6 +143,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 2
@@ -153,6 +171,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 2
@@ -178,6 +199,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 2
@@ -203,6 +227,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 2
@@ -228,6 +255,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 2
@@ -253,6 +283,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 3
@@ -278,6 +311,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 3
@@ -303,6 +339,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 3
@@ -328,6 +367,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 3
@@ -353,6 +395,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 3
@@ -378,6 +423,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 4
@@ -403,6 +451,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 4
@@ -428,6 +479,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 4
@@ -453,6 +507,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 4
@@ -478,6 +535,9 @@
     shelf:
     - 0
     - obstacles/shelf.yaml
+    #table:
+    #- 0
+    #- static_obstacles/table1_polygon_4legs_circle.yaml
   human obstacles:
     adult:
     - 4

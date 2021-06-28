@@ -12,7 +12,7 @@ bodies: # List of named bodies
         layers: ["static"]
         collision: false
 
-- name: leg_middle
+  - name: leg_middle
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon

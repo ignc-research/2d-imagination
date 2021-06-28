@@ -12,7 +12,7 @@ bodies: # List of named bodies
         layers: ["static"]
         collision: false
 
-- name: leg_front_left 
+  - name: leg_front_left 
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: circle
@@ -42,7 +42,7 @@ bodies: # List of named bodies
         layers: ["static"]
         collision: false
 
-  - name: leg_back_right
+  - name: leg_back_left
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: circle

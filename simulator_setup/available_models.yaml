@@ -5,6 +5,7 @@
 
 static obstacles:
   shelf: obstacles/shelf.yaml
+  #table: static_obstacles/table1_polygon_4legs_circle.yaml
 human obstacles:
   adult: dynamic_obstacles/person_two_legged.model.yaml
   child: dynamic_obstacles/person_two_legged_child.model.yaml
