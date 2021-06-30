@@ -99,13 +99,13 @@
   <!--<node name="zig_zag" pkg="arena_util_scripts" type="zig_zag_motion.py" output="screen">
   </node>-->
 
-  <node name="show_goal" pkg="arena_util_scripts" type="show_goal.py" output="screen">
-  </node>
+  <!--<node name="show_goal" pkg="arena_util_scripts" type="show_goal.py" output="screen">
+  </node>-->
 
   <node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
   </node>
 
-  <node name="pub_goal" pkg="rostopic" type="rostopic"
+  <!--<node name="pub_goal" pkg="rostopic" type="rostopic"
     args="pub /goal geometry_msgs/PoseStamped '
     {
       header:
@@ -136,10 +136,6 @@
       }
     }'
     "
-    /> -->
-
-  <include file="$(find teleop_twist_joy)/launch/teleop.launch" if="$(arg use_joystick)">
-    <arg name="config_filepath" value="/home/daniel/git/behaviormodels/xd3.config.yaml" />
-  </include>
+    />-->
 
 </launch>

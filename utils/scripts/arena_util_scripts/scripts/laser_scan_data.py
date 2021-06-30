@@ -43,7 +43,7 @@ def callback(data):
     print(len(point_list))
     #print(point_list[len(point_list)/2].x) # access a certain point of the list
     print(point_list[len(point_list)/2])
-    # Question: are the points absolute or relative to the position of the robot - relative?
+    # TODO Question: are the points absolute or relative to the position of the robot - relative?
 
     # TODO: do sth with the laser scan data -> add semantics, make the bird eye view map etc.
 
@@ -54,8 +54,4 @@ def laser_scan_data_listener():
 
 if __name__ == '__main__':
     laser_scan_data_listener()
-    # TODO:
-    # 1) read and save the laser scan data from an example robot's position
-    # 2) the robot should not be able to move through the tables! (use move_base instead!)
-    # 3) put scripts in one script
-    # 4) pull Daniel's branch again -> clear the code in all changed files!
+    # TODO: read and save the laser scan data from an example robot's position

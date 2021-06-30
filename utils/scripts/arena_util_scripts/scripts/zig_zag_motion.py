@@ -17,7 +17,7 @@ def zig_zag():
         rate.sleep()
     for i in range(0, 150):
         turn(-0.5, -0.780)
-        rate.sleep() # or rospy.sleep(1.0) for sleep for 1 second
+        rate.sleep()
         move(-0.5)
         rate.sleep()
         turn(-0.5, 0.780)
@@ -45,7 +45,7 @@ def turn(vel, angle):
     msg.angular.z = angle
     vel_pub.publish(msg)
 
-def velocity_publisher():
+def velocity_publisher(): # the robot moves in a zig-zag like behavior, but does not avoid obstacles
     rospy.init_node('zig_zag', anonymous=True)
     rate = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():
