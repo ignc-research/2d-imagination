@@ -6,7 +6,7 @@ bodies: # List of named bodies
     #type: static # ?
     footprints:
       - type: circle
-        radius: 0.7
+        radius: 1.4
         center: [0.0, 0.0]
         density: 1
         layers: ["static"]
@@ -16,7 +16,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[-0.075, -0.075], [0.075, -0.075], [0.075, 0.075], [-0.075, 0.075]]
+        points: [[-0.15, -0.15], [0.15, -0.15], [0.15, 0.15], [-0.15, 0.15]]
         density: 1
         layers: ["static"]
         collision: false

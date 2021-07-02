@@ -6,7 +6,7 @@ bodies: # List of named bodies
     #type: static # ?
     footprints:
       - type: polygon
-        points: [[-0.23, 0.17], [0.23, 0.17], [-0.23, -0.17], [0.23, -0.17]]
+        points: [[-0.46, 0.34], [0.46, 0.34], [-0.46, -0.34], [0.46, -0.34]]
         density: 1
         layers: ["static"]
         collision: false
@@ -15,7 +15,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[-0.23, -0.17], [-0.23, -0.14], [-0.20, -0.17], [-0.20, -0.14]]
+        points: [[-0.46, -0.34], [-0.46, -0.21], [-0.30, -0.34], [-0.30, -0.21]]
         density: 1
         layers: ["static"]
         collision: false
@@ -24,7 +24,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[0.23, -0.17], [0.23, -0.14], [0.20, -0.17], [0.20, -0.14]]
+        points: [[0.46, -0.34], [0.46, -0.21], [0.30, -0.34], [0.30, -0.21]]
         density: 1
         layers: ["static"]
         collision: false
@@ -33,7 +33,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[0.23, 0.17], [0.23, 0.14], [0.20, 0.17], [0.20, 0.14]]
+        points: [[0.46, 0.34], [0.46, 0.21], [0.30, 0.34], [0.30, 0.21]]
         density: 1
         layers: ["static"]
         collision: false
@@ -42,7 +42,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: polygon
-        points: [[-0.23, 0.17], [-0.23, 0.14], [-0.20, 0.17], [-0.20, 0.14]]
+        points: [[-0.46, 0.34], [-0.46, 0.21], [-0.30, 0.34], [-0.30, 0.21]]
         density: 1
         layers: ["static"]
         collision: false
@@ -51,7 +51,7 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 0.6] # slightly transparent, so that from a bird eye view the legs of the table are also visible
     footprints:
       - type: polygon
-        points: [[-0.23, 0.17], [0.23, 0.17], [0.23, 0.14], [-0.23, 0.14]]
+        points: [[-0.46, 0.34], [0.46, 0.34], [0.46, 0.28], [-0.46, 0.28]]
         density: 1
         layers: ["static"]
         collision: false

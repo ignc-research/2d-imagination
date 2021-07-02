@@ -5,9 +5,26 @@ from geometry_msgs.msg import Twist
 import sensor_msgs.point_cloud2 as pc2
 import laser_geometry.laser_geometry as lg
 import math
+from nav_msgs.msg import OccupancyGrid, Odometry
+from numpy import asarray
+from numpy import savetxt
 
 lp = lg.LaserProjection()
 read_laser_scan_info = 1
+
+robot_pos_x = 0.0
+robot_pos_y = 0.0
+robot_angle_z = 0.0
+
+def calculate_avg_x_value(point_generator):
+    sum_temp = 0.0
+    num_temp = 0
+    for point in point_generator:
+        #print(point)
+        if not math.isnan(point[0]):
+            sum_temp += point[0]
+            num_temp += 1
+    print('avg x value: ' + str(sum_temp/num_temp)) # calculate avg x value
 
 def callback(data):
     # Read the data from the laser scan (only once):
@@ -31,27 +48,60 @@ def callback(data):
     # convert laser scan data to a point cloud to get a set of 3D Cartesian (x,y,z) points:
     pc2_msg = lp.projectLaser(data)
     point_generator = pc2.read_points(pc2_msg) # a generator of the individual points (x,y,z,index) (could be accessed in a loop)
-    #sum_temp = 0.0
-    #num_temp = 0
-    #for point in point_generator:
-    #    print(point)
-    #    if not math.isnan(point[0]):
-    #        sum_temp += point[0]
-    #        num_temp += 1
-    #print('avg x value: ' + str(sum_temp/num_temp)) # calculate avg x value
     point_list = pc2.read_points_list(pc2_msg) # a list of the individual points (x,y,z,index) # example: Point(x=-0.07854820042848587, y=-4.499999523162842, z=0.0, index=359)
-    print(len(point_list))
-    #print(point_list[len(point_list)/2].x) # access a certain point of the list
-    print(point_list[len(point_list)/2])
+    
+    # do sth with the converted data:
+    #calculate_avg_x_value(point_generator)
+    #print(len(point_list))
+    #print(point_list[len(point_list)/2].x) # access the x coordinate of a the middle point of the list
+    print(point_list[len(point_list)/2]) # access the information about the middle point of the list
     # TODO Question: are the points absolute or relative to the position of the robot - relative?
 
-    # TODO: do sth with the laser scan data -> add semantics, make the bird eye view map etc.
+    print('robot current absolute pos(x,y): ' + str(robot_pos_x) + ',' + str(robot_pos_y))
+    print('robot current angle z: ' + str(robot_angle_z))
+    # TODO: from the absolute robot coordinates could the relative point cloud data be transformed to an absolute data
+
+    # TODO: save the data (into a rosbag, then to a csv file (preprocessing)!?) and work with it (add semantics, transform to a 2d bird eye view map etc.)
+    # TODO: add layers to the static obstacles
+    # TODO: scale up the size of the chairs and tables vs. scale down the robot
+    # TODO: save also the absolute and relative position of the robot the whole time, to be able to match it with the laser scan data; map daten auch um zu wissen wo die obstacles sind
+    # TODO: postprocessing: laser scan data to semantic laser scan data (to know that this was a tish for example)
+    # TODO: use Daniel's GUI, because later we will need 1000 scenarios
+    # TODO: in move_base use alca statt teb -> max_vel could be then changed in the launch file to for example 0.7 or 1
+
+def callback_map(map_data):
+    # TODO: a ground truth map with occupied, not occupied, unknown is needed; why does not the map update?
+    #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
+    map_data_array = asarray([map_data.data])
+    savetxt('map_data.csv', map_data_array, delimiter=',') # will be saved in folder $HOME\.ros
+    free_amount = 0
+    unknown_amount = 0
+    ocupied_amount = 0
+    for i in map_data_array[0]:
+        if i == 0:
+            free_amount += 1
+        if i == -1:
+            unknown_amount += 1
+        if i == 100:
+            ocupied_amount += 1
+    print("FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
+
+def callback_odom(odom_data):
+    #print('(pos_x, pos_y, angle_z) = (' + str(odom_data.pose.pose.position.x) + ', ' + str(odom_data.pose.pose.position.y) + ', ' + str(odom_data.pose.pose.orientation.z) + ')')
+    # TODO: map the position of the robot with its laser scan data
+    global robot_pos_x
+    global robot_pos_y
+    global robot_angle_z
+    robot_pos_x = odom_data.pose.pose.position.x
+    robot_pos_y = odom_data.pose.pose.position.y
+    robot_angle_z = odom_data.pose.pose.orientation.z
 
 def laser_scan_data_listener():
     rospy.init_node('scan_values')
     rospy.Subscriber("/scan", LaserScan, callback) # queue_size=1
+    rospy.Subscriber('/map', OccupancyGrid, callback_map) # /move_base/global_costmap/costmap similar to /map
+    rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns how the robot is moving and where is it right now
     rospy.spin()
 
 if __name__ == '__main__':
     laser_scan_data_listener()
-    # TODO: read and save the laser scan data from an example robot's position

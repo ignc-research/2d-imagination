@@ -6,7 +6,7 @@ bodies: # List of named bodies
     #type: static # ?
     footprints:
       - type: circle
-        radius: 0.7
+        radius: 1.4
         center: [0.0, 0.0]
         density: 1
         layers: ["static"]
@@ -16,8 +16,8 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: circle
-        radius: 0.075
-        center: [-0.35, -0.35]
+        radius: 0.15
+        center: [-0.7, -0.7]
         density: 1
         layers: ["static"]
         collision: false
@@ -26,8 +26,8 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: circle
-        radius: 0.075
-        center: [0.35, -0.35]
+        radius: 0.15
+        center: [0.7, -0.7]
         density: 1
         layers: ["static"]
         collision: false
@@ -36,8 +36,8 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: circle
-        radius: 0.075
-        center: [0.35, 0.35]
+        radius: 0.15
+        center: [0.7, 0.7]
         density: 1
         layers: ["static"]
         collision: false
@@ -46,8 +46,8 @@ bodies: # List of named bodies
     color: [0.3, 0.0, 0.1, 1.0]
     footprints:
       - type: circle
-        radius: 0.075
-        center: [-0.35, 0.35]
+        radius: 0.15
+        center: [-0.7, 0.7]
         density: 1
         layers: ["static"]
         collision: false
