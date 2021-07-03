@@ -8,8 +8,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.46, 0.34], [0.46, 0.34], [-0.46, -0.34], [0.46, -0.34]]
         density: 1
-        layers: [] # TODO: make the chair_seat and chair_back in different layers
+        layers: ["2level"] # TODO: make the chair_seat and chair_back in different layers
         collision: false
+        sensor: true
 
   - name: leg_front_left 
     color: [0.3, 0.0, 0.1, 1.0]
@@ -17,8 +18,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.46, -0.34], [-0.46, -0.21], [-0.30, -0.34], [-0.30, -0.21]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_front_right
     color: [0.3, 0.0, 0.1, 1.0]
@@ -26,8 +28,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[0.46, -0.34], [0.46, -0.21], [0.30, -0.34], [0.30, -0.21]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_back_right
     color: [0.3, 0.0, 0.1, 1.0]
@@ -35,8 +38,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[0.46, 0.34], [0.46, 0.21], [0.30, 0.34], [0.30, 0.21]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_back_left
     color: [0.3, 0.0, 0.1, 1.0]
@@ -44,8 +48,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.46, 0.34], [-0.46, 0.21], [-0.30, 0.34], [-0.30, 0.21]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: chair_back
     color: [0.3, 0.0, 0.1, 0.6] # slightly transparent, so that from a bird eye view the legs of the table are also visible
@@ -53,7 +58,8 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.46, 0.34], [0.46, 0.34], [0.46, 0.28], [-0.46, 0.28]]
         density: 1
-        layers: []
+        layers: ["3level"]
         collision: false
+        sensor: true
 
   #- name: safety_dist_circle # necessary?

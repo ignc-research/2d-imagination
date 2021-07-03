@@ -8,8 +8,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.8, 2.0], [0.8, 2.0], [-0.8, -2.0], [0.8, -2.0]]
         density: 1
-        layers: []
+        layers: ["2level"]
         collision: false
+        sensor: true
 
   - name: leg_front_left 
     color: [0.3, 0.0, 0.1, 1.0]
@@ -17,8 +18,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.70, -1.70], [-0.70, -1.90], [-0.50, -1.70], [-0.50, -1.90]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_front_right
     color: [0.3, 0.0, 0.1, 1.0]
@@ -26,8 +28,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[0.70, -1.70], [0.70, -1.90], [0.50, -1.70], [0.50, -1.90]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_back_right
     color: [0.3, 0.0, 0.1, 1.0]
@@ -35,8 +38,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[0.70, 1.70], [0.70, 1.90], [0.50, 1.70], [0.50, 1.90]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_back_left
     color: [0.3, 0.0, 0.1, 1.0]
@@ -44,7 +48,8 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.70, 1.70], [-0.70, 1.90], [-0.50, 1.70], [-0.50, 1.90]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   #- name: safety_dist_circle # necessary?

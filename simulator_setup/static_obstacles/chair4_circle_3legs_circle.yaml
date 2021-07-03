@@ -9,8 +9,9 @@ bodies: # List of named bodies
         radius: 0.5
         center: [0.0, 0.0]
         density: 1
-        layers: []
+        layers: ["2level"]
         collision: false
+        sensor: true
 
   - name: leg_front_middle 
     color: [0.3, 0.0, 0.1, 1.0]
@@ -19,8 +20,9 @@ bodies: # List of named bodies
         radius: 0.1
         center: [0, -0.30]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_back_right
     color: [0.3, 0.0, 0.1, 1.0]
@@ -29,8 +31,9 @@ bodies: # List of named bodies
         radius: 0.1
         center: [0.30, 0.30]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   - name: leg_back_left
     color: [0.3, 0.0, 0.1, 1.0]
@@ -39,7 +42,8 @@ bodies: # List of named bodies
         radius: 0.1
         center: [-0.30, 0.30]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   #- name: safety_dist_circle # necessary?

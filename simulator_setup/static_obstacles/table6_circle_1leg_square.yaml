@@ -9,8 +9,9 @@ bodies: # List of named bodies
         radius: 1.4
         center: [0.0, 0.0]
         density: 1
-        layers: []
+        layers: ["2level"]
         collision: false
+        sensor: true
 
   - name: leg_middle
     color: [0.3, 0.0, 0.1, 1.0]
@@ -18,7 +19,8 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.15, -0.15], [0.15, -0.15], [0.15, 0.15], [-0.15, 0.15]]
         density: 1
-        layers: ["static"]
+        layers: ["1level"]
         collision: false
+        sensor: false
 
   #- name: safety_dist_circle # necessary?

@@ -1,12 +1,19 @@
 properties: 
- 
   velocity_iterations: 10
-
   position_iterations: 10
 layers:  # Support for arbitrary number of layers
   - name: "static"
     map: "map.yaml"  # leading / denotes absolute file path, otherwise relative
     color: [0, 1, 0, 1]  # List of floats [r,g,b,a] to color debug boundary
     
- 
-    
+  - name: "1level"
+    map: "map.yaml"  # leading / denotes absolute file path, otherwise relative
+    color: [1.0, 0.0, 0.0, 0.5]  # List of floats [r,g,b,a] to color debug boundary
+
+  - name: "2level"
+    map: "map.yaml"  # leading / denotes absolute file path, otherwise relative
+    color: [0.0, 1.0, 0.0, 0.5]  # List of floats [r,g,b,a] to color debug boundary
+
+  - name: "3level"
+    map: "map.yaml"  # leading / denotes absolute file path, otherwise relative
+    color: [0.0, 0.0, 1.0, 0.5]  # List of floats [r,g,b,a] to color debug boundary
