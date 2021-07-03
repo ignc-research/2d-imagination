@@ -9,7 +9,7 @@ bodies: # List of named bodies
         radius: 1.4
         center: [0.0, 0.0]
         density: 1
-        layers: ["static"]
+        layers: []
         collision: false
 
   - name: leg_front_left

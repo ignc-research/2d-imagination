@@ -8,8 +8,9 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.8, 2.0], [0.8, 2.0], [-0.8, -2.0], [0.8, -2.0]]
         density: 1
-        layers: ["static"]
+        layers: [] # no layer -> this body will be visualized, but will not be 'seen' from the laser scan
         collision: false
+        sensor: true # with layers="static" and sensor=true is also the table_top not 'seen' from the laser scan
 
   - name: leg_front_left 
     color: [0.3, 0.0, 0.1, 1.0]
@@ -18,8 +19,9 @@ bodies: # List of named bodies
         radius: 0.15
         center: [-0.4, -1.6]
         density: 1
-        layers: ["static"]
+        layers: ["static"] # other seen options are "all", "ped", "2d", "3d" etc.
         collision: false
+        #sensor: false
 
   - name: leg_front_right
     color: [0.3, 0.0, 0.1, 1.0]

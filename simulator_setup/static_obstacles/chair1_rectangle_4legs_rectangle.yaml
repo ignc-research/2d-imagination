@@ -8,7 +8,7 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.46, 0.34], [0.46, 0.34], [-0.46, -0.34], [0.46, -0.34]]
         density: 1
-        layers: ["static"]
+        layers: [] # TODO: make the chair_seat and chair_back in different layers
         collision: false
 
   - name: leg_front_left 
@@ -53,7 +53,7 @@ bodies: # List of named bodies
       - type: polygon
         points: [[-0.46, 0.34], [0.46, 0.34], [0.46, 0.28], [-0.46, 0.28]]
         density: 1
-        layers: ["static"]
+        layers: []
         collision: false
 
   #- name: safety_dist_circle # necessary?
