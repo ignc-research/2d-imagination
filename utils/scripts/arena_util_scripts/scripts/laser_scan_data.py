@@ -8,6 +8,12 @@ import math
 from nav_msgs.msg import OccupancyGrid, Odometry
 from numpy import asarray
 from numpy import savetxt
+import os
+import time
+import rospkg
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
 
 lp = lg.LaserProjection()
 read_laser_scan_info = 1
@@ -62,12 +68,13 @@ def callback(data):
     # TODO: from the absolute robot coordinates could the relative point cloud data be transformed to an absolute data
 
     # TODO: save the data (into a rosbag, then to a csv file (preprocessing)!?) and work with it (add semantics, transform to a 2d bird eye view map etc.)
-    # TODO: scale up the size of the chairs and tables vs. scale down the robot size
     # TODO: save also the absolute and relative position of the robot the whole time, to be able to match it with the laser scan data; map daten auch um zu wissen wo die obstacles sind
     # TODO: postprocessing: laser scan data to semantic laser scan data (to know that this was a tish for example)
     # TODO: use Daniel's GUI, because later we will need 1000 scenarios
 
 def callback_map(map_data):
+    rospack = rospkg.RosPack()
+
     # TODO: a ground truth map with occupied, not occupied, unknown is needed; why does not the map update?
     #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
     map_data_array = asarray([map_data.data])
@@ -82,7 +89,30 @@ def callback_map(map_data):
             unknown_amount += 1
         if i == 100:
             ocupied_amount += 1
-    print("FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
+    print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
+
+    # save the map as a grey image (black = free; grey = occupied; unknown = white):
+    map_data_array2 = np.array(map_data.data) # array of size 346986
+    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    print(map_reshaped)
+    row,col = map_reshaped.shape
+    temp = np.zeros((row,col))
+    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    for i in range(row):
+        for j in range(col):
+            if(map_reshaped[i,j]==-1):
+                temp[row-1-i,j]=255 # unknown = white
+            else:
+                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+    cv2.imshow("map", temp)
+    cv2.imwrite("map_occupancy_grid.png", temp) # will be saved in folder $HOME\.ros
+    #cv2.waitKey(0)
+
+    # TODO: the /map topic does not recognize the tables and chairs as an occupied area!? (obstacles = black areas in the map file)
+    # idea1: overwrite the map image with a screenshot from rviz!?
+    # idea2: get the coordinates of the obstacles and publish them somehow!?s
 
 def callback_odom(odom_data):
     #print('(pos_x, pos_y, angle_z) = (' + str(odom_data.pose.pose.position.x) + ', ' + str(odom_data.pose.pose.position.y) + ', ' + str(odom_data.pose.pose.orientation.z) + ')')
@@ -96,9 +126,10 @@ def callback_odom(odom_data):
 
 def laser_scan_data_listener():
     rospy.init_node('scan_values')
+    #time.sleep(2) # TODO: wait for the obstacles to be spawned!?
     rospy.Subscriber("/scan", LaserScan, callback) # queue_size=1
     rospy.Subscriber('/map', OccupancyGrid, callback_map) # /move_base/global_costmap/costmap similar to /map
-    rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns how the robot is moving and where is it right now
+    rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns position and velocity of the robot
     rospy.spin()
 
 if __name__ == '__main__':
