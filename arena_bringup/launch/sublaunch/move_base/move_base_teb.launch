@@ -27,7 +27,10 @@
     <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
     <param name="controller_frequency" value="5.0" />
     <!-- <param name="planner_frequency" value="1.0" /> -->
-    
+
+    <!-- robot config params -->
+    <param name="TebLocalPlannerROS/max_vel_x" value="0.9" /> <!-- default 0.4 -->
+    <param name="TebLocalPlannerROS/max_vel_x_backwards" value="0.5" /> <!-- default 0.2 -->
 
   </node>
 </launch>

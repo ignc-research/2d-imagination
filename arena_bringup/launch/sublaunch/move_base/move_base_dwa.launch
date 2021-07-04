@@ -15,11 +15,13 @@
     <rosparam file="$(find conventional)/config/tb3/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find conventional)/config/tb3/move_base_params.yaml" command="load" />
  
-
     <rosparam file="$(find conventional)/config/tb3/dwa_local_planner_params_burger.yaml" command="load" />
     <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
     <remap from="odom" to="$(arg odom_topic)"/>
     <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />
+    <param name="DWAPlannerROS/min_vel_trans" value="0.4" if="$(arg move_forward_only)" />
+    <param name="DWAPlannerROS/max_vel_x" value="0.9" />
+    <param name="DWAPlannerROS/max_vel_trans" value="0.9" />
     <param name="controller_frequency" value="5.0" />
     <param name="planner_frequency" value="0.0" />
 

@@ -62,12 +62,10 @@ def callback(data):
     # TODO: from the absolute robot coordinates could the relative point cloud data be transformed to an absolute data
 
     # TODO: save the data (into a rosbag, then to a csv file (preprocessing)!?) and work with it (add semantics, transform to a 2d bird eye view map etc.)
-    # TODO NEXT: add layers to the static obstacles
-    # TODO: scale up the size of the chairs and tables vs. scale down the robot
+    # TODO: scale up the size of the chairs and tables vs. scale down the robot size
     # TODO: save also the absolute and relative position of the robot the whole time, to be able to match it with the laser scan data; map daten auch um zu wissen wo die obstacles sind
     # TODO: postprocessing: laser scan data to semantic laser scan data (to know that this was a tish for example)
     # TODO: use Daniel's GUI, because later we will need 1000 scenarios
-    # TODO: in move_base use alca statt teb -> max_vel could be then changed in the launch file to for example 0.7 or 1
 
 def callback_map(map_data):
     # TODO: a ground truth map with occupied, not occupied, unknown is needed; why does not the map update?

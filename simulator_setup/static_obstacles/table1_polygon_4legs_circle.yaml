@@ -10,7 +10,7 @@ bodies: # List of named bodies
         density: 1
         layers: ["2level"] # with no layer = [] -> this body will be visualized, but will not be detected from the laser scan
         collision: false
-        sensor: false # with sensor = true, no matter of the layer name, the table_top will also not be detected from the laser scan
+        sensor: true # with sensor = true, no matter of the layer name, the table_top will also not be detected from the laser scan
 
   - name: leg_front_left 
     color: [0.3, 0.0, 0.1, 1.0]
