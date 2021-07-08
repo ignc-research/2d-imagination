@@ -200,9 +200,7 @@ def callback_map(map_data):
     # the obstacles for the ground truth map should be actually from the biggest layer (layer2), since layer2 (and layer3) should be known after the imagination with layer1
     # -> but the /map topic does not recognize the spawn tables and chairs as an occupied area!?
     # -> the black areas on the map image "map_small.png" are considered as obstacles
-    # idea1: get the coordinates of the obstacles and visualize them on the image map with opencv (cv2.rectangle()) - the /map topic itself could not be updated, but the image with the obstacles could be still internal used
-    # idea2: to get the coordinates of the obstacles try out with the topic /flatland_markers
-    # -> or get the info from the files: params from the obstacle yaml files and the poses from pedsim_test.py
+    # idea: get the coordinates of the obstacles from the topic /flatland_markers (instead of: params from the obstacle yaml files and the poses from pedsim_test.py) and visualize them on the image map with opencv (cv2.rectangle()) - the /map topic itself could not be updated, but the image with the obstacles could be still internal used
 
 def callback_flatland_markers(markers_data):
     #time.sleep(5) # wait for the obstacles to be spawned!?
@@ -246,7 +244,7 @@ def callback_flatland_markers(markers_data):
         #for m in obstacle_markers:
         #    print(str(m.x) + ' ' + str(m.y))
 
-        for obstacle in obstacle_markers: # TODO NEXT
+        for obstacle in obstacle_markers:
             print('AMOUNT OF MARKERS PER OBSTACLE: ' + str(len(obstacle.markers)))
             # params that are the same for all parts of an obstacle:
             center_x = obstacle.x
@@ -321,27 +319,20 @@ def callback_flatland_markers(markers_data):
             M = cv2.getRotationMatrix2D((center_x_px,row_big-1-center_y_px),yaw_grad,1) # create the transformation matrix (center, angle, scale); important: (0,0) top left corner
             dst = cv2.warpAffine(used_map_image,M,(col_big,row_big))
             # cut the rotated obstacle from the img (for now a rectangle around the obstacle) and upload it in the same position on top of the obstacle_map to update it with another obstacle
-            # TODO NEXT: start with rotating the biggest obstacles!? or do not cut a rectangle but exactly the form of the object!?
-            # -> with border_x = 9 and border_y = 12 one table is not rotating; with border_x = border_y = 20 it is rotating, but everything else is messed up
-            # -> radius is the distance only for sphere obstacles!
-            #x_start = int(center_x_px - radius_px)
-            #y_start = int(center_y_px - radius_px)
-            #x_end = x_start+2*radius_px
-            #y_end = y_start+2*radius_px
-            #border_x = 9 # tune it finer!?
-            #border_y = 12 # tune it finer!?
-            x_distance = x_px_rel_max # TODO NEXT
+            x_distance = x_px_rel_max
             y_distance = y_px_rel_max
-            x_start = int(center_x_px - x_distance/2)
-            y_start = int(center_y_px - y_distance/2)
-            print('X: ' + str(x_start) + ' ' + str(x_distance))
-            print('Y: ' + str(y_start) + ' ' + str(y_distance))
-            x_end = x_start+x_distance
-            y_end = y_start+y_distance
-            border_x = 0 # 5
-            border_y = 0 # 15
-            figure_img = dst[row_big-1-y_start-border_y:row_big-1-y_end+border_y, x_start-border_x:x_end+border_x]
-            used_map_image[row_big-1-y_start-border_y:row_big-1-y_end+border_y, x_start-border_x:x_end+border_x] = figure_img
+            # make it a rectangle, to be sure that the whole obstacle even after its rotation is still fully displayed
+            # TODO NEXT: problem: the rotated objects (as a big rectangle no matter of their form) overlap and some pixels are therefore messed up
+            # -> start with rotating the biggest obstacles!? or do not cut a rectangle but exactly the form of the object!?
+            # -> somehow 'add' the pixels, so that a colored pixel is always above a white one!?
+            if x_distance > y_distance: distance = x_distance
+            else: distance = y_distance
+            x_start = int(center_x_px - distance)
+            y_start = int(center_y_px - distance)
+            x_end = x_start+2*distance
+            y_end = y_start+2*distance
+            figure_img = dst[row_big-1-y_end:row_big-1-y_start, x_start:x_end]
+            used_map_image[row_big-1-y_end:row_big-1-y_start, x_start:x_end] = figure_img
             cv2.imwrite("map_obstacles_part.png", figure_img)
             cv2.imwrite("map_obstacles.png", used_map_image)
             
@@ -350,7 +341,7 @@ def callback_flatland_markers(markers_data):
         print('amount of polygons: ' + str(counter_polygons)) # 4 -> 95
         print('amount of lines: ' + str(counter_lines)) # 4  -> 4
         print('amount of others: ' + str(counter_others)) # 0
-        # TODO: at the end all figures should be filled with a black color and from there should be created an array with the values 'free'/'occupied'/'unknown'
+        # TODO: at the end all figures should be filled with a grey color and from there should be created an array with the values 'free'/'occupied'/'unknown'
         # -> and later on semantics should be added (sth like 'table1')
     
 def callback_local_costmap(map_data):
@@ -424,9 +415,9 @@ def callback_local_costmap(map_data):
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     #cv2.waitKey(0)
     # TODO: test it also when layer2 is visible for the laser scan
-    # TODO: add the image somehow to the global costmap or map!?
+    # TODO: 'add' the image to the one from the /map topic
     # TODO NEXT: be sure to have both an image for visualization (black/white/gray) and an array (0,100,-1) for free/occupied/unknown!
-    # -> it is maybe even faster, inside the iterations to save everything in an array and at the end to display the image!?
+    # -> it is maybe even faster, inside the iterations to save everything in an array and at the end to display the image
 
 def callback_global_costmap(map_data):
     print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length and info as the one from /map)
