@@ -258,6 +258,19 @@ def callback_flatland_markers(markers_data):
             center_y_px = int((center_y - origin_y) / resolution)
             x_px_rel_max = 0
             y_px_rel_max = 0
+
+            # transformation from geometry_msgs/Pose2d to geometry_msgs/Pose (in 3d)
+            # (from quaternions to Euler angles, where only yaw (a z-axis rotation) is interessting)
+            siny_cosp = 2 * (q_w * q_z + q_x * q_y)
+            cosy_cosp = 1 - 2 * (q_y * q_y + q_z * q_z)
+            yaw = math.atan2(siny_cosp, cosy_cosp)
+            yaw_grad = math.degrees(yaw) # the same as the given 'theta' in the pose2d form in pedsim_test.py
+            print('SPIN [deg]: ' + str(yaw_grad)) # the angle with which the obstacle should be rotated
+
+            # test image per obstacle to avoid overlapping afer obstacle rotation; here the obstacles will be rotated before being placed on the final image 'used_map_image' that should have all obstacles at the end
+            # necessary to avoid the problems: while cutting an obstacle to take parts of other obstacles and while putting the obstacle to overwrite with white other obstacles
+            temp_image_for_obstacle_rotations = cv2.imread(img_path) # the map image without obstacles
+
             for marker in obstacle.markers:
                 # handle differently based on the type:
                 if marker.type == 7: # 'sphere list'
@@ -271,7 +284,7 @@ def callback_flatland_markers(markers_data):
                     center_x_px_part_obstacle = int(((center_x + marker.points[0].x) - origin_x) / resolution) # x coordinate of the center of the current circle part of an obstacle
                     center_y_px_part_obstacle = int(((center_y + marker.points[0].y) - origin_y) / resolution)
                     # the color of the obstacles could be taken from marker.color
-                    cv2.circle(used_map_image,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
+                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
                     #cv2.circle(used_map_image,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
                     #cv2.circle(used_map_image,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
                 elif marker.type == 11: # 'triangle list' = polygon
@@ -288,7 +301,7 @@ def callback_flatland_markers(markers_data):
                             y_px_rel_max = int(corner.y / resolution)
                     pts = np.array([corners_array], np.int32)
                     pts = pts.reshape((-1,1,2))
-                    cv2.polylines(used_map_image,[pts],True,(0,255,255)) # a polygon with yellow contours
+                    cv2.polylines(temp_image_for_obstacle_rotations,[pts],True,(0,255,255)) # a polygon with yellow contours
                     #cv2.fillPoly(used_map_image, np.array([corners_array], np.int32), (0,255,255)) # a yellow filled polygon
                     #cv2.fillPoly(used_map_image, np.array([corners_array], np.int32), (100,100,100)) # a grey filled polygon
                 elif marker.type == 5: # 'line list' =? the four room walls
@@ -302,37 +315,37 @@ def callback_flatland_markers(markers_data):
                     first_elem_y_px = int(first_elem_y / resolution) + center_y_px
                     last_elem_x_px = int(last_elem_X / resolution) + center_x_px
                     last_elem_y_px = int(last_elem_y / resolution) + center_y_px
-                    cv2.line(used_map_image,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
+                    cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
                 else:
                     counter_others += 1
-            
-            # transformation from geometry_msgs/Pose2d to geometry_msgs/Pose (in 3d)
-            # (from quaternions to Euler angles, where only yaw (a z-axis rotation) is interessting)
-            siny_cosp = 2 * (q_w * q_z + q_x * q_y)
-            cosy_cosp = 1 - 2 * (q_y * q_y + q_z * q_z)
-            yaw = math.atan2(siny_cosp, cosy_cosp)
-            yaw_grad = math.degrees(yaw) # the same as the given 'theta' in the pose2d form in pedsim_test.py
-            print('SPIN [deg]: ' + str(yaw_grad))
 
             # Important: consider the orientation -> rotation around the center of the obstacle (not a part of the obstacle) -> for example rotation around the center of the chair, so that the legs are in the right position!
             # rotate the whole obstacle with all of its parts at once:
             M = cv2.getRotationMatrix2D((center_x_px,row_big-1-center_y_px),yaw_grad,1) # create the transformation matrix (center, angle, scale); important: (0,0) top left corner
-            dst = cv2.warpAffine(used_map_image,M,(col_big,row_big))
-            # cut the rotated obstacle from the img (for now a rectangle around the obstacle) and upload it in the same position on top of the obstacle_map to update it with another obstacle
-            x_distance = x_px_rel_max
+            dst = cv2.warpAffine(temp_image_for_obstacle_rotations,M,(col_big,row_big))
+            # cut a rectangle around the rotated obstacle from the img and upload it in the same position on top of the obstacle_map to update it with another obstacle
+            x_distance = x_px_rel_max # before the rotation
             y_distance = y_px_rel_max
             # make it a rectangle, to be sure that the whole obstacle even after its rotation is still fully displayed
-            # TODO NEXT: problem: the rotated objects (as a big rectangle no matter of their form) overlap and some pixels are therefore messed up
-            # -> start with rotating the biggest obstacles!? or do not cut a rectangle but exactly the form of the object!?
-            # -> somehow 'add' the pixels, so that a colored pixel is always above a white one!?
             if x_distance > y_distance: distance = x_distance
             else: distance = y_distance
-            x_start = int(center_x_px - distance)
-            y_start = int(center_y_px - distance)
-            x_end = x_start+2*distance
-            y_end = y_start+2*distance
-            figure_img = dst[row_big-1-y_end:row_big-1-y_start, x_start:x_end]
-            used_map_image[row_big-1-y_end:row_big-1-y_start, x_start:x_end] = figure_img
+            # Important: 'distance' is the max length of the rectangle around the not yet rotated obstacle => idea: take the diagonal (should work also if the obstacle was a polygon)
+            # Idea: take as less as possible pixels but also at 100% enough so that the whole obstacle is there, at the end all white pixels will be filtert out
+            distance_diagonal = int(math.sqrt(2*(math.pow(distance,2))))
+            x_start = int(center_x_px - distance_diagonal)
+            y_start = int(center_y_px - distance_diagonal)
+            x_end = x_start+2*distance_diagonal
+            y_end = y_start+2*distance_diagonal
+
+            # write the colored and rotated obstacle to the image
+            figure_img = dst[row_big-1-y_end:row_big-1-y_start, x_start:x_end] # just a step in between for debugging
+            for r in range(row_big-1-y_end, row_big-1-y_start):
+                for c in range(x_start, x_end):
+                    BGR_color_dst_ar = [dst[r, c, 0], dst[r, c, 1], dst[r, c, 2]]
+                    white_ar = [255,255,255]
+                    if BGR_color_dst_ar != white_ar: # filter out the white pixels to get only the obstacle contours to prevent overlapping
+                        used_map_image[r, c] = dst[r, c]
+                    # Info: because of rotation some of the colors are not that perfect any more (for example red is not only (255,0,0) etc.) 
             cv2.imwrite("map_obstacles_part.png", figure_img)
             cv2.imwrite("map_obstacles.png", used_map_image)
             
@@ -341,7 +354,7 @@ def callback_flatland_markers(markers_data):
         print('amount of polygons: ' + str(counter_polygons)) # 4 -> 95
         print('amount of lines: ' + str(counter_lines)) # 4  -> 4
         print('amount of others: ' + str(counter_others)) # 0
-        # TODO: at the end all figures should be filled with a grey color and from there should be created an array with the values 'free'/'occupied'/'unknown'
+        # TODO NEXT: at the end all figures should be filled with a grey color and from there should be created an array with the values 'free'/'occupied'/'unknown'
         # -> and later on semantics should be added (sth like 'table1')
     
 def callback_local_costmap(map_data):
