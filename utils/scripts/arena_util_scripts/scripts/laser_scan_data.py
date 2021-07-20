@@ -284,9 +284,9 @@ def callback_flatland_markers(markers_data):
                     center_x_px_part_obstacle = int(((center_x + marker.points[0].x) - origin_x) / resolution) # x coordinate of the center of the current circle part of an obstacle
                     center_y_px_part_obstacle = int(((center_y + marker.points[0].y) - origin_y) / resolution)
                     # the color of the obstacles could be taken from marker.color
-                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
-                    #cv2.circle(used_map_image,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
-                    #cv2.circle(used_map_image,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
+                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
                 elif marker.type == 11: # 'triangle list' = polygon
                     counter_polygons += 1
                     corners = marker.points
@@ -301,9 +301,9 @@ def callback_flatland_markers(markers_data):
                             y_px_rel_max = int(corner.y / resolution)
                     pts = np.array([corners_array], np.int32)
                     pts = pts.reshape((-1,1,2))
-                    cv2.polylines(temp_image_for_obstacle_rotations,[pts],True,(0,255,255)) # a polygon with yellow contours
-                    #cv2.fillPoly(used_map_image, np.array([corners_array], np.int32), (0,255,255)) # a yellow filled polygon
-                    #cv2.fillPoly(used_map_image, np.array([corners_array], np.int32), (100,100,100)) # a grey filled polygon
+                    #cv2.polylines(temp_image_for_obstacle_rotations,[pts],True,(0,255,255)) # a polygon with yellow contours
+                    #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (0,255,255)) # a yellow filled polygon
+                    cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (100,100,100)) # a grey filled polygon
                 elif marker.type == 5: # 'line list' =? the four room walls
                     counter_lines += 1
                     # for the line take only the first and last element of the array (TODO)
@@ -315,7 +315,8 @@ def callback_flatland_markers(markers_data):
                     first_elem_y_px = int(first_elem_y / resolution) + center_y_px
                     last_elem_x_px = int(last_elem_X / resolution) + center_x_px
                     last_elem_y_px = int(last_elem_y / resolution) + center_y_px
-                    cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
+                    #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
+                    cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(100,100,100),10) # a grey line with thickness of 10 px
                 else:
                     counter_others += 1
 
@@ -341,9 +342,9 @@ def callback_flatland_markers(markers_data):
             figure_img = dst[row_big-1-y_end:row_big-1-y_start, x_start:x_end] # just a step in between for debugging
             for r in range(row_big-1-y_end, row_big-1-y_start):
                 for c in range(x_start, x_end):
-                    BGR_color_dst_ar = [dst[r, c, 0], dst[r, c, 1], dst[r, c, 2]]
+                    RGB_color_dst_ar = [dst[r, c, 0], dst[r, c, 1], dst[r, c, 2]]
                     white_ar = [255,255,255]
-                    if BGR_color_dst_ar != white_ar: # filter out the white pixels to get only the obstacle contours to prevent overlapping
+                    if RGB_color_dst_ar != white_ar: # filter out the white pixels to get only the obstacle contours to prevent overlapping
                         used_map_image[r, c] = dst[r, c]
                     # Info: because of rotation some of the colors are not that perfect any more (for example red is not only (255,0,0) etc.) 
             cv2.imwrite("map_obstacles_part.png", figure_img)
@@ -354,9 +355,65 @@ def callback_flatland_markers(markers_data):
         print('amount of polygons: ' + str(counter_polygons)) # 4 -> 95
         print('amount of lines: ' + str(counter_lines)) # 4  -> 4
         print('amount of others: ' + str(counter_others)) # 0
-        # TODO NEXT: at the end all figures should be filled with a grey color and from there should be created an array with the values 'free'/'occupied'/'unknown'
-        # -> and later on semantics should be added (sth like 'table1')
-    
+
+        # make sure that all obstacles are marked grey
+        # make some color changes, so that 100 = occupied = grey, 0 = free = black, -1 = unknown = white, like in map_topic.png
+        # => here in map_obstacles.png grey stays grey = 100 = occupied, black -> grey, white -> black, some other color -> white (or maybe directly grey?)
+        ground_truth_map = cv2.imread("map_obstacles.png")
+        white_ar = [255,255,255]
+        grey_ar = [100,100,100]
+        black_ar = [0,0,0]
+        for i in range(ground_truth_map.shape[0]):
+            for j in range(ground_truth_map.shape[1]):
+                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
+                if RGB_color_dst_ar == grey_ar:
+                    pass
+                elif RGB_color_dst_ar == black_ar:
+                    ground_truth_map[i, j] = (100,100,100)
+                elif RGB_color_dst_ar == white_ar:
+                    ground_truth_map[i, j] = (0,0,0)
+                else:
+                    #ground_truth_map[i, j] = (255,255,255) # they are some 'unknown' points because of the rotation and therefore not that super clear visualization of some obstacles
+                    ground_truth_map[i, j] = (100,100,100) # we know that they are part of the obstacle, so it is maybe better that the groundtruth map/array do not have 'unknown' points
+        cv2.imwrite("map_ground_truth.png", ground_truth_map)
+        print('GROUND TRUTH MAP DONE!')
+
+        # create a ground truth array (in row-major order) with the values 100/0/-1 from the ground truth map with values black/grey/white
+        # Important: for an image the start (0,0) is in the upper left corner (see 'ground_truth_array_image_order'), for the simulation (occupancy grid for example) is start (0,0) in the down left corner -> both versions are just mirrored to one another regarding the x axis
+        ground_truth_array_image_order = []
+        ground_truth_array_sim_order = []
+        for i in range(ground_truth_map.shape[0]):
+            for j in range(ground_truth_map.shape[1]):
+                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
+                if(RGB_color_dst_ar==white_ar):
+                    ground_truth_array_image_order.append(-1) # 255 = white = unknown = -1
+                elif(RGB_color_dst_ar==grey_ar):
+                    ground_truth_array_image_order.append(100) # 100 = grey = occupied = 100
+                else:
+                    ground_truth_array_image_order.append(0) # 0 = black = free = 0
+        i = ground_truth_map.shape[0] - 1
+        while i >=0:
+            for j in range(ground_truth_map.shape[1]):
+                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
+                if(RGB_color_dst_ar==white_ar):
+                    ground_truth_array_sim_order.append(-1) # 255 = white = unknown = -1
+                elif(RGB_color_dst_ar==grey_ar):
+                    ground_truth_array_sim_order.append(100) # 100 = grey = occupied = 100
+                else:
+                    ground_truth_array_sim_order.append(0) # 0 = black = free = 0
+            i -= 1
+        print('GROUND TRUTH ARRAY DONE!')
+        print('LENGTH1: '+ str(len(ground_truth_array_image_order))) # 346986 => correct
+        print('LENGTH2: '+ str(len(ground_truth_array_sim_order))) # 346986 => correct
+        # save the arrays to files
+        ground_truth_ar_image_order = asarray([ground_truth_array_image_order])
+        savetxt('ground_truth_img_order.csv', ground_truth_ar_image_order, delimiter=',')
+        ground_truth_ar_sim_order = asarray([ground_truth_array_sim_order])
+        savetxt('ground_truth_sim_order.csv', ground_truth_ar_sim_order, delimiter=',')
+        
+        # TODO NEXT: later on semantics should be added (sth like 'table1')
+        # TODO NEXT: the whole calculations should be moved to another node, since they are slowing the data collection here
+
 def callback_local_costmap(map_data):
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
     local_costmap_width = map_data.info.width # 60
