@@ -1,7 +1,7 @@
 # Circle table with a square leg
 bodies: # List of named bodies
   - name: table_top
-    color: [0.3, 0.0, 0.1, 0.5] # braun # slightly transparent, so that from a bird eye view the legs of the table are also visible
+    color: [0.6, 1.0, 0.3, 0.5] # green-yellow # slightly transparent, so that from a bird eye view the legs of the table are also visible
     #pose: [0, 0, 0] # ?
     #type: static # ?
     footprints:
@@ -14,7 +14,7 @@ bodies: # List of named bodies
         sensor: true
 
   - name: leg_middle
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.6, 1.0, 0.3, 1.0]
     footprints:
       - type: polygon
         points: [[-0.15, -0.15], [0.15, -0.15], [0.15, 0.15], [-0.15, 0.15]]

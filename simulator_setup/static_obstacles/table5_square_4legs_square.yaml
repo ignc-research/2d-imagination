@@ -1,7 +1,7 @@
 # Square table with 4 square legs
 bodies: # List of named bodies
   - name: table_top
-    color: [0.3, 0.0, 0.1, 0.5] # braun # slightly transparent, so that from a bird eye view the legs of the table are also visible
+    color: [0.5, 0.1, 0.0, 0.5] # light braun # slightly transparent, so that from a bird eye view the legs of the table are also visible
     #pose: [0, 0, 0] # ?
     #type: static # ?
     footprints:
@@ -13,7 +13,7 @@ bodies: # List of named bodies
         sensor: true
 
   - name: leg_front_left 
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.5, 0.1, 0.0, 1.0]
     footprints:
       - type: polygon
         points: [[-0.5, -0.5], [-0.8, -0.5], [-0.5, -0.8], [-0.8, -0.8]]
@@ -23,7 +23,7 @@ bodies: # List of named bodies
         sensor: false
 
   - name: leg_front_right
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.5, 0.1, 0.0, 1.0]
     footprints:
       - type: polygon
         points: [[0.5, -0.5], [0.8, -0.5], [0.5, -0.8], [0.8, -0.8]]
@@ -33,7 +33,7 @@ bodies: # List of named bodies
         sensor: false
 
   - name: leg_back_right
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.5, 0.1, 0.0, 1.0]
     footprints:
       - type: polygon
         points: [[0.5, 0.5], [0.8, 0.5], [0.5, 0.8], [0.8, 0.8]]
@@ -43,7 +43,7 @@ bodies: # List of named bodies
         sensor: false
 
   - name: leg_back_left
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.5, 0.1, 0.0, 1.0]
     footprints:
       - type: polygon
         points: [[-0.5, 0.5], [-0.8, 0.5], [-0.5, 0.8], [-0.8, 0.8]]

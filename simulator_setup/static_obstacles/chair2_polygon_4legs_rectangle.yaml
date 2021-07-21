@@ -1,7 +1,7 @@
 # Polygon chair with 4 rectangle legs
 bodies: # List of named bodies
   - name: chair_seat
-    color: [0.3, 0.0, 0.1, 0.5] # braun # slightly transparent, so that from a bird eye view the legs of the table are also visible
+    color: [0.7, 0.0, 0.5, 0.5] # dark pink # slightly transparent, so that from a bird eye view the legs of the table are also visible
     #pose: [0, 0, 0] # ?
     #type: static # ?
     footprints:
@@ -13,7 +13,7 @@ bodies: # List of named bodies
         sensor: true
 
   - name: leg_front_left 
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.7, 0.0, 0.5, 1.0]
     footprints:
       - type: polygon
         points: [[-0.46, -0.30], [-0.46, -0.18], [-0.30, -0.30], [-0.30, -0.18]]
@@ -23,7 +23,7 @@ bodies: # List of named bodies
         sensor: false
 
   - name: leg_front_right
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.7, 0.0, 0.5, 1.0]
     footprints:
       - type: polygon
         points: [[0.46, -0.30], [0.46, -0.18], [0.30, -0.30], [0.30, -0.18]]
@@ -33,7 +33,7 @@ bodies: # List of named bodies
         sensor: false
 
   - name: leg_back_right
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.7, 0.0, 0.5, 1.0]
     footprints:
       - type: polygon
         points: [[0.46, 0.34], [0.46, 0.21], [0.30, 0.34], [0.30, 0.21]]
@@ -43,7 +43,7 @@ bodies: # List of named bodies
         sensor: false
 
   - name: leg_back_left
-    color: [0.3, 0.0, 0.1, 1.0]
+    color: [0.7, 0.0, 0.5, 1.0]
     footprints:
       - type: polygon
         points: [[-0.46, 0.34], [-0.46, 0.21], [-0.30, 0.34], [-0.30, 0.21]]
@@ -53,7 +53,7 @@ bodies: # List of named bodies
         sensor: false
 
   - name: chair_back
-    color: [0.3, 0.0, 0.1, 0.6] # slightly transparent, so that from a bird eye view the legs of the table are also visible
+    color: [0.7, 0.0, 0.5, 0.6] # slightly transparent, so that from a bird eye view the legs of the table are also visible
     footprints:
       - type: polygon
         points: [[-0.46, 0.34], [0.46, 0.34], [0.46, 0.28], [-0.46, 0.28]]

@@ -19,12 +19,10 @@ from visualization_msgs.msg import MarkerArray
 
 lp = lg.LaserProjection()
 read_laser_scan_info = 1
-read_markers_info = 1
-amount_obstacles = 0
 
 robot_pos_x = 0.0
 robot_pos_y = 0.0
-robot_angle_z = 0.0
+robot_angle_yaw_grad = 0.0
 
 def calculate_avg_x_y_value(point_generator):
     sum_temp_x = 0.0
@@ -42,33 +40,29 @@ def calculate_avg_x_y_value(point_generator):
     print('avg x value: ' + str(sum_temp_x/num_temp_x)) # calculate avg x value
     print('avg y value: ' + str(sum_temp_y/num_temp_y)) # calculate avg y value
 
-def viualize_laser_scan_data(point_list):
+def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
+    # TODO NEXT: take data only every ten seconds for example
     point_list_abs = []
     resolution = 0.05 # the resolution of the currently used map
     origin_x_y = -6 # the origin of the currently used map is (-6,-6)
     AbsPoint = namedtuple("AbsPoint", "x y")
+    point_x_max = point_y_max = 0 # find the biggest x and y -> column and row end
+    point_x_min = point_y_min = 1000 # find the smallest x and y -> column and row start
     for point in point_list:
-        x_abs = point.x + robot_pos_x
-        y_abs = point.y + robot_pos_y
+        x_abs = point.x + r_pos_x # TODO?
+        y_abs = point.y + r_pos_y
         x_px = int((x_abs - origin_x_y) / resolution)
         y_px = int((y_abs - origin_x_y) / resolution)
         point_list_abs.append(AbsPoint(x_px, y_px)) # ({'x': x_px, 'y': y_px})
+        if x_px > point_x_max: point_x_max = x_px
+        if y_px > point_y_max: point_y_max = y_px
+        if x_px < point_x_min: point_x_min = x_px
+        if y_px < point_y_min: point_y_min = y_px
     print(point_list_abs[len(point_list_abs)/2]) # for debugging
-    point_x_max = 0
-    point_y_max = 0
-    point_x_min = 1000
-    point_y_min = 1000
-    for point in point_list_abs:
-        if point.x > point_x_max: point_x_max = point.x
-        if point.y > point_y_max: point_y_max = point.y
-        if point.x < point_x_min: point_x_min = point.x
-        if point.y < point_y_min: point_y_min = point.y
-    row_end = point_y_max # find the biggest y
-    col_end = point_x_max # find the biggest x
-    row_start = point_y_min # find the smallest y
-    col_start = point_x_min # find the smallest y
-    row = row_end - row_start
-    col = col_end - col_start
+    row = point_y_max - point_y_min
+    col = point_x_max - point_x_min
+    print('ROW(' + str(point_y_min) + ',' + str(point_y_max) + ') & COL(' + str(point_x_min) + ',' + str(point_x_max) + ')')
+    # TODO NEXT: sometimes the colums are > 700, even tought max 665/666
 
     rospack = rospkg.RosPack()
     relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
@@ -77,18 +71,28 @@ def viualize_laser_scan_data(point_list):
 
     # for the map and the robot the origin (0,0) is in the left down corner; for an image it is always the upper left corner => mirror the pixels regarding the x axis to be right
     temp_small = np.zeros((row,col))
-    for i in range(row_start, row_end+1):
-        for j in range(col_start, col_end+1):
+    for i in range(point_y_min, point_y_max+1):
+        for j in range(point_x_min, point_x_max+1):
             for point in point_list_abs:
                 if point.x == j and point.y == i:
-                    temp_small[row-1-(i-row_start),j-col_start-1] = 100 #  100 = grey = occupied; 0 = black = free
+                    temp_small[row-1-(i-point_y_min),j-point_x_min-1] = 100 #  100 = grey = occupied; 0 = black = free
+                    #temp_small[row-1-i,j] = 100 #  100 = grey = occupied; 0 = black = free
     cv2.imwrite("map_laser_scan_part.png", temp_small) # will be saved in folder $HOME\.ros
 
     # TODO NEXT - the visualization is not correct yet:
     # - maybe here is the angle important (not like with the local costmap); check the border values!
     # - the point cloud coordinates are relative to the robot coordinates? where is x and where y axis?
     # - the calculations and iteration are happening maybe just too slowly, the calculated min-max borders to not match anymore with the current laser scan area etc.!?
-    # - sometimes 'row_start' and 'col_start' have a negative value!?
+    # - sometimes 'point_x_min' and 'point_y_min' have a negative value!?
+
+    # TODO NEXT: rotate the whole part image with robot_angle_yaw_grad=r_angle and then add it on top of the big one
+    center_part_image_x = col/2
+    center_part_image_y = row/2
+    #diagonal_part_image = int(math.sqrt(math.pow(row,2)) + math.sqrt(math.pow(col,2)))
+    print('ROTATING with an angle = ' + str(r_angle))
+    M = cv2.getRotationMatrix2D((center_part_image_x,row_big-1-center_part_image_y),r_angle,1) # create the transformation matrix (center, angle, scale); important: (0,0) top left corner
+    dst = cv2.warpAffine(temp_small,M,(col,row))
+    cv2.imwrite("map_laser_scan_part_test.png", dst)
 
     # preferably there should be already a black image with this name and with the right dimensions in the $HOME\.ros folder,
     # if not - an image will be generated, but this takes time and in between the robot moves => some laser scan data can be missed and not be visualized
@@ -98,15 +102,19 @@ def viualize_laser_scan_data(point_list):
     else:
         temp = cv2.imread("map_laser_scan.png")
         for i in range(row_big): # row_big - 0:521-1
-            if i > row_start and i <= row_end:
+            if i > point_y_min and i <= point_y_max: # TODO NEXT!!
                 for j in range(col_big): # col_big - 0:666-1
-                    if j > col_start and j <= col_end:
+                    if j > point_x_min and j <= point_x_max: # TODO NEXT!!
                         for point in point_list_abs:
                             if point.x == j and point.y == i:
                                 if temp[row_big-1-i,j].all() == 0: # overwrite it only if it was before black
                                     temp[row_big-1-i,j] = 100 #  100 = grey = occupied; 0 = black = free
+                                #if temp[row_big-1-(i-point_y_min),j-point_x_min-1].all() == 0: # overwrite it only if it was before black
+                                #    temp[row_big-1-(i-point_y_min),j-point_x_min-1] = 100 #  100 = grey = occupied; 0 = black = free
     cv2.imwrite("map_laser_scan.png", temp) # will be saved in folder $HOME\.ros
     
+    # TODO NEXT: on the big picture it is drawn only on the bottom left 1/4 of the image!?
+
     # mark the whole area seen from the robot grey no matter if it is occupied or free (for tracking what the robot sees while moving and what remains unseen):
     #mark_laser_scan_area(row_big, col_big, row_start, row_end, col_start, col_end)
 
@@ -125,6 +133,9 @@ def mark_laser_scan_area(row_big, col_big, row_start, row_end, col_start, col_en
     cv2.imwrite("map_laser_scan_seen_area.png", temp) # will be saved in folder $HOME\.ros
 
 def callback(data):
+    r_pos_x = robot_pos_x # TODO NEXT: to be sure that they match with the current laser scan
+    r_pos_y = robot_pos_y
+    r_angle = robot_angle_yaw_grad
     # Read the data from the laser scan (only once):
     global read_laser_scan_info
     if read_laser_scan_info == 1:
@@ -152,10 +163,10 @@ def callback(data):
     # Important: the (x,y,z) points are relative to the position of the robot
     print(point_list[len(point_list)/2]) # access the information (x,y,z,index) about the middle point of the list # for debugging
     print('robot current absolute pos(x,y): ' + str(robot_pos_x) + ',' + str(robot_pos_y))
-    print('robot current angle z: ' + str(robot_angle_z))
+    print('robot current angle z: ' + str(robot_angle_yaw_grad))
     # having the absolute robot coordinates translate the relative point cloud data to an absolute data and visualize it on the map:
     # Important: this function is too slow and because of that other functions like visualizing the local costmap can not work correctly!
-    #viualize_laser_scan_data(point_list)
+    #viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, robot_angle_yaw_grad)
 
     # TODO: preprocessing: save the data (into a rosbag / csv file)
     # TODO: postprocessing: transform the laser scan data to a semantic laser scan data (transform to a 2d bird eye view map and add semantics like 'table1')
@@ -201,218 +212,6 @@ def callback_map(map_data):
     # -> but the /map topic does not recognize the spawn tables and chairs as an occupied area!?
     # -> the black areas on the map image "map_small.png" are considered as obstacles
     # idea: get the coordinates of the obstacles from the topic /flatland_markers (instead of: params from the obstacle yaml files and the poses from pedsim_test.py) and visualize them on the image map with opencv (cv2.rectangle()) - the /map topic itself could not be updated, but the image with the obstacles could be still internal used
-
-def callback_flatland_markers(markers_data):
-    #time.sleep(5) # wait for the obstacles to be spawned!?
-    rospack = rospkg.RosPack()
-    img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(img_path)
-    row_big,col_big,val = used_map_image.shape
-    #print('MARKERS DATA: ' + str(markers_data))
-    global read_markers_info
-    global amount_obstacles
-    amount_obstacles = len(markers_data.markers)
-    if amount_obstacles == 142 and read_markers_info == 1: # TODO: it gets time to get all obstacles
-        read_markers_info = 0
-        counter_spheres = 0
-        counter_polygons = 0
-        counter_others = 0
-        counter_lines = 0
-        origin_x = -6
-        origin_y = -6
-        resolution = 0.05
-        obstacle_markers = []
-        ObstacleMarker = namedtuple("ObstacleMarker", "x y markers") # a struct per obstacle (center_x, center_y, markers_array)
-
-        # collect all parts that belog to the same obstacle - if center_x and center_y are the same, they are part of the same obstacle (important for later to rotate the whole obstacle at once)
-        for marker in markers_data.markers:
-            center_x = marker.pose.position.x
-            center_y = marker.pose.position.y
-            i = 0
-            new_center = 1
-            for m in obstacle_markers:
-                if round(m.x, 2) == round(center_x, 2) and round(m.y, 2) == round(center_y, 2): # round it until the second digit after the comma
-                    obstacle_markers[i].markers.append(marker)
-                    new_center = 0
-                i += 1
-            if new_center == 1:
-                if not(int(center_x) >= -2 and int(center_x) <= 2 and int(center_y) >= -2 and int(center_y) <= 2): # TODO: try to get the robot out (it should be at (0,0) but maybe it moved)
-                    if not(center_x == -6 and center_y == -6): # for the type = line in with center the origin!? (TODO)
-                        part_markers = [marker]
-                        obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
-        print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26
-        #for m in obstacle_markers:
-        #    print(str(m.x) + ' ' + str(m.y))
-
-        for obstacle in obstacle_markers:
-            print('AMOUNT OF MARKERS PER OBSTACLE: ' + str(len(obstacle.markers)))
-            # params that are the same for all parts of an obstacle:
-            center_x = obstacle.x
-            center_y = obstacle.y
-            q_x = obstacle.markers[0].pose.orientation.x
-            q_y = obstacle.markers[0].pose.orientation.y
-            q_z = obstacle.markers[0].pose.orientation.z
-            q_w = obstacle.markers[0].pose.orientation.w
-            # Important: origin in rviz is bottom left, but on an image is always (0,0) => (x,y) -> (x,row_big-1-y)
-            center_x_px = int((center_x - origin_x) / resolution) # x coordinate of the center of the whole obstacle
-            center_y_px = int((center_y - origin_y) / resolution)
-            x_px_rel_max = 0
-            y_px_rel_max = 0
-
-            # transformation from geometry_msgs/Pose2d to geometry_msgs/Pose (in 3d)
-            # (from quaternions to Euler angles, where only yaw (a z-axis rotation) is interessting)
-            siny_cosp = 2 * (q_w * q_z + q_x * q_y)
-            cosy_cosp = 1 - 2 * (q_y * q_y + q_z * q_z)
-            yaw = math.atan2(siny_cosp, cosy_cosp)
-            yaw_grad = math.degrees(yaw) # the same as the given 'theta' in the pose2d form in pedsim_test.py
-            print('SPIN [deg]: ' + str(yaw_grad)) # the angle with which the obstacle should be rotated
-
-            # test image per obstacle to avoid overlapping afer obstacle rotation; here the obstacles will be rotated before being placed on the final image 'used_map_image' that should have all obstacles at the end
-            # necessary to avoid the problems: while cutting an obstacle to take parts of other obstacles and while putting the obstacle to overwrite with white other obstacles
-            temp_image_for_obstacle_rotations = cv2.imread(img_path) # the map image without obstacles
-
-            for marker in obstacle.markers:
-                # handle differently based on the type:
-                if marker.type == 7: # 'sphere list'
-                    counter_spheres += 1
-                    # there is only one element in the points[] list
-                    scale_x = marker.scale.x # relevant only for the sphere, for the polygon and the line it should be always 1.0; should be the same as scale.y
-                    radius = scale_x/2 # Important: the circle is in a square scale_x * scale_y => radius = scale_x/2
-                    radius_px = int(radius / resolution)
-                    if radius_px > x_px_rel_max:
-                        x_px_rel_max = y_px_rel_max = radius_px
-                    center_x_px_part_obstacle = int(((center_x + marker.points[0].x) - origin_x) / resolution) # x coordinate of the center of the current circle part of an obstacle
-                    center_y_px_part_obstacle = int(((center_y + marker.points[0].y) - origin_y) / resolution)
-                    # the color of the obstacles could be taken from marker.color
-                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
-                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
-                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
-                elif marker.type == 11: # 'triangle list' = polygon
-                    counter_polygons += 1
-                    corners = marker.points
-                    corners_array = []
-                    for corner in corners:
-                        x_temp = int(corner.x / resolution) + center_x_px # the points are relative to the center, so the origin should not be subtracted from them!
-                        y_temp = int(corner.y / resolution) + center_y_px
-                        corners_array.append([x_temp,row_big-1-y_temp])
-                        if int(corner.x / resolution) > x_px_rel_max:
-                            x_px_rel_max = int(corner.x / resolution)
-                        if int(corner.y / resolution) > y_px_rel_max:
-                            y_px_rel_max = int(corner.y / resolution)
-                    pts = np.array([corners_array], np.int32)
-                    pts = pts.reshape((-1,1,2))
-                    #cv2.polylines(temp_image_for_obstacle_rotations,[pts],True,(0,255,255)) # a polygon with yellow contours
-                    #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (0,255,255)) # a yellow filled polygon
-                    cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (100,100,100)) # a grey filled polygon
-                elif marker.type == 5: # 'line list' =? the four room walls
-                    counter_lines += 1
-                    # for the line take only the first and last element of the array (TODO)
-                    first_elem_x = marker.points[0].x
-                    first_elem_y = marker.points[0].y
-                    last_elem_X = marker.points[len(marker.points)-1].x
-                    last_elem_y = marker.points[len(marker.points)-1].y
-                    first_elem_x_px = int(first_elem_x / resolution) + center_x_px
-                    first_elem_y_px = int(first_elem_y / resolution) + center_y_px
-                    last_elem_x_px = int(last_elem_X / resolution) + center_x_px
-                    last_elem_y_px = int(last_elem_y / resolution) + center_y_px
-                    #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
-                    cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(100,100,100),10) # a grey line with thickness of 10 px
-                else:
-                    counter_others += 1
-
-            # Important: consider the orientation -> rotation around the center of the obstacle (not a part of the obstacle) -> for example rotation around the center of the chair, so that the legs are in the right position!
-            # rotate the whole obstacle with all of its parts at once:
-            M = cv2.getRotationMatrix2D((center_x_px,row_big-1-center_y_px),yaw_grad,1) # create the transformation matrix (center, angle, scale); important: (0,0) top left corner
-            dst = cv2.warpAffine(temp_image_for_obstacle_rotations,M,(col_big,row_big))
-            # cut a rectangle around the rotated obstacle from the img and upload it in the same position on top of the obstacle_map to update it with another obstacle
-            x_distance = x_px_rel_max # before the rotation
-            y_distance = y_px_rel_max
-            # make it a rectangle, to be sure that the whole obstacle even after its rotation is still fully displayed
-            if x_distance > y_distance: distance = x_distance
-            else: distance = y_distance
-            # Important: 'distance' is the max length of the rectangle around the not yet rotated obstacle => idea: take the diagonal (should work also if the obstacle was a polygon)
-            # Idea: take as less as possible pixels but also at 100% enough so that the whole obstacle is there, at the end all white pixels will be filtert out
-            distance_diagonal = int(math.sqrt(2*(math.pow(distance,2))))
-            x_start = int(center_x_px - distance_diagonal)
-            y_start = int(center_y_px - distance_diagonal)
-            x_end = x_start+2*distance_diagonal
-            y_end = y_start+2*distance_diagonal
-
-            # write the colored and rotated obstacle to the image
-            figure_img = dst[row_big-1-y_end:row_big-1-y_start, x_start:x_end] # just a step in between for debugging
-            for r in range(row_big-1-y_end, row_big-1-y_start):
-                for c in range(x_start, x_end):
-                    RGB_color_dst_ar = [dst[r, c, 0], dst[r, c, 1], dst[r, c, 2]]
-                    white_ar = [255,255,255]
-                    if RGB_color_dst_ar != white_ar: # filter out the white pixels to get only the obstacle contours to prevent overlapping
-                        used_map_image[r, c] = dst[r, c]
-                    # Info: because of rotation some of the colors are not that perfect any more (for example red is not only (255,0,0) etc.) 
-            cv2.imwrite("map_obstacles_part.png", figure_img)
-            cv2.imwrite("map_obstacles.png", used_map_image)
-            
-        print('amount of obstacles: ' + str(amount_obstacles)) # 9 -> 142
-        print('amount of spheres: ' + str(counter_spheres)) # 1 -> 43
-        print('amount of polygons: ' + str(counter_polygons)) # 4 -> 95
-        print('amount of lines: ' + str(counter_lines)) # 4  -> 4
-        print('amount of others: ' + str(counter_others)) # 0
-
-        # make sure that all obstacles are marked grey
-        # make some color changes, so that 100 = occupied = grey, 0 = free = black, -1 = unknown = white, like in map_topic.png
-        # => here in map_obstacles.png grey stays grey = 100 = occupied, black -> grey, white -> black, some other color -> white (or maybe directly grey?)
-        ground_truth_map = cv2.imread("map_obstacles.png")
-        white_ar = [255,255,255]
-        grey_ar = [100,100,100]
-        black_ar = [0,0,0]
-        for i in range(ground_truth_map.shape[0]):
-            for j in range(ground_truth_map.shape[1]):
-                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                if RGB_color_dst_ar == grey_ar:
-                    pass
-                elif RGB_color_dst_ar == black_ar:
-                    ground_truth_map[i, j] = (100,100,100)
-                elif RGB_color_dst_ar == white_ar:
-                    ground_truth_map[i, j] = (0,0,0)
-                else:
-                    #ground_truth_map[i, j] = (255,255,255) # they are some 'unknown' points because of the rotation and therefore not that super clear visualization of some obstacles
-                    ground_truth_map[i, j] = (100,100,100) # we know that they are part of the obstacle, so it is maybe better that the groundtruth map/array do not have 'unknown' points
-        cv2.imwrite("map_ground_truth.png", ground_truth_map)
-        print('GROUND TRUTH MAP DONE!')
-
-        # create a ground truth array (in row-major order) with the values 100/0/-1 from the ground truth map with values black/grey/white
-        # Important: for an image the start (0,0) is in the upper left corner (see 'ground_truth_array_image_order'), for the simulation (occupancy grid for example) is start (0,0) in the down left corner -> both versions are just mirrored to one another regarding the x axis
-        ground_truth_array_image_order = []
-        ground_truth_array_sim_order = []
-        for i in range(ground_truth_map.shape[0]):
-            for j in range(ground_truth_map.shape[1]):
-                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                if(RGB_color_dst_ar==white_ar):
-                    ground_truth_array_image_order.append(-1) # 255 = white = unknown = -1
-                elif(RGB_color_dst_ar==grey_ar):
-                    ground_truth_array_image_order.append(100) # 100 = grey = occupied = 100
-                else:
-                    ground_truth_array_image_order.append(0) # 0 = black = free = 0
-        i = ground_truth_map.shape[0] - 1
-        while i >=0:
-            for j in range(ground_truth_map.shape[1]):
-                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                if(RGB_color_dst_ar==white_ar):
-                    ground_truth_array_sim_order.append(-1) # 255 = white = unknown = -1
-                elif(RGB_color_dst_ar==grey_ar):
-                    ground_truth_array_sim_order.append(100) # 100 = grey = occupied = 100
-                else:
-                    ground_truth_array_sim_order.append(0) # 0 = black = free = 0
-            i -= 1
-        print('GROUND TRUTH ARRAY DONE!')
-        print('LENGTH1: '+ str(len(ground_truth_array_image_order))) # 346986 => correct
-        print('LENGTH2: '+ str(len(ground_truth_array_sim_order))) # 346986 => correct
-        # save the arrays to files
-        ground_truth_ar_image_order = asarray([ground_truth_array_image_order])
-        savetxt('ground_truth_img_order.csv', ground_truth_ar_image_order, delimiter=',')
-        ground_truth_ar_sim_order = asarray([ground_truth_array_sim_order])
-        savetxt('ground_truth_sim_order.csv', ground_truth_ar_sim_order, delimiter=',')
-        
-        # TODO NEXT: later on semantics should be added (sth like 'table1')
-        # TODO NEXT: the whole calculations should be moved to another node, since they are slowing the data collection here
 
 def callback_local_costmap(map_data):
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
@@ -496,10 +295,23 @@ def callback_odom(odom_data):
     #print('(pos_x, pos_y, angle_z) = (' + str(odom_data.pose.pose.position.x) + ', ' + str(odom_data.pose.pose.position.y) + ', ' + str(odom_data.pose.pose.orientation.z) + ')')
     global robot_pos_x
     global robot_pos_y
-    global robot_angle_z
+    global robot_angle_yaw_grad
+
     robot_pos_x = odom_data.pose.pose.position.x
     robot_pos_y = odom_data.pose.pose.position.y
-    robot_angle_z = odom_data.pose.pose.orientation.z
+
+    q_x = odom_data.pose.pose.orientation.x
+    q_y = odom_data.pose.pose.orientation.y
+    q_z = odom_data.pose.pose.orientation.z
+    q_w = odom_data.pose.pose.orientation.w
+
+    # transformation from geometry_msgs/Pose2d to geometry_msgs/Pose (in 3d)
+    # (from quaternions to Euler angles, where only yaw (a z-axis rotation) is interessting)
+    siny_cosp = 2 * (q_w * q_z + q_x * q_y)
+    cosy_cosp = 1 - 2 * (q_y * q_y + q_z * q_z)
+    robot_angle_yaw = math.atan2(siny_cosp, cosy_cosp)
+    robot_angle_yaw_grad = math.degrees(robot_angle_yaw) # the same as the given 'theta' in the pose2d form in pedsim_test.py
+
 
 def laser_scan_data_listener():
     rospy.init_node('scan_values')
@@ -511,7 +323,6 @@ def laser_scan_data_listener():
     #rospy.Subscriber('/move_base/local_costmap/costmap', OccupancyGrid, callback_local_costmap)
     rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, callback_global_costmap)
     rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns position and velocity of the robot
-    rospy.Subscriber('/flatland_markers', MarkerArray, callback_flatland_markers)
     rospy.spin()
     # TODO: use Daniel's GUI, because later we will need 1000 scenarios
 
