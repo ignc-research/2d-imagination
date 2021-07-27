@@ -15,8 +15,8 @@ amount_obstacles = 0
 read_markers_info = 1
 obstacle_names = [] # the whole name: 'model/table5_chair2_1'
 RGB_color_ar = []
-name_type_color_ar = [] # [NameTypeColorRef(name='table5_chair2_1', type='chair2', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
-type_color_ar = [] # [TypeColorRef(type='chair1', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
+name_id_type_color_ar = [] # [NameIDTypeColorRef(name='7_table5_chair2_1', id=7, type='chair2', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
+id_type_color_ar = [] # [IDTypeColorRef(id=7, type='chair1', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
 c = 0
 
 def callback_flatland_markers(markers_data): # get the ground truth map and array
@@ -28,7 +28,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
     global read_markers_info, amount_obstacles, c
     amount_obstacles = len(markers_data.markers)
     c += 1
-    print('TEST: ' + str(amount_obstacles) + ' ' + str(c))
+    #print('TEST: ' + str(amount_obstacles) + ' ' + str(c))
     # TODO NEXT: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
     # -> time.sleep(10) is not helping
     # -> call this callback a lot (amount of calling = c) and only after that start with the calculations
@@ -178,68 +178,99 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             cv2.imwrite("map_obstacles_part.png", figure_img)
             cv2.imwrite("map_obstacles.png", used_map_image)
             
+        # for debugging:
         print('amount of obstacles: ' + str(amount_obstacles)) # 9 -> 142
         print('amount of spheres: ' + str(counter_spheres)) # 1 -> 43
         print('amount of polygons: ' + str(counter_polygons)) # 4 -> 95
         print('amount of lines: ' + str(counter_lines)) # 4  -> 4
         print('amount of others: ' + str(counter_others)) # 0
 
-        # make sure that all obstacles are marked grey
-        # make some color changes, so that 100 = occupied = grey, 0 = free = black, -1 = unknown = white, like in map_topic.png
-        # => here in map_obstacles.png grey stays grey = 100 = occupied, black -> grey, white -> black, some other color -> white (or maybe directly grey?)
+        # from the map with colorful obstacles 'used_map_image' (white: free; color: occupied, obstacles; black: borders, walls)
+        # create a ground truth map with the characteristics of an occupancy grid (0 = free = black, 100 = occupied = grey), like in map_topic.png
+        # and a ground truth semantic map (0 = free = black, int>0 (semantics) = occupied = RGBcolor (still could be grey, but also another color))
+        # => grey stays grey = 100 = occupied, black -> grey, white -> black, some other color -> grey or preserve the color
         ground_truth_map = cv2.imread("map_obstacles.png")
+        ground_truth_semantic_map = cv2.imread("map_obstacles.png")
         white_ar = [255,255,255]
         grey_ar = [100,100,100]
         black_ar = [0,0,0]
-        for i in range(ground_truth_map.shape[0]):
-            for j in range(ground_truth_map.shape[1]):
-                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                if RGB_color_dst_ar == grey_ar:
-                    pass
-                elif RGB_color_dst_ar == black_ar:
-                    ground_truth_map[i, j] = (100,100,100)
-                elif RGB_color_dst_ar == white_ar:
-                    ground_truth_map[i, j] = (0,0,0)
-                else:
-                    #ground_truth_map[i, j] = (255,255,255) # they are some 'unknown' points because of the rotation and therefore not that super clear visualization of some obstacles
-                    ground_truth_map[i, j] = (100,100,100) # we know that they are part of the obstacle, so it is maybe better that the groundtruth map/array do not have 'unknown' points
-        cv2.imwrite("map_ground_truth.png", ground_truth_map)
-        print('GROUND TRUTH MAP DONE!')
 
-        # create a ground truth array (in row-major order) with the values 100/0/-1 from the ground truth map with values black/grey/white
+        # at the same time create also a ground truth array/s (in row-major order) from the ground truth map/s
         # Important: for an image the start (0,0) is in the upper left corner (see 'ground_truth_array_image_order'), for the simulation (occupancy grid for example) is start (0,0) in the down left corner -> both versions are just mirrored to one another regarding the x axis
-        ground_truth_array_image_order = []
-        ground_truth_array_sim_order = []
+        # 4 different ground truth arrays:
+        ground_truth_array_image_order = [] # (0,0) is upper left corner; black = 0 = free, grey = 100 = occupied; no white = -1 = unknown, since the ground truth should not have unknown parts
+        ground_truth_array_sim_order = [] # (0,0) is down left corner; black = 0 = free, grey = 100 = occupied; no white = -1 = unknown, since the ground truth should not have unknown parts
+        ground_truth_array_semantic_image_order = [] # (0,0) is upper left corner; black = 0 = free; color = >0 = occupied (100 are the walls); no white = -1 = unknown, since the ground truth should not have unknown parts
+        ground_truth_array_semantic_sim_order = [] # (0,0) is down left corner; lack = 0 = free; color = >0 = occupied (100 are the walls); no white = -1 = unknown, since the ground truth should not have unknown parts
+        
         for i in range(ground_truth_map.shape[0]):
             for j in range(ground_truth_map.shape[1]):
-                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                if(RGB_color_dst_ar==white_ar):
-                    ground_truth_array_image_order.append(-1) # 255 = white = unknown = -1
-                elif(RGB_color_dst_ar==grey_ar):
+                RGB_color_grey = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
+                RGB_color_colorful = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
+                if RGB_color_grey == grey_ar:
                     ground_truth_array_image_order.append(100) # 100 = grey = occupied = 100
-                else:
+                    ground_truth_array_semantic_image_order.append(100) # 100 = grey = occupied = 100
+                elif RGB_color_grey == black_ar:
+                    ground_truth_map[i, j] = (100,100,100) # grey
+                    ground_truth_semantic_map[i, j] = (100,100,100) # grey
+                    ground_truth_array_image_order.append(100) # 100 = grey = occupied = 100
+                    ground_truth_array_semantic_image_order.append(100) # 100 = grey = occupied = 100
+                elif RGB_color_grey == white_ar:
+                    ground_truth_map[i, j] = (0,0,0) # black
+                    ground_truth_semantic_map[i, j] = (0,0,0) # black
                     ground_truth_array_image_order.append(0) # 0 = black = free = 0
+                    ground_truth_array_semantic_image_order.append(0) # 0 = black = free = 0
+                else: # other color (obstacle or its unclear border parts because of rotation -> mark the border better black then grey; do not choose white since everything in the ground truth should be known; grey borders of the colored obstacles might be a problem for recognising the type of the obstacles)
+                    # default values if the color is not found in the table then it is a tiny border color of the obstacles due to their rotation, so just mark them black as free because it is easier and exact enough:
+                    # (an alternative was to find the closest color in the table to the one form the borders, so to have a color tolerance, but since the color is way too different it could lead to coloring wrongly)
+                    color_temp_r_colorful = color_temp_g_colorful = color_temp_b_colorful = color_temp_grey = 0 # black per default
+                    id_temp = 0 # black = free per default
+                    # for the semantics, having the obstacle color the type/id of the obstacle should be taken form the id-type-color-table:
+                    for elem in id_type_color_ar:
+                        if int(elem.color.r*255) == RGB_color_colorful[0] and int(elem.color.g*255) == RGB_color_colorful[1] and int(elem.color.b*255) == RGB_color_colorful[2]:
+                            color_temp_r_colorful = RGB_color_colorful[0]
+                            color_temp_g_colorful = RGB_color_colorful[1]
+                            color_temp_b_colorful = RGB_color_colorful[2]
+                            color_temp_grey = 100
+                            id_temp = elem.id
+                            break
+                    ground_truth_semantic_map[i, j] = (color_temp_r_colorful, color_temp_g_colorful, color_temp_b_colorful) # black or color
+                    ground_truth_array_semantic_image_order.append(id_temp) # index >= 0
+                    ground_truth_map[i, j] = (color_temp_grey,color_temp_grey,color_temp_grey) # black or grey
+                    ground_truth_array_image_order.append(color_temp_grey) # black or grey
+        cv2.imwrite("map_ground_truth.png", ground_truth_map)
+        cv2.imwrite("map_ground_truth_semantic.png", ground_truth_semantic_map)
+        print('GROUND TRUTH MAP AND ARRAY IMG ORDER DONE!')
+
+        #ground_truth_map here is already only in black and grey, so for the color take the info from ground_truth_semantic_map
         i = ground_truth_map.shape[0] - 1
         while i >=0:
             for j in range(ground_truth_map.shape[1]):
-                RGB_color_dst_ar = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                if(RGB_color_dst_ar==white_ar):
-                    ground_truth_array_sim_order.append(-1) # 255 = white = unknown = -1
-                elif(RGB_color_dst_ar==grey_ar):
-                    ground_truth_array_sim_order.append(100) # 100 = grey = occupied = 100
-                else:
-                    ground_truth_array_sim_order.append(0) # 0 = black = free = 0
+                RGB_color_grey = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
+                RGB_color_colorful = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
+                if(RGB_color_grey==black_ar): # black
+                    ground_truth_array_sim_order.append(0) # 0 = black = free
+                    ground_truth_array_semantic_sim_order.append(0) # 0 = black = free
+                else: # grey
+                    color_temp_grey = 0 # black per default
+                    color_temp_colorful = 0 # black per default
+                    for elem in id_type_color_ar:
+                        if int(elem.color.r*255) == RGB_color_colorful[0] and int(elem.color.g*255) == RGB_color_colorful[1] and int(elem.color.b*255) == RGB_color_colorful[2]:
+                            color_temp_colorful = elem.id
+                            color_temp_grey = 100
+                            break
+                    ground_truth_array_sim_order.append(color_temp_grey)
+                    ground_truth_array_semantic_sim_order.append(color_temp_colorful)
             i -= 1
-        print('GROUND TRUTH ARRAY DONE!') # both arrays with length of 346986
-        # save the arrays to files
-        ground_truth_ar_image_order = asarray([ground_truth_array_image_order])
-        savetxt('ground_truth_img_order.csv', ground_truth_ar_image_order, delimiter=',')
-        ground_truth_ar_sim_order = asarray([ground_truth_array_sim_order])
-        savetxt('ground_truth_sim_order.csv', ground_truth_ar_sim_order, delimiter=',')
+        print('GROUND TRUTH ARRAY SIM ORDER DONE!')
 
-        # TODO NEXT: add semantics ('table1'/..) to the ground truth map and array -> different color per obstacle for the map and different type for the array
-        # -> from the obstacle color and the corresponding color-type table get the obstacle type and save it in the ground truth array -> array with two entries per pixel: occupied or not and obstacle type/color
-        # -> maybe even write the type in rviz like a label on top of the obstacles
+        # save the arrays to files (all with length of 346986)
+        savetxt('ground_truth_img_order.csv', asarray([ground_truth_array_image_order]), delimiter=',')
+        savetxt('ground_truth_sim_order.csv', asarray([ground_truth_array_sim_order]), delimiter=',')
+        savetxt('ground_truth_semantic_img_order.csv', asarray([ground_truth_array_semantic_image_order]), delimiter=',')
+        savetxt('ground_truth_semantic_sim_order.csv', asarray([ground_truth_array_semantic_sim_order]), delimiter=',')
+        # TODO NEXT: publish the ground truth data (map/array) to a topic as a better option then writing it to a file
+        # TODO NEXT: maybe even write the type in rviz like a label on top of the obstacles
 
 def callback_flatland_server(flatland_server_data):
     global obstacle_names
@@ -252,43 +283,43 @@ def callback_flatland_server(flatland_server_data):
                     name_unique = 0
             if name_unique == 1:
                 obstacle_names.append(topic)
-    #print(obstacle_names) # ['model/table1', ...]
+    #print(obstacle_names) # ['model/1_table1', ...]
     #print(len(obstacle_names)) # 26 # they are loading one by one! so wait until the last one is loaded
     
-    global name_type_color_ar, type_color_ar
-    NameTypeColorRef = namedtuple("NameTypeColorRef", "name type color")
-    TypeColorRef = namedtuple("TypeColorRef", "type color")
+    global name_id_type_color_ar, id_type_color_ar
+    NameIDTypeColorRef = namedtuple("NameIDTypeColorRef", "name id type color")
+    IDTypeColorRef = namedtuple("IDTypeColorRef", "id type color")
     count = 0
     for topic_sub_name in obstacle_names:
         #rospy.Subscriber('/flatland_server/debug/' + str(topic_sub_name), MarkerArray, callback)
         msg = rospy.wait_for_message('/flatland_server/debug/' + str(topic_sub_name), MarkerArray)
         RGB_color = msg.markers[0].color
-        # obstacle name's: table types = 'model/table[nummer]', chair types = 'model/table[nummer]_chair[nummer]_counter'
-        # => split the name: without 'model/' and for the chairs leave only the middle part 'chair_nummer'
-        # => example: topic_sub_name = 'model/table5_chair2_1', name = 'table5_chair2_1' and type = 'chair2'
+        # obstacle name's: table types = 'model/[global_nummer]_table[nummer]', chair types = 'model/[global_nummer]_table[nummer]_chair[nummer]_counter'
+        # => split the name: take only the [global_nummer] for the id; without 'model/[global_nummer]_' for the tables and for the chairs leave only the middle part 'chair[nummer]'
+        # => example: topic_sub_name = 'model/5_table5_chair2_1', name = 'table5_chair2_1', type = 'chair2' and id = 5
         name = topic_sub_name.split("model/")[1]
-        type = name
-        if "chair" in type:
-            type = type.split("_")[1]
+        id = int(name.split("_")[0])
+        if "chair" in name: type = name.split("_")[2]
+        else: type = name.split("_")[1]
         name_unique = type_unique = 1
-        for name_color_ref in name_type_color_ar:
+        for name_color_ref in name_id_type_color_ar:
             if name_color_ref.name == name: name_unique = 0
         if name_unique == 1:
-            name_type_color_ar.append(NameTypeColorRef(name, type, RGB_color)) # add only once per obstacle
-        for type_color_ref in type_color_ar:
+            name_id_type_color_ar.append(NameIDTypeColorRef(name, id, type, RGB_color)) # add only once per obstacle
+        for type_color_ref in id_type_color_ar:
             if type_color_ref.type == type: type_unique = 0
         if type_unique == 1:
-            type_color_ar.append(TypeColorRef(type, RGB_color)) # add only once per obstacle type
+            id_type_color_ar.append(IDTypeColorRef(id, type, RGB_color)) # add only once per obstacle type
         count += 1
-    #print(name_type_color_ar) # [NameTypeColorRef(name='table1_chair1_1', type='chair1', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
-    #print(len(name_type_color_ar)) # = len(obstacle_names) # 26 # they are loading one by one! so wait until the last one is loaded
-    #print(type_color_ar) # [TypeColorRef(type='chair1', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
-    #print(len(type_color_ar)) # != len(obstacle_names) # 7
+    #print(name_id_type_color_ar) # [NameIDTypeColorRef(name='7_table1_chair1_1', id=7, type='chair1', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
+    #print(len(name_id_type_color_ar)) # = len(obstacle_names) # 26 # they are loading one by one! so wait until the last one is loaded
+    #print(id_type_color_ar) # [TypeColorRef(id=7, type='chair1', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
+    #print(len(id_type_color_ar)) # != len(obstacle_names) # 7
 
     # print and save to a .txt file the obstacle's type-color correspondance table
-    table = '\tobstacle_type\tRGB_color'
-    for elem in type_color_ar:
-        table += '\n\t' + str(elem.type) + '\t\t(' + str(elem.color.r) + ',' + str(elem.color.g) + ',' + str(elem.color.b) + ')'
+    table = '\tid\tobstacle_type\tRGB_color'
+    for elem in id_type_color_ar:
+        table += '\n\t' + str(elem.id) + '\t' + str(elem.type) + '\t\t(' + str(elem.color.r) + ',' + str(elem.color.g) + ',' + str(elem.color.b) + ')'
     separator = '/**************************************************************/'
     print(separator + '\n' + table + '\n' + separator)
     with open('table.txt', 'w') as f: # overwrite the content

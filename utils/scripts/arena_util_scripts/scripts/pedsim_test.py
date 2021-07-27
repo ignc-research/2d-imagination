@@ -218,12 +218,12 @@ def tables_test():
 
     # the tables and the chairs were scaled, because they should be much bigger then the robot turtlebot3 with size LxWxH = 138mm x 178mm x 192mm
     # Important: the obstacles should be name like this:
-    # -> for a table: 'table[nummer]'
-    # -> for a chair: 'model/table[nummer]_chair[nummer]_counter'
+    # -> for a table: '[global_nummer]_table[nummer]'
+    # -> for a chair: '[global_nummer]_table[nummer]_chair[nummer]_counter'
 
     table1 = Model()
-    table1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "table1_polygon_4legs_circle.yaml")
-    table1.name = "table1"
+    table1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "1_table1_polygon_4legs_circle.yaml")
+    table1.name = "1_table1"
     table1.ns = "namespace1"
     table1.pose.x = 10.0
     table1.pose.y = 3.0
@@ -231,8 +231,8 @@ def tables_test():
     models.append(table1)
 
     table1_chair1 = Model()
-    table1_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair1.name = "table1_chair1_1"
+    table1_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair1.name = "7_table1_chair1_1"
     table1_chair1.ns = "namespace1"
     table1_chair1.pose.x = 11.5
     table1_chair1.pose.y = 3.0
@@ -240,8 +240,8 @@ def tables_test():
     models.append(table1_chair1)
 
     table1_chair2 = Model()
-    table1_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair2.name = "table1_chair1_2"
+    table1_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair2.name = "7_table1_chair1_2"
     table1_chair2.ns = "namespace1"
     table1_chair2.pose.x = 11.5
     table1_chair2.pose.y = 4.25
@@ -249,8 +249,8 @@ def tables_test():
     models.append(table1_chair2)
 
     table1_chair3 = Model()
-    table1_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair3.name = "table1_chair1_3"
+    table1_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair3.name = "7_table1_chair1_3"
     table1_chair3.ns = "namespace1"
     table1_chair3.pose.x = 11.5
     table1_chair3.pose.y = 1.75
@@ -258,8 +258,8 @@ def tables_test():
     models.append(table1_chair3)
 
     table1_chair4 = Model()
-    table1_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair4.name = "table1_chair1_4"
+    table1_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair4.name = "7_table1_chair1_4"
     table1_chair4.ns = "namespace1"
     table1_chair4.pose.x = 8.5
     table1_chair4.pose.y = 3.0
@@ -267,8 +267,8 @@ def tables_test():
     models.append(table1_chair4)
 
     table1_chair5 = Model()
-    table1_chair5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair5.name = "table1_chair1_5"
+    table1_chair5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair5.name = "7_table1_chair1_5"
     table1_chair5.ns = "namespace1"
     table1_chair5.pose.x = 8.5
     table1_chair5.pose.y = 4.25
@@ -276,8 +276,8 @@ def tables_test():
     models.append(table1_chair5)
 
     table1_chair6 = Model()
-    table1_chair6.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair6.name = "table1_chair1_6"
+    table1_chair6.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair6.name = "7_table1_chair1_6"
     table1_chair6.ns = "namespace1"
     table1_chair6.pose.x = 8.5
     table1_chair6.pose.y = 1.75
@@ -285,8 +285,8 @@ def tables_test():
     models.append(table1_chair6)
 
     table1_chair7 = Model()
-    table1_chair7.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair7.name = "table1_chair1_7"
+    table1_chair7.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair7.name = "7_table1_chair1_7"
     table1_chair7.ns = "namespace1"
     table1_chair7.pose.x = 10.0
     table1_chair7.pose.y = 5.5
@@ -294,8 +294,8 @@ def tables_test():
     models.append(table1_chair7)
 
     table1_chair8 = Model()
-    table1_chair8.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table1_chair8.name = "table1_chair1_8"
+    table1_chair8.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table1_chair8.name = "7_table1_chair1_8"
     table1_chair8.ns = "namespace1"
     table1_chair8.pose.x = 10.0
     table1_chair8.pose.y = 0.5
@@ -303,8 +303,8 @@ def tables_test():
     models.append(table1_chair8)
 
     table2 = Model()
-    table2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "table2_circle_4legs_circle.yaml")
-    table2.name = "table2"
+    table2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "2_table2_circle_4legs_circle.yaml")
+    table2.name = "2_table2"
     table2.ns = "namespace1"
     table2.pose.x = 20.0
     table2.pose.y = 3.0
@@ -312,8 +312,8 @@ def tables_test():
     models.append(table2)
 
     table2_chair1 = Model()
-    table2_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair1.name = "table2_chair4_1"
+    table2_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair1.name = "10_table2_chair4_1"
     table2_chair1.ns = "namespace1"
     table2_chair1.pose.x = 22.0
     table2_chair1.pose.y = 3
@@ -321,8 +321,8 @@ def tables_test():
     models.append(table2_chair1)
 
     table2_chair2 = Model()
-    table2_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair2.name = "table2_chair4_2"
+    table2_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair2.name = "10_table2_chair4_2"
     table2_chair2.ns = "namespace1"
     table2_chair2.pose.x = 18.0
     table2_chair2.pose.y = 3
@@ -330,8 +330,8 @@ def tables_test():
     models.append(table2_chair2)
 
     table2_chair3 = Model()
-    table2_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair3.name = "table2_chair4_3"
+    table2_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair3.name = "10_table2_chair4_3"
     table2_chair3.ns = "namespace1"
     table2_chair3.pose.x = 20.0
     table2_chair3.pose.y = 5
@@ -339,8 +339,8 @@ def tables_test():
     models.append(table2_chair3)
 
     table2_chair4 = Model()
-    table2_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair4.name = "table2_chair4_4"
+    table2_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair4.name = "10_table2_chair4_4"
     table2_chair4.ns = "namespace1"
     table2_chair4.pose.x = 20.0
     table2_chair4.pose.y = 1
@@ -348,8 +348,8 @@ def tables_test():
     models.append(table2_chair4)
 
     table2_chair5 = Model()
-    table2_chair5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair5.name = "table2_chair4_5"
+    table2_chair5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair5.name = "10_table2_chair4_5"
     table2_chair5.ns = "namespace1"
     table2_chair5.pose.x = 18.5
     table2_chair5.pose.y = 1.5
@@ -357,8 +357,8 @@ def tables_test():
     models.append(table2_chair5)
 
     table2_chair6 = Model()
-    table2_chair6.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair6.name = "table2_chair4_6"
+    table2_chair6.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair6.name = "10_table2_chair4_6"
     table2_chair6.ns = "namespace1"
     table2_chair6.pose.x = 21.5
     table2_chair6.pose.y = 1.5
@@ -366,8 +366,8 @@ def tables_test():
     models.append(table2_chair6)
 
     table2_chair7 = Model()
-    table2_chair7.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair7.name = "table2_chair4_7"
+    table2_chair7.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair7.name = "10_table2_chair4_7"
     table2_chair7.ns = "namespace1"
     table2_chair7.pose.x = 18.5
     table2_chair7.pose.y = 4.5
@@ -375,8 +375,8 @@ def tables_test():
     models.append(table2_chair7)
 
     table2_chair8 = Model()
-    table2_chair8.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair4_circle_3legs_circle.yaml")
-    table2_chair8.name = "table2_chair4_8"
+    table2_chair8.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table2_chair8.name = "10_table2_chair4_8"
     table2_chair8.ns = "namespace1"
     table2_chair8.pose.x = 21.5
     table2_chair8.pose.y = 4.5
@@ -384,8 +384,8 @@ def tables_test():
     models.append(table2_chair8)
 
     table3 = Model()
-    table3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "table6_circle_1leg_square.yaml")
-    table3.name = "table6"
+    table3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "6_table6_circle_1leg_square.yaml")
+    table3.name = "6_table6"
     table3.ns = "namespace1"
     table3.pose.x = 20.0
     table3.pose.y = 13.0
@@ -393,8 +393,8 @@ def tables_test():
     models.append(table3)
 
     table3_chair1 = Model()
-    table3_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table3_chair1.name = "table6_chair1_1"
+    table3_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table3_chair1.name = "7_table6_chair1_1"
     table3_chair1.ns = "namespace1"
     table3_chair1.pose.x = 22.0
     table3_chair1.pose.y = 13.0
@@ -402,8 +402,8 @@ def tables_test():
     models.append(table3_chair1)
 
     table3_chair2 = Model()
-    table3_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair1_rectangle_4legs_rectangle.yaml")
-    table3_chair2.name = "table6_chair1_2"
+    table3_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "7_chair1_rectangle_4legs_rectangle.yaml")
+    table3_chair2.name = "7_table6_chair1_2"
     table3_chair2.ns = "namespace1"
     table3_chair2.pose.x = 18.0
     table3_chair2.pose.y = 13.0
@@ -411,8 +411,8 @@ def tables_test():
     models.append(table3_chair2)
 
     table4 = Model()
-    table4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "table5_square_4legs_square.yaml")
-    table4.name = "table5"
+    table4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "5_table5_square_4legs_square.yaml")
+    table4.name = "5_table5"
     table4.ns = "namespace1"
     table4.pose.x = 10.0
     table4.pose.y = 13.0
@@ -420,8 +420,8 @@ def tables_test():
     models.append(table4)
 
     table4_chair1 = Model()
-    table4_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair2_polygon_4legs_rectangle.yaml")
-    table4_chair1.name = "table5_chair2_1"
+    table4_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table4_chair1.name = "8_table5_chair2_1"
     table4_chair1.ns = "namespace1"
     table4_chair1.pose.x = 11.0
     table4_chair1.pose.y = 14.0
@@ -429,8 +429,8 @@ def tables_test():
     models.append(table4_chair1)
 
     table4_chair2 = Model()
-    table4_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair2_polygon_4legs_rectangle.yaml")
-    table4_chair2.name = "table5_chair2_2"
+    table4_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table4_chair2.name = "8_table5_chair2_2"
     table4_chair2.ns = "namespace1"
     table4_chair2.pose.x = 9.0
     table4_chair2.pose.y = 12.0
@@ -438,8 +438,8 @@ def tables_test():
     models.append(table4_chair2)
 
     table4_chair3 = Model()
-    table4_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair2_polygon_4legs_rectangle.yaml")
-    table4_chair3.name = "table5_chair2_3"
+    table4_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table4_chair3.name = "8_table5_chair2_3"
     table4_chair3.ns = "namespace1"
     table4_chair3.pose.x = 9.0
     table4_chair3.pose.y = 14.0
@@ -447,8 +447,8 @@ def tables_test():
     models.append(table4_chair3)
 
     table4_chair4 = Model()
-    table4_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "chair2_polygon_4legs_rectangle.yaml")
-    table4_chair4.name = "table5_chair2_4"
+    table4_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table4_chair4.name = "8_table5_chair2_4"
     table4_chair4.ns = "namespace1"
     table4_chair4.pose.x = 11.0
     table4_chair4.pose.y = 12.0

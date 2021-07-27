@@ -223,9 +223,24 @@ def callback_local_costmap(map_data):
     map_data_array = map_data.data
     map_data_length = len(map_data_array) # 3600
     print('LOCAL COSTMAP: \nlength: ' + str(map_data_length))
+    ground_truth_colored_map = cv2.imread("map_obstacles.png")
+
+    rospack = rospkg.RosPack()
+    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+    row_big,col_big,val = used_map_image.shape
+
+    # Important: for rviz origin is on the bottom left, for an image is always on the top left; bottom left corner is for this map (-6,-6)! => corect the robot's position so that it is always positive
+    # TODO: get params like resolution, origin etc. directly from the map yaml file instead of hard-coding them
+    robot_position_x += 6
+    robot_position_y += 6
+    block_abs_width_left_rviz = int(robot_position_x / local_costmap_resolution)
+    block_abs_width_right_rviz = int((robot_position_x / local_costmap_resolution) + local_costmap_width)
+    block_abs_height_bottom_rviz = int(robot_position_y / local_costmap_resolution)
+    block_abs_height_top_rviz = int((robot_position_y / local_costmap_resolution) + local_costmap_height)
 
     # save the map as a grey image (black = free; grey = occupied; unknown = white):
-    # the local costmap consits of a 60m x 60m block with the robot positioned in the middle
+    # the local costmap consits of a 60m x 60m block with the robot positioned in the bottom left corner
     map_data_array2 = np.array(map_data_array)
     map_reshaped = map_data_array2.reshape(local_costmap_height,local_costmap_width)
     print(map_reshaped)
@@ -237,7 +252,8 @@ def callback_local_costmap(map_data):
             if(map_reshaped[i,j]==-1):
                 temp[row-1-i,j]=255 # unknown = white
             else:
-                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+                if map_reshaped[i,j] == 100: # == 100 or > 90 # filter out the dark grey color -> leave the source (grey=~100) preferably without distortion
+                    temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
     #cv2.imshow("map_local_costmap_part", temp)
     cv2.imwrite("map_local_costmap_part.png", temp) # will be saved in folder $HOME\.ros # updates every time the robot moves
     #cv2.waitKey(0)
@@ -247,20 +263,6 @@ def callback_local_costmap(map_data):
     # 2) from the local costmap 60x60 blocks, calculate the absolute coordinates in the map image
     # 3) update with the robot's movement the black image every time with the local 60x60 part
     # 4) always have the newest image saved (after the robot has moved in the whole space, every pixel should be definted to occupied/free/unknown)
-
-    # Important: for rviz origin is on the bottom left, for an image is always on the top left; bottom left corner is for this map (-6,-6)! => corect the robot's position so that it is always positive
-    # TODO: get params like resolution, origin etc. directly from the map yaml file instead of hard-coding them
-    robot_position_x += 6
-    robot_position_y += 6
-    block_abs_width_left_rviz = int((robot_position_x / local_costmap_resolution) - (local_costmap_width / 2))
-    block_abs_width_right_rviz = int((robot_position_x / local_costmap_resolution) + (local_costmap_width / 2))
-    block_abs_height_bottom_rviz = int((robot_position_y / local_costmap_resolution) - (local_costmap_width / 2))
-    block_abs_height_top_rviz = int((robot_position_y / local_costmap_resolution) + (local_costmap_width / 2))
-
-    rospack = rospkg.RosPack()
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    row_big,col_big,val = used_map_image.shape
 
     # TODO NEXT: check again if the corners of the small images are correctly displayed or not
     # preferably there should be already a black image with this name and with the right dimensions in the $HOME\.ros folder,
@@ -279,7 +281,12 @@ def callback_local_costmap(map_data):
                         else:
                             if temp_img[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] == 100: # == 100 or > 90 # filter out the dark grey color -> leave the source (grey=~100) preferably without distortion
-                                    temp_img[row_big-1-i,j] = map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] # black = free; grey = occupied
+                                    #temp_img[row_big-1-i,j] = map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] # black = free; grey = occupied
+                                    # add semantics => do not color it always grey, but take the color from the ground truth map based on the global position
+                                    color_r = ground_truth_colored_map[row_big-1-i, j, 0]
+                                    color_g = ground_truth_colored_map[row_big-1-i, j, 1]
+                                    color_b = ground_truth_colored_map[row_big-1-i, j, 2]
+                                    temp_img[row_big-1-i,j] = (color_b,color_g,color_r) # BGR and not RGB form here!
     #cv2.imshow("map_local_costmap", temp_img)
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     #cv2.waitKey(0)
@@ -287,6 +294,18 @@ def callback_local_costmap(map_data):
     # TODO: 'add' the image to the one from the /map topic
     # TODO NEXT: be sure to have both an image for visualization (black/white/gray) and an array (0,100,-1) for free/occupied/unknown!
     # -> it is maybe even faster, inside the iterations to save everything in an array and at the end to display the image
+
+    # prepare the ground truth data for comparing it with the local (60x60 block) data from the costmap
+    # 1) cut from the ground truth map exactly the same 60x60 block
+    ground_truth_map = cv2.imread("map_obstacles.png")
+    ground_truth_map_part = ground_truth_map[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
+    cv2.imwrite("map_obstacles_part.png", ground_truth_map_part)
+    # 2) cut from the big colorful local cost map exactly the same 60x60 block
+    temp_img_part = temp_img[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
+    cv2.imwrite("map_local_costmap_part_color.png", temp_img_part)
+    # 3) TODO NEXT: compare the local costmap part image with the ground truth part image and delete from the second the not seen obstacles form the first
+    # -> temp_img_part (real) with ground_truth_map_part (ideal)
+    # -> it is not necessary!?
 
 def callback_global_costmap(map_data):
     print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length and info as the one from /map)
@@ -318,9 +337,9 @@ def laser_scan_data_listener():
     #time.sleep(2) # wait for the obstacles to be spawned
     # read the laser scan data and save also the absolute and relative position of the robot the whole time,
     # to be able to match it with the laser scan data; save also the info from the map to know where the obstacles are
-    rospy.Subscriber("/scan", LaserScan, callback) # queue_size=1
+    #rospy.Subscriber("/scan", LaserScan, callback) # queue_size=1
     rospy.Subscriber('/map', OccupancyGrid, callback_map) # /move_base/global_costmap/costmap similar to /map
-    #rospy.Subscriber('/move_base/local_costmap/costmap', OccupancyGrid, callback_local_costmap)
+    rospy.Subscriber('/move_base/local_costmap/costmap', OccupancyGrid, callback_local_costmap)
     rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, callback_global_costmap)
     rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns position and velocity of the robot
     rospy.spin()
