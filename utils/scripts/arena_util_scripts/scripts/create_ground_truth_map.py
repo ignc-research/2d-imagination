@@ -29,10 +29,12 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
     amount_obstacles = len(markers_data.markers)
     c += 1
     #print('TEST: ' + str(amount_obstacles) + ' ' + str(c))
-    # TODO NEXT: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
-    # -> time.sleep(10) is not helping
-    # -> call this callback a lot (amount of calling = c) and only after that start with the calculations
-    if c == 100 and read_markers_info == 1: # amount_obstacles == 142 # c == 100
+    # TODO NEXT Problem: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
+    # -> Idea1: call this callback a lot (amount of calling = c) and only after that start with the calculations: easier way, since the obstacle parts do not have to be calculated, but slower and there is no guarantee that it is enough for other bigger scenarios
+    # -> Idea2: set the parameter 'obstacles_amount' to the amount of obstacle parts for the current scenario by launching: all parts should be calculated, but once this is done, it will work with every scenario, also faster
+    node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
+    #if c == 100 and read_markers_info == 1: # Idea1
+    if amount_obstacles == node_obstacles_amount and read_markers_info == 1: # Idea2
         read_markers_info = 0
         counter_spheres = 0
         counter_polygons = 0
@@ -94,7 +96,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             for marker in obstacle.markers:
                 # color the obstacles in the ground truth map with the same color from rviz (from their definition in the yaml file)
                 # the color from marker.color is scaled between 0 and 1, for opencv it should be between 0 and 255
-                # TODO: the color is visualized differently (rviz vs. opencv)?
+                # TODO: consider maybe also parameter 'a'
                 r = int(marker.color.r*255)
                 g = int(marker.color.g*255)
                 b = int(marker.color.b*255)
@@ -112,7 +114,8 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
-                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (r,g,b), -1) # a filled circle with the original color of the obstacle
+                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (b,g,r), -1) # a filled circle with the original color of the obstacle
+                    # Important: the color in opencv is in order BGR!
                 elif marker.type == 11: # 'triangle list' = polygon
                     counter_polygons += 1
                     corners = marker.points
@@ -130,7 +133,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.polylines(temp_image_for_obstacle_rotations,[pts],True,(0,255,255)) # a polygon with yellow contours
                     #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (0,255,255)) # a yellow filled polygon
                     #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (100,100,100)) # a grey filled polygon
-                    cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (r,g,b)) # a filled polygon with the original color of the obstacle
+                    cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (b,g,r)) # a filled polygon with the original color of the obstacle
                 elif marker.type == 5: # 'line list' =? the four room walls
                     counter_lines += 1
                     # for the line take only the first and last element of the array (TODO)
@@ -144,7 +147,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     last_elem_y_px = int(last_elem_y / resolution) + center_y_px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(100,100,100),10) # a grey line with thickness of 10 px
-                    cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(r,g,b),10) # a line with thickness of 10 px with the original color of the obstacle
+                    cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(b,g,r),10) # a line with thickness of 10 px with the original color of the obstacle
                 else:
                     counter_others += 1
 
@@ -191,9 +194,9 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
         # => grey stays grey = 100 = occupied, black -> grey, white -> black, some other color -> grey or preserve the color
         ground_truth_map = cv2.imread("map_obstacles.png")
         ground_truth_semantic_map = cv2.imread("map_obstacles.png")
-        white_ar = [255,255,255]
-        grey_ar = [100,100,100]
-        black_ar = [0,0,0]
+        white_ar = [255,255,255] # in RGB and in BGR the same
+        grey_ar = [100,100,100] # in RGB and in BGR the same
+        black_ar = [0,0,0] # in RGB and in BGR the same
 
         # at the same time create also a ground truth array/s (in row-major order) from the ground truth map/s
         # Important: for an image the start (0,0) is in the upper left corner (see 'ground_truth_array_image_order'), for the simulation (occupancy grid for example) is start (0,0) in the down left corner -> both versions are just mirrored to one another regarding the x axis
@@ -205,8 +208,9 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
         
         for i in range(ground_truth_map.shape[0]):
             for j in range(ground_truth_map.shape[1]):
-                RGB_color_grey = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                RGB_color_colorful = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
+                # Important: the color in opencv is in order BGR, so convert it to get RGB
+                RGB_color_grey = [ground_truth_map[i, j, 2], ground_truth_map[i, j, 1], ground_truth_map[i, j, 0]]
+                RGB_color_colorful = [ground_truth_semantic_map[i, j, 2], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 0]]
                 if RGB_color_grey == grey_ar:
                     ground_truth_array_image_order.append(100) # 100 = grey = occupied = 100
                     ground_truth_array_semantic_image_order.append(100) # 100 = grey = occupied = 100
@@ -223,8 +227,10 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                 else: # other color (obstacle or its unclear border parts because of rotation -> mark the border better black then grey; do not choose white since everything in the ground truth should be known; grey borders of the colored obstacles might be a problem for recognising the type of the obstacles)
                     # default values if the color is not found in the table then it is a tiny border color of the obstacles due to their rotation, so just mark them black as free because it is easier and exact enough:
                     # (an alternative was to find the closest color in the table to the one form the borders, so to have a color tolerance, but since the color is way too different it could lead to coloring wrongly)
-                    color_temp_r_colorful = color_temp_g_colorful = color_temp_b_colorful = color_temp_grey = 0 # black per default
-                    id_temp = 0 # black = free per default
+                    color_temp_grey = 0 # black per default
+                    color_temp_r_colorful = color_temp_g_colorful = color_temp_b_colorful = 255 # black per default # TODO NEXT: make white for debugging
+                    #id_temp = 0 # black = free per default
+                    id_temp = -1 # white = unknown per default # TODO NEXT
                     # for the semantics, having the obstacle color the type/id of the obstacle should be taken form the id-type-color-table:
                     for elem in id_type_color_ar:
                         if int(elem.color.r*255) == RGB_color_colorful[0] and int(elem.color.g*255) == RGB_color_colorful[1] and int(elem.color.b*255) == RGB_color_colorful[2]:
@@ -234,10 +240,40 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                             color_temp_grey = 100
                             id_temp = elem.id
                             break
-                    ground_truth_semantic_map[i, j] = (color_temp_r_colorful, color_temp_g_colorful, color_temp_b_colorful) # black or color
-                    ground_truth_array_semantic_image_order.append(id_temp) # index >= 0
+                    ground_truth_semantic_map[i, j] = (color_temp_b_colorful, color_temp_g_colorful, color_temp_r_colorful) # black or color # again coloring with opencv needs the BGR form!
+                    ground_truth_array_semantic_image_order.append(id_temp) # index > 0 or -1
                     ground_truth_map[i, j] = (color_temp_grey,color_temp_grey,color_temp_grey) # black or grey
                     ground_truth_array_image_order.append(color_temp_grey) # black or grey
+
+        for i in range(ground_truth_semantic_map.shape[0]):
+            for j in range(ground_truth_semantic_map.shape[1]):
+                BGR_color = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
+                if BGR_color == white_ar: # if it is white colored, then it belongs to a border => update the color
+                    # TODO NEXT: not black per default, but at first white and then find the color of the obstacle the border belongs to
+                    # -> take the color from the pixel next to it (above/left/right/bottom), if it is not the same color or black
+                    # -> Idea1: take the info from position/orientation/size etc. !?
+                    dist = 3 # px # 1 px works for almost every case, but to be sure make it 2-3px, also not bigger since overlapping from other near obstacles may occur
+                    BGR_color_left_neighbour = [ground_truth_semantic_map[i-dist, j, 0], ground_truth_semantic_map[i-dist, j, 1], ground_truth_semantic_map[i-dist, j, 2]]
+                    BGR_color_right_neighbour = [ground_truth_semantic_map[i+dist, j, 0], ground_truth_semantic_map[i+dist, j, 1], ground_truth_semantic_map[i+dist, j, 2]]
+                    BGR_color_bottom_neighbour = [ground_truth_semantic_map[i, j-dist, 0], ground_truth_semantic_map[i, j-dist, 1], ground_truth_semantic_map[i, j-dist, 2]]
+                    BGR_color_upper_neighbour = [ground_truth_semantic_map[i, j+dist, 0], ground_truth_semantic_map[i, j+dist, 1], ground_truth_semantic_map[i, j+dist, 2]]
+                    if BGR_color_left_neighbour!=white_ar and BGR_color_left_neighbour!=black_ar:
+                        ground_truth_semantic_map[i, j] = (BGR_color_left_neighbour[0], BGR_color_left_neighbour[1], BGR_color_left_neighbour[2])
+                    if BGR_color_right_neighbour!=white_ar and BGR_color_right_neighbour!=black_ar:
+                        ground_truth_semantic_map[i, j] = (BGR_color_right_neighbour[0], BGR_color_right_neighbour[1], BGR_color_right_neighbour[2])
+                    if BGR_color_bottom_neighbour!=white_ar and BGR_color_bottom_neighbour!=black_ar:
+                        ground_truth_semantic_map[i, j] = (BGR_color_bottom_neighbour[0], BGR_color_bottom_neighbour[1], BGR_color_bottom_neighbour[2])
+                    if BGR_color_upper_neighbour!=white_ar and BGR_color_upper_neighbour!=black_ar:
+                        ground_truth_semantic_map[i, j] = (BGR_color_upper_neighbour[0], BGR_color_upper_neighbour[1], BGR_color_upper_neighbour[2])
+                    #print(ground_truth_semantic_map[i, j]) # for debugging: [100 100 100], [178   0 127], [127  25   0] etc.
+                    # also update the id:
+                    for elem in id_type_color_ar:
+                        if int(elem.color.r*255) == ground_truth_semantic_map[i, j, 0] and int(elem.color.g*255) == ground_truth_semantic_map[i, j, 1] and int(elem.color.b*255) == ground_truth_semantic_map[i, j, 2]:
+                            id_temp = elem.id
+                            break
+                    #ground_truth_array_semantic_image_order[i,j] = id_temp # make only one dimension from i and j
+                    ground_truth_array_semantic_image_order[(i-1)*ground_truth_semantic_map.shape[1]+j] = id_temp # index > 0
+
         cv2.imwrite("map_ground_truth.png", ground_truth_map)
         cv2.imwrite("map_ground_truth_semantic.png", ground_truth_semantic_map)
         print('GROUND TRUTH MAP AND ARRAY IMG ORDER DONE!')
@@ -246,16 +282,16 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
         i = ground_truth_map.shape[0] - 1
         while i >=0:
             for j in range(ground_truth_map.shape[1]):
-                RGB_color_grey = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
-                RGB_color_colorful = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
-                if(RGB_color_grey==black_ar): # black
+                BGR_color_grey = [ground_truth_map[i, j, 0], ground_truth_map[i, j, 1], ground_truth_map[i, j, 2]]
+                BGR_color_colorful = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
+                if(BGR_color_grey==black_ar): # black
                     ground_truth_array_sim_order.append(0) # 0 = black = free
                     ground_truth_array_semantic_sim_order.append(0) # 0 = black = free
                 else: # grey
                     color_temp_grey = 0 # black per default
                     color_temp_colorful = 0 # black per default
                     for elem in id_type_color_ar:
-                        if int(elem.color.r*255) == RGB_color_colorful[0] and int(elem.color.g*255) == RGB_color_colorful[1] and int(elem.color.b*255) == RGB_color_colorful[2]:
+                        if int(elem.color.r*255) == BGR_color_colorful[2] and int(elem.color.g*255) == BGR_color_colorful[1] and int(elem.color.b*255) == BGR_color_colorful[0]:
                             color_temp_colorful = elem.id
                             color_temp_grey = 100
                             break
@@ -263,6 +299,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     ground_truth_array_semantic_sim_order.append(color_temp_colorful)
             i -= 1
         print('GROUND TRUTH ARRAY SIM ORDER DONE!')
+        # TODO: vizualise the arrays just for debugging to see if everything is correct
 
         # save the arrays to files (all with length of 346986)
         savetxt('ground_truth_img_order.csv', asarray([ground_truth_array_image_order]), delimiter=',')

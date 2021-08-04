@@ -223,7 +223,15 @@ def callback_local_costmap(map_data):
     map_data_array = map_data.data
     map_data_length = len(map_data_array) # 3600
     print('LOCAL COSTMAP: \nlength: ' + str(map_data_length))
-    ground_truth_colored_map = cv2.imread("map_obstacles.png")
+    #ground_truth_colored_map = cv2.imread("map_obstacles.png") # TODO NEXT: with white borders, but also with more data
+    ground_truth_colored_map = cv2.imread("map_ground_truth_semantic.png")# TODO NEXT: without white borders, but also with less data
+    # TODO NEXT Important: if with borders then with borders for both local costmap data and ground truth data; if without - then for both images without!!
+    # 'WITH borders':
+    #    real: ground_truth_colored_map = cv2.imread("map_obstacles.png") -> "map_local_costmap.png" -> "map_local_costmap_part_color.png"
+    #   ideal: "map_obstacles_part.png" (cut from "map_obstacles.png")
+    # 'WITHOUT borders':
+    #    real: ground_truth_colored_map = cv2.imread("map_ground_truth_semantic.png") -> "map_local_costmap.png" -> "map_local_costmap_part_color.png"
+    #   ideal: "map_ground_truth_semantic_part.png" (cut from "map_ground_truth_semantic.png")
 
     rospack = rospkg.RosPack()
     relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
@@ -283,10 +291,10 @@ def callback_local_costmap(map_data):
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] == 100: # == 100 or > 90 # filter out the dark grey color -> leave the source (grey=~100) preferably without distortion
                                     #temp_img[row_big-1-i,j] = map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] # black = free; grey = occupied
                                     # add semantics => do not color it always grey, but take the color from the ground truth map based on the global position
-                                    color_r = ground_truth_colored_map[row_big-1-i, j, 0]
+                                    color_r = ground_truth_colored_map[row_big-1-i, j, 2] # evrything visualized in opencv is in form BGR and not RGB!
                                     color_g = ground_truth_colored_map[row_big-1-i, j, 1]
-                                    color_b = ground_truth_colored_map[row_big-1-i, j, 2]
-                                    temp_img[row_big-1-i,j] = (color_b,color_g,color_r) # BGR and not RGB form here!
+                                    color_b = ground_truth_colored_map[row_big-1-i, j, 0]
+                                    temp_img[row_big-1-i,j] = (color_b,color_g,color_r) # evrything visualized in opencv is in form BGR and not RGB!
     #cv2.imshow("map_local_costmap", temp_img)
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     #cv2.waitKey(0)
@@ -300,12 +308,14 @@ def callback_local_costmap(map_data):
     ground_truth_map = cv2.imread("map_obstacles.png")
     ground_truth_map_part = ground_truth_map[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     cv2.imwrite("map_obstacles_part.png", ground_truth_map_part)
+    # 1) alternative
+    ground_truth_map_2 = cv2.imread("map_ground_truth_semantic.png")
+    ground_truth_map_2_part = ground_truth_map_2[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
+    cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_2_part)
     # 2) cut from the big colorful local cost map exactly the same 60x60 block
     temp_img_part = temp_img[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     cv2.imwrite("map_local_costmap_part_color.png", temp_img_part)
-    # 3) TODO NEXT: compare the local costmap part image with the ground truth part image and delete from the second the not seen obstacles form the first
-    # -> temp_img_part (real) with ground_truth_map_part (ideal)
-    # -> it is not necessary!?
+    # 3) TODO NEXT: compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
 
 def callback_global_costmap(map_data):
     print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length and info as the one from /map)
