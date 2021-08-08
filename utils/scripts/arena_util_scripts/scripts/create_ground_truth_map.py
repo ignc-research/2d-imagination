@@ -18,6 +18,8 @@ RGB_color_ar = []
 name_id_type_color_ar = [] # [NameIDTypeColorRef(name='7_table5_chair2_1', id=7, type='chair2', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
 id_type_color_ar = [] # [IDTypeColorRef(id=7, type='chair1', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
 c = 0
+robot_cur_pos_x = robot_cur_pos_y = robot_cur_pos_z = 0
+robot_color_r = robot_color_g = robot_color_b = 0
 
 def callback_flatland_markers(markers_data): # get the ground truth map and array
     #print('MARKERS DATA: ' + str(markers_data))
@@ -28,8 +30,8 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
     global read_markers_info, amount_obstacles, c
     amount_obstacles = len(markers_data.markers)
     c += 1
-    #print('TEST: ' + str(amount_obstacles) + ' ' + str(c))
-    # TODO NEXT Problem: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
+    #print('Loaded obstacles for the current callback id: ' + str(amount_obstacles) + ' ' + str(c))
+    # Important: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
     # -> Idea1: call this callback a lot (amount of calling = c) and only after that start with the calculations: easier way, since the obstacle parts do not have to be calculated, but slower and there is no guarantee that it is enough for other bigger scenarios
     # -> Idea2: set the parameter 'obstacles_amount' to the amount of obstacle parts for the current scenario by launching: all parts should be calculated, but once this is done, it will work with every scenario, also faster
     node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
@@ -58,13 +60,18 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     new_center = 0
                 i += 1
             if new_center == 1:
-                if not(int(center_x) >= -2 and int(center_x) <= 2 and int(center_y) >= -2 and int(center_y) <= 2): # TODO: try to get the robot out (it should be at (0,0) but maybe it moved) -> get its position from /flatland_server/debug/model/myrobot !?
-                    if not(center_x == -6 and center_y == -6): # for the type 'line' with center (-6,-6)=origin !? (TODO)
+                # Important: do not include the robot in the ground truth map
+                # -> at the beginning the robot should be at (0,0) [idea1], but maybe it moved before the data was colected (get its position from /flatland_server/debug/model/myrobot) [idea2]
+                # -> or filter out its green rgb color [idea3] (no obstacle is then allowed to have this color!)
+                # -> to be 100% sure, just run this node (for ground truth data colection) when the robot is not moving [idea4]
+                #tolerance = 2 # in px
+                #if not(int(center_x) >= -tolerance and int(center_x) <= tolerance and int(center_y) >= -tolerance and int(center_y) <= tolerance): # idea1
+                #if not(int(center_x) >= robot_cur_pos_x-tolerance and int(center_x) <= robot_cur_pos_x+tolerance and int(center_y) >= robot_cur_pos_y-tolerance and int(center_y) <= robot_cur_pos_y+tolerance): # idea2
+                if not(marker.color.r == robot_color_r and marker.color.g == robot_color_g and marker.color.b == robot_color_b): # idea3
+                    if not(center_x == origin_x and center_y == origin_y): # filter out also the type 'line' with center=origin (the walls)
                         part_markers = [marker]
                         obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
         print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26
-        #for m in obstacle_markers:
-        #    print(str(m.x) + ' ' + str(m.y))
 
         for obstacle in obstacle_markers:
             print('AMOUNT OF MARKERS PER OBSTACLE: ' + str(len(obstacle.markers)))
@@ -96,10 +103,10 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             for marker in obstacle.markers:
                 # color the obstacles in the ground truth map with the same color from rviz (from their definition in the yaml file)
                 # the color from marker.color is scaled between 0 and 1, for opencv it should be between 0 and 255
-                # TODO: consider maybe also parameter 'a'
                 r = int(marker.color.r*255)
                 g = int(marker.color.g*255)
                 b = int(marker.color.b*255)
+                # parameter 'a' is also available, but for the ground truth map not significant
                 # handle differently based on the type:
                 if marker.type == 7: # 'sphere list'
                     counter_spheres += 1
@@ -115,6 +122,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
                     cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (b,g,r), -1) # a filled circle with the original color of the obstacle
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (b,g,r), 2) # a circle with the original color of the obstacle
                     # Important: the color in opencv is in order BGR!
                 elif marker.type == 11: # 'triangle list' = polygon
                     counter_polygons += 1
@@ -134,9 +142,11 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (0,255,255)) # a yellow filled polygon
                     #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (100,100,100)) # a grey filled polygon
                     cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (b,g,r)) # a filled polygon with the original color of the obstacle
-                elif marker.type == 5: # 'line list' =? the four room walls
+                    #cv2.polylines(temp_image_for_obstacle_rotations, [pts], True, (b,g,r)) # a polygon with the original color of the obstacle
+                elif marker.type == 5: # 'line list' = the room walls?; 4 lines; TODO: filtered out anyway, but maybe needed, so that the walls get also an assigned obstacle color/id!?
                     counter_lines += 1
-                    # for the line take only the first and last element of the array (TODO)
+                    # TODO: since an example consists of like ~25 points, it may also include edges, so better take all points in a loop then just the forst and last one
+                    # for the line take for now only the first and last element of the array
                     first_elem_x = marker.points[0].x
                     first_elem_y = marker.points[0].y
                     last_elem_X = marker.points[len(marker.points)-1].x
@@ -164,21 +174,23 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             # Important: 'distance' is the max length of the rectangle around the not yet rotated obstacle => idea: take the diagonal (should work also if the obstacle was a polygon)
             # Idea: take as less as possible pixels but also at 100% enough so that the whole obstacle is there, at the end all white pixels will be filtert out
             distance_diagonal = int(math.sqrt(2*(math.pow(distance,2))))
-            x_start = int(center_x_px - distance_diagonal)
-            y_start = int(center_y_px - distance_diagonal)
-            x_end = x_start+2*distance_diagonal
-            y_end = y_start+2*distance_diagonal
+            tolerance = 5 # [px] Important: it helps for example for the rotated square table! even a small tolerance (like 1 or 2) is enough but make it slightly bigger just to be sure it works correctly, but also not too much (so that it does not go over the borders after the rotation!)
+            x_start = int(center_x_px - distance_diagonal) - tolerance
+            y_start = int(center_y_px - distance_diagonal) - tolerance
+            x_end = x_start+2*distance_diagonal + 2*tolerance
+            y_end = y_start+2*distance_diagonal + 2*tolerance
 
-            # write the colored and rotated obstacle to the image
+            # write the colored and rotated obstacle to the image (better take only the part with the image on it as well as a small tolerance around then take the whole image without the borders, it's much more faster and still works every time; also taking the whole image could be wrong since the image has been rotated and some black parts are now on it now)
             figure_img = dst[row_big-1-y_end:row_big-1-y_start, x_start:x_end] # just a step in between for debugging
             for r in range(row_big-1-y_end, row_big-1-y_start):
                 for c in range(x_start, x_end):
-                    RGB_color_dst_ar = [dst[r, c, 0], dst[r, c, 1], dst[r, c, 2]]
+                    RGB_color_dst_ar = [dst[r, c, 2], dst[r, c, 1], dst[r, c, 0]]
                     white_ar = [255,255,255]
                     if RGB_color_dst_ar != white_ar: # filter out the white pixels to get only the obstacle contours to prevent overlapping
                         used_map_image[r, c] = dst[r, c]
                     # Info: because of rotation some of the colors are not that perfect any more (for example red is not only (255,0,0) etc.) 
-            cv2.imwrite("map_obstacles_part.png", figure_img)
+            cv2.imwrite("map_obstacles_part_debug.png", figure_img)
+            #cv2.imwrite("map_obstacles_part_debug_" + str(obstacle.x) + "_" + str(obstacle.y) + ".png", figure_img) # good for DEBUGGING
             cv2.imwrite("map_obstacles.png", used_map_image)
             
         # for debugging:
@@ -224,13 +236,15 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     ground_truth_semantic_map[i, j] = (0,0,0) # black
                     ground_truth_array_image_order.append(0) # 0 = black = free = 0
                     ground_truth_array_semantic_image_order.append(0) # 0 = black = free = 0
-                else: # other color (obstacle or its unclear border parts because of rotation -> mark the border better black then grey; do not choose white since everything in the ground truth should be known; grey borders of the colored obstacles might be a problem for recognising the type of the obstacles)
-                    # default values if the color is not found in the table then it is a tiny border color of the obstacles due to their rotation, so just mark them black as free because it is easier and exact enough:
-                    # (an alternative was to find the closest color in the table to the one form the borders, so to have a color tolerance, but since the color is way too different it could lead to coloring wrongly)
+                else: # other color (obstacle or its unclear border parts because of rotation)
+                    # -> do not mark the border black since info will be lost
+                    # -> do not choose white since everything in the ground truth should be known
+                    # -> grey borders of the colored obstacles might be a problem for recognising the type of the obstacles
+                    # -> finding the closest color in the table to the one form the borders, so to have a color tolerance, also do not works, since the color is way too different and it could lead to coloring wrongly
+                    # => so color the borders with the same color as the obstacle itself: to do this first color the borders white and later in another loop color the white px with their colorful neighbours px color
                     color_temp_grey = 0 # black per default
-                    color_temp_r_colorful = color_temp_g_colorful = color_temp_b_colorful = 255 # black per default # TODO NEXT: make white for debugging
-                    #id_temp = 0 # black = free per default
-                    id_temp = -1 # white = unknown per default # TODO NEXT
+                    color_temp_r_colorful = color_temp_g_colorful = color_temp_b_colorful = 255 # white per default to know if an obstacle was perfectly colored or not, when everything is perfect, there should be no white pixels
+                    id_temp = -1 # white = unknown per default
                     # for the semantics, having the obstacle color the type/id of the obstacle should be taken form the id-type-color-table:
                     for elem in id_type_color_ar:
                         if int(elem.color.r*255) == RGB_color_colorful[0] and int(elem.color.g*255) == RGB_color_colorful[1] and int(elem.color.b*255) == RGB_color_colorful[2]:
@@ -245,14 +259,13 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     ground_truth_map[i, j] = (color_temp_grey,color_temp_grey,color_temp_grey) # black or grey
                     ground_truth_array_image_order.append(color_temp_grey) # black or grey
 
+        dist = 3 # px # 1 px works for almost every case, but to be sure make it 2-3px, also not bigger since overlapping from other near obstacles may occur
         for i in range(ground_truth_semantic_map.shape[0]):
             for j in range(ground_truth_semantic_map.shape[1]):
                 BGR_color = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
                 if BGR_color == white_ar: # if it is white colored, then it belongs to a border => update the color
-                    # TODO NEXT: not black per default, but at first white and then find the color of the obstacle the border belongs to
-                    # -> take the color from the pixel next to it (above/left/right/bottom), if it is not the same color or black
-                    # -> Idea1: take the info from position/orientation/size etc. !?
-                    dist = 3 # px # 1 px works for almost every case, but to be sure make it 2-3px, also not bigger since overlapping from other near obstacles may occur
+                    # Idea1: find the color of the obstacle the border belongs to -> take the color from the pixel next to it (above/left/right/bottom), if it is not the same color or black
+                    # Idea2 (TODO): take the info from position/orientation/size etc. instead !?
                     BGR_color_left_neighbour = [ground_truth_semantic_map[i-dist, j, 0], ground_truth_semantic_map[i-dist, j, 1], ground_truth_semantic_map[i-dist, j, 2]]
                     BGR_color_right_neighbour = [ground_truth_semantic_map[i+dist, j, 0], ground_truth_semantic_map[i+dist, j, 1], ground_truth_semantic_map[i+dist, j, 2]]
                     BGR_color_bottom_neighbour = [ground_truth_semantic_map[i, j-dist, 0], ground_truth_semantic_map[i, j-dist, 1], ground_truth_semantic_map[i, j-dist, 2]]
@@ -306,8 +319,6 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
         savetxt('ground_truth_sim_order.csv', asarray([ground_truth_array_sim_order]), delimiter=',')
         savetxt('ground_truth_semantic_img_order.csv', asarray([ground_truth_array_semantic_image_order]), delimiter=',')
         savetxt('ground_truth_semantic_sim_order.csv', asarray([ground_truth_array_semantic_sim_order]), delimiter=',')
-        # TODO NEXT: publish the ground truth data (map/array) to a topic as a better option then writing it to a file
-        # TODO NEXT: maybe even write the type in rviz like a label on top of the obstacles
 
 def callback_flatland_server(flatland_server_data):
     global obstacle_names
@@ -362,12 +373,22 @@ def callback_flatland_server(flatland_server_data):
     with open('table.txt', 'w') as f: # overwrite the content
         f.write(table)
 
+def callback_myrobot(data):
+    global robot_cur_pos_x, robot_cur_pos_y, robot_cur_pos_z, robot_color_r, robot_color_g, robot_color_b
+    robot_cur_pos_x = data.markers[0].pose.position.x
+    robot_cur_pos_y = data.markers[0].pose.position.y
+    robot_cur_pos_z = data.markers[0].pose.position.z
+    robot_color_r = data.markers[0].color.r
+    robot_color_g = data.markers[0].color.g
+    robot_color_b = data.markers[0].color.b
+
 def create_ground_truth_data():
     rospy.init_node('ground_truth_data')
     #time.sleep(2) # wait for the obstacles to be spawned
     #rospy.Subscriber('/flatland_server/debug/model/table1', MarkerArray, callback)
     rospy.Subscriber('/flatland_server/debug/topics', DebugTopicList, callback_flatland_server)
     rospy.Subscriber('/flatland_markers', MarkerArray, callback_flatland_markers)
+    rospy.Subscriber('/flatland_server/debug/model/myrobot', MarkerArray, callback_myrobot)
     rospy.spin()
 
 if __name__ == '__main__':

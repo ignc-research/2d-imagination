@@ -425,6 +425,14 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
+      Marker Topic: /sim_1/obstacle_labels
+      Name: obstacle_labels_sim_1
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
       Marker Topic: /flatland_markers
       Name: flatland_markers
       Namespaces:
@@ -441,6 +449,14 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
+      Marker Topic: /obstacle_labels
+      Name: obstacle_labels
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
       Marker Topic: /eval_sim/flatland_markers
       Name: flatland_markers_eval_sim
       Namespaces:
@@ -451,6 +467,14 @@ Visualization Manager:
       Enabled: true
       Marker Topic: /eval_sim/pedsim_labels
       Name: pedsim_labels_eval_sim
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /eval_sim/obstacle_labels
+      Name: obstacle_labels_eval_sim
       Namespaces:
         {}
       Queue Size: 100

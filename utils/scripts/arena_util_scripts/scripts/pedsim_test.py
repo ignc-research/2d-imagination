@@ -207,7 +207,7 @@ def shelves_test():
     #respawn_interactive_obstacles_client.call([obstacle, obstacle2, obstacle3])
     respawn_interactive_obstacles_client.call([obstacle, obstacle2])
 
-def tables_test():
+def tables_test(): # scenario 1
     time.sleep(2)
     rospack = rospkg.RosPack()
     spawn_model_service_name = "spawn_models"

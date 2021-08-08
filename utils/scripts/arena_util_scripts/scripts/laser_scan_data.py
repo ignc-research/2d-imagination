@@ -278,25 +278,51 @@ def callback_local_costmap(map_data):
     my_file = Path("map_local_costmap.png")
     if not(my_file.is_file()): # the file does not exist
         temp_img = np.zeros((row_big,col_big)) # size of the big map image
+        temp_img_grey = np.zeros((row_big,col_big))
     else:
         temp_img = cv2.imread("map_local_costmap.png")
+        temp_img_grey = cv2.imread("map_local_costmap_grey.png") # should definetely include all laser scan points (in grey)
         for i in range(col_big):
             if i > block_abs_height_bottom_rviz and i <= block_abs_height_top_rviz:
                 for j in range(row_big):
                     if j > block_abs_width_left_rviz and j <= block_abs_width_right_rviz:
                         if(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1]==-1):
                             temp_img[row_big-1-i,j] = 255 # unknown = white
+                            temp_img_grey[row_big-1-i,j] = 255 # unknown = white
                         else:
+                            if temp_img_grey[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
+                                if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] == 100: # == 100 or > 90 # filter out the dark grey color -> leave the source (grey=~100) preferably without distortion
+                                    temp_img_grey[row_big-1-i,j] = map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] # black = free; grey = occupied
                             if temp_img[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] == 100: # == 100 or > 90 # filter out the dark grey color -> leave the source (grey=~100) preferably without distortion
-                                    #temp_img[row_big-1-i,j] = map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1] # black = free; grey = occupied
                                     # add semantics => do not color it always grey, but take the color from the ground truth map based on the global position
-                                    color_r = ground_truth_colored_map[row_big-1-i, j, 2] # evrything visualized in opencv is in form BGR and not RGB!
-                                    color_g = ground_truth_colored_map[row_big-1-i, j, 1]
-                                    color_b = ground_truth_colored_map[row_big-1-i, j, 0]
-                                    temp_img[row_big-1-i,j] = (color_b,color_g,color_r) # evrything visualized in opencv is in form BGR and not RGB!
+                                    color_r1 = ground_truth_colored_map[row_big-1-i, j, 2] # everything visualized in opencv is in form BGR and not RGB!
+                                    color_g1 = ground_truth_colored_map[row_big-1-i, j, 1]
+                                    color_b1 = ground_truth_colored_map[row_big-1-i, j, 0]
+                                    # Idea: get the color from the neighbours: row_big-2-i vs. row_big-1-i & j vs. j+1 -> if the color is black, check the color of the upper-left 1/4 of the neighbours:
+                                    color_r2 = ground_truth_colored_map[row_big-1-i, j+1, 2]
+                                    color_g2 = ground_truth_colored_map[row_big-1-i, j+1, 1]
+                                    color_b2 = ground_truth_colored_map[row_big-1-i, j+1, 0]
+                                    color_r3 = ground_truth_colored_map[row_big-2-i, j, 2]
+                                    color_g3 = ground_truth_colored_map[row_big-2-i, j, 1]
+                                    color_b3 = ground_truth_colored_map[row_big-2-i, j, 0]
+                                    color_r4 = ground_truth_colored_map[row_big-2-i, j+1, 2]
+                                    color_g4 = ground_truth_colored_map[row_big-2-i, j+1, 1]
+                                    color_b4 = ground_truth_colored_map[row_big-2-i, j+1, 0]
+                                    # TODO NEXT: check maybe also the rest of the neighbours!?
+                                    temp_img[row_big-1-i,j] = (color_b1,color_g1,color_r1) # everything visualized in opencv is in form BGR and not RGB!
+                                    # laser scan data, that couldn't have been colored properly because of the ground truth data:
+                                    if color_r1 == 0 and color_g1 == 0 and color_b1 == 0: # if black, take a neighbour color with the hope of not being black
+                                        temp_img[row_big-1-i,j] = (color_b2,color_g2,color_r2)
+                                        if color_r2 == 0 and color_g2 == 0 and color_b2 == 0:
+                                            temp_img[row_big-1-i,j] = (color_b3,color_g3,color_r3)
+                                            if color_r3 == 0 and color_g3 == 0 and color_b3 == 0:
+                                                temp_img[row_big-1-i,j] = (color_b4,color_g4,color_r4)
+                                                if color_r4 == 0 and color_g4 == 0 and color_b4 == 0:
+                                                    temp_img[row_big-1-i,j] = (100,100,100) # if still black, color it grey to not loose a laser scan information only because of the ground truth
     #cv2.imshow("map_local_costmap", temp_img)
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
+    cv2.imwrite("map_local_costmap_grey.png", temp_img_grey)
     #cv2.waitKey(0)
     # TODO: test it also when layer2 is visible for the laser scan
     # TODO: 'add' the image to the one from the /map topic
@@ -340,7 +366,6 @@ def callback_odom(odom_data):
     cosy_cosp = 1 - 2 * (q_y * q_y + q_z * q_z)
     robot_angle_yaw = math.atan2(siny_cosp, cosy_cosp)
     robot_angle_yaw_grad = math.degrees(robot_angle_yaw) # the same as the given 'theta' in the pose2d form in pedsim_test.py
-
 
 def laser_scan_data_listener():
     rospy.init_node('scan_values')
