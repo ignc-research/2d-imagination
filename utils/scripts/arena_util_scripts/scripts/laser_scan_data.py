@@ -41,7 +41,7 @@ def calculate_avg_x_y_value(point_generator):
     print('avg y value: ' + str(sum_temp_y/num_temp_y)) # calculate avg y value
 
 def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
-    # TODO NEXT: take data only every ten seconds for example
+    # (TODO) take data only every ten seconds for example
     point_list_abs = []
     resolution = 0.05 # the resolution of the currently used map
     origin_x_y = -6 # the origin of the currently used map is (-6,-6)
@@ -49,7 +49,7 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
     point_x_max = point_y_max = 0 # find the biggest x and y -> column and row end
     point_x_min = point_y_min = 1000 # find the smallest x and y -> column and row start
     for point in point_list:
-        x_abs = point.x + r_pos_x # TODO?
+        x_abs = point.x + r_pos_x # TODO: check!
         y_abs = point.y + r_pos_y
         x_px = int((x_abs - origin_x_y) / resolution)
         y_px = int((y_abs - origin_x_y) / resolution)
@@ -62,7 +62,7 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
     row = point_y_max - point_y_min
     col = point_x_max - point_x_min
     print('ROW(' + str(point_y_min) + ',' + str(point_y_max) + ') & COL(' + str(point_x_min) + ',' + str(point_x_max) + ')')
-    # TODO NEXT: sometimes the colums are > 700, even tought max 665/666
+    # TODO: sometimes the colums are > 700, even tought max 665/666
 
     rospack = rospkg.RosPack()
     relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
@@ -85,7 +85,7 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
     # - the calculations and iteration are happening maybe just too slowly, the calculated min-max borders to not match anymore with the current laser scan area etc.!?
     # - sometimes 'point_x_min' and 'point_y_min' have a negative value!?
 
-    # TODO NEXT: rotate the whole part image with robot_angle_yaw_grad=r_angle and then add it on top of the big one
+    # TODO: rotate the whole part image with robot_angle_yaw_grad=r_angle and then add it on top of the big one
     center_part_image_x = col/2
     center_part_image_y = row/2
     #diagonal_part_image = int(math.sqrt(math.pow(row,2)) + math.sqrt(math.pow(col,2)))
@@ -102,9 +102,9 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
     else:
         temp = cv2.imread("map_laser_scan.png")
         for i in range(row_big): # row_big - 0:521-1
-            if i > point_y_min and i <= point_y_max: # TODO NEXT!!
+            if i > point_y_min and i <= point_y_max: # TODO: check!
                 for j in range(col_big): # col_big - 0:666-1
-                    if j > point_x_min and j <= point_x_max: # TODO NEXT!!
+                    if j > point_x_min and j <= point_x_max: # TODO: check!
                         for point in point_list_abs:
                             if point.x == j and point.y == i:
                                 if temp[row_big-1-i,j].all() == 0: # overwrite it only if it was before black
@@ -113,8 +113,6 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
                                 #    temp[row_big-1-(i-point_y_min),j-point_x_min-1] = 100 #  100 = grey = occupied; 0 = black = free
     cv2.imwrite("map_laser_scan.png", temp) # will be saved in folder $HOME\.ros
     
-    # TODO NEXT: on the big picture it is drawn only on the bottom left 1/4 of the image!?
-
     # mark the whole area seen from the robot grey no matter if it is occupied or free (for tracking what the robot sees while moving and what remains unseen):
     #mark_laser_scan_area(row_big, col_big, row_start, row_end, col_start, col_end)
 
@@ -133,7 +131,7 @@ def mark_laser_scan_area(row_big, col_big, row_start, row_end, col_start, col_en
     cv2.imwrite("map_laser_scan_seen_area.png", temp) # will be saved in folder $HOME\.ros
 
 def callback(data):
-    r_pos_x = robot_pos_x # TODO NEXT: to be sure that they match with the current laser scan
+    r_pos_x = robot_pos_x # to be sure that they match with the current laser scan
     r_pos_y = robot_pos_y
     r_angle = robot_angle_yaw_grad
     # Read the data from the laser scan (only once):
@@ -170,6 +168,7 @@ def callback(data):
 
     # TODO: preprocessing: save the data (into a rosbag / csv file)
     # TODO: postprocessing: transform the laser scan data to a semantic laser scan data (transform to a 2d bird eye view map and add semantics like 'table1')
+    # -> it was done with the local costmap insted!
 
 def callback_map(map_data):
     #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
@@ -207,12 +206,6 @@ def callback_map(map_data):
     cv2.imwrite("map_topic.png", temp) # will be saved in folder $HOME\.ros
     #cv2.waitKey(0)
 
-    # TODO NEXT: a ground truth map with 'occupied', 'not occupied' or 'unknown' is needed
-    # the obstacles for the ground truth map should be actually from the biggest layer (layer2), since layer2 (and layer3) should be known after the imagination with layer1
-    # -> but the /map topic does not recognize the spawn tables and chairs as an occupied area!?
-    # -> the black areas on the map image "map_small.png" are considered as obstacles
-    # idea: get the coordinates of the obstacles from the topic /flatland_markers (instead of: params from the obstacle yaml files and the poses from pedsim_test.py) and visualize them on the image map with opencv (cv2.rectangle()) - the /map topic itself could not be updated, but the image with the obstacles could be still internal used
-
 def callback_local_costmap(map_data):
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
     local_costmap_width = map_data.info.width # 60
@@ -223,13 +216,13 @@ def callback_local_costmap(map_data):
     map_data_array = map_data.data
     map_data_length = len(map_data_array) # 3600
     print('LOCAL COSTMAP: \nlength: ' + str(map_data_length))
-    #ground_truth_colored_map = cv2.imread("map_obstacles.png") # TODO NEXT: with white borders, but also with more data
-    ground_truth_colored_map = cv2.imread("map_ground_truth_semantic.png")# TODO NEXT: without white borders, but also with less data
-    # TODO NEXT Important: if with borders then with borders for both local costmap data and ground truth data; if without - then for both images without!!
-    # 'WITH borders':
+    #ground_truth_colored_map = cv2.imread("map_obstacles.png") # with white borders, but definetely not loosing data
+    ground_truth_colored_map = cv2.imread("map_ground_truth_semantic.png") # ! with colored borders if everyhting works corectly (if a mistake occured, then grey or black)
+    # Important: choose the same solution for the borders for both the local costmap data and ground truth data:
+    # 'with white borders':
     #    real: ground_truth_colored_map = cv2.imread("map_obstacles.png") -> "map_local_costmap.png" -> "map_local_costmap_part_color.png"
     #   ideal: "map_obstacles_part.png" (cut from "map_obstacles.png")
-    # 'WITHOUT borders':
+    # 'with colorful borders':
     #    real: ground_truth_colored_map = cv2.imread("map_ground_truth_semantic.png") -> "map_local_costmap.png" -> "map_local_costmap_part_color.png"
     #   ideal: "map_ground_truth_semantic_part.png" (cut from "map_ground_truth_semantic.png")
 
@@ -272,7 +265,7 @@ def callback_local_costmap(map_data):
     # 3) update with the robot's movement the black image every time with the local 60x60 part
     # 4) always have the newest image saved (after the robot has moved in the whole space, every pixel should be definted to occupied/free/unknown)
 
-    # TODO NEXT: check again if the corners of the small images are correctly displayed or not
+    # Debugging: check again if the corners of the small images are correctly displayed
     # preferably there should be already a black image with this name and with the right dimensions in the $HOME\.ros folder,
     # if not - an image will be generated, but this takes time and in between the robot moves => some local costmap data can be missed and not be visualized
     my_file = Path("map_local_costmap.png")
@@ -309,7 +302,7 @@ def callback_local_costmap(map_data):
                                     color_r4 = ground_truth_colored_map[row_big-2-i, j+1, 2]
                                     color_g4 = ground_truth_colored_map[row_big-2-i, j+1, 1]
                                     color_b4 = ground_truth_colored_map[row_big-2-i, j+1, 0]
-                                    # TODO NEXT: check maybe also the rest of the neighbours!?
+                                    # Debugging: check maybe also the rest of the neighbours
                                     temp_img[row_big-1-i,j] = (color_b1,color_g1,color_r1) # everything visualized in opencv is in form BGR and not RGB!
                                     # laser scan data, that couldn't have been colored properly because of the ground truth data:
                                     if color_r1 == 0 and color_g1 == 0 and color_b1 == 0: # if black, take a neighbour color with the hope of not being black
@@ -324,10 +317,6 @@ def callback_local_costmap(map_data):
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     cv2.imwrite("map_local_costmap_grey.png", temp_img_grey)
     #cv2.waitKey(0)
-    # TODO: test it also when layer2 is visible for the laser scan
-    # TODO: 'add' the image to the one from the /map topic
-    # TODO NEXT: be sure to have both an image for visualization (black/white/gray) and an array (0,100,-1) for free/occupied/unknown!
-    # -> it is maybe even faster, inside the iterations to save everything in an array and at the end to display the image
 
     # prepare the ground truth data for comparing it with the local (60x60 block) data from the costmap
     # 1) cut from the ground truth map exactly the same 60x60 block
@@ -341,7 +330,8 @@ def callback_local_costmap(map_data):
     # 2) cut from the big colorful local cost map exactly the same 60x60 block
     temp_img_part = temp_img[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     cv2.imwrite("map_local_costmap_part_color.png", temp_img_part)
-    # 3) TODO NEXT: compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
+    # 3) compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
+    # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
 
 def callback_global_costmap(map_data):
     print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length and info as the one from /map)
@@ -378,7 +368,6 @@ def laser_scan_data_listener():
     rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, callback_global_costmap)
     rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns position and velocity of the robot
     rospy.spin()
-    # TODO: use Daniel's GUI, because later we will need 1000 scenarios
 
 if __name__ == '__main__':
     laser_scan_data_listener()

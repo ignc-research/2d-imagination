@@ -291,6 +291,8 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
         cv2.imwrite("map_ground_truth_semantic.png", ground_truth_semantic_map)
         print('GROUND TRUTH MAP AND ARRAY IMG ORDER DONE!')
 
+        # TODO: create a white-black map like "map_small.png", where the black areas are obstacles (needed to be uploaded in the GUI for creating scenarios)
+
         #ground_truth_map here is already only in black and grey, so for the color take the info from ground_truth_semantic_map
         i = ground_truth_map.shape[0] - 1
         while i >=0:
@@ -313,6 +315,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             i -= 1
         print('GROUND TRUTH ARRAY SIM ORDER DONE!')
         # TODO: vizualise the arrays just for debugging to see if everything is correct
+        # TODO idea: it is maybe even faster, inside the iterations to save everything in an array and at the end to display the image
 
         # save the arrays to files (all with length of 346986)
         savetxt('ground_truth_img_order.csv', asarray([ground_truth_array_image_order]), delimiter=',')
