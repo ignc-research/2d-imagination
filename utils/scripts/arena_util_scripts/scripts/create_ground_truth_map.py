@@ -13,6 +13,7 @@ from flatland_msgs.msg import DebugTopicList
 
 amount_obstacles = 0
 read_markers_info = 1
+read_flatland_info = 1
 obstacle_names = [] # the whole name: 'model/table5_chair2_1'
 RGB_color_ar = []
 name_id_type_color_ar = [] # [NameIDTypeColorRef(name='7_table5_chair2_1', id=7, type='chair2', color=r: 0.3 g: 0.0 b: 0.1 a: 0.5), ...]
@@ -30,49 +31,52 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
     global read_markers_info, amount_obstacles, c
     amount_obstacles = len(markers_data.markers)
     c += 1
+    counter_spheres = 0
+    counter_polygons = 0
+    counter_others = 0
+    counter_lines = 0
+    origin_x = -6
+    origin_y = -6
+    resolution = 0.05
+    obstacle_markers = []
+    ObstacleMarker = namedtuple("ObstacleMarker", "x y markers") # a struct per obstacle (center_x, center_y, markers_array)
+
+    # Important: if this FOR loop is before the IF statement checking the amount of obstacles, then '~obstacles_amount' should be = the amount of obstacles (26 for scenario 1), but if it is inside of the IF statement, then '~obstacles_amount' should be = all parts of all obstacles (133 for scenario 1 + 9 for the walls and the robot, so al together 142)
+    # collect all parts that belog to the same obstacle - if center_x and center_y are the same, they are part of the same obstacle (important for later to rotate the whole obstacle at once)
+    for marker in markers_data.markers:
+        center_x = marker.pose.position.x
+        center_y = marker.pose.position.y
+        i = 0
+        new_center = 1
+        for m in obstacle_markers:
+            if round(m.x, 2) == round(center_x, 2) and round(m.y, 2) == round(center_y, 2): # round it until the second digit after the comma
+                obstacle_markers[i].markers.append(marker)
+                new_center = 0
+            i += 1
+        if new_center == 1:
+            # Important: do not include the robot in the ground truth map
+            # -> at the beginning the robot should be at (0,0) [idea1], but maybe it moved before the data was colected (get its position from /flatland_server/debug/model/myrobot) [idea2]
+            # -> or filter out its green rgb color [idea3] (no obstacle is then allowed to have this color!)
+            # -> to be 100% sure, just run this node (for ground truth data colection) when the robot is not moving [idea4]
+            #tolerance = 2 # in px
+            #if not(int(center_x) >= -tolerance and int(center_x) <= tolerance and int(center_y) >= -tolerance and int(center_y) <= tolerance): # idea1
+            #if not(int(center_x) >= robot_cur_pos_x-tolerance and int(center_x) <= robot_cur_pos_x+tolerance and int(center_y) >= robot_cur_pos_y-tolerance and int(center_y) <= robot_cur_pos_y+tolerance): # idea2
+            if not(marker.color.r == robot_color_r and marker.color.g == robot_color_g and marker.color.b == robot_color_b): # idea3
+                if not(center_x == origin_x and center_y == origin_y): # filter out also the type 'line' with center=origin (the walls)
+                    part_markers = [marker]
+                    obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
+    print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26 for scenario 1
+
     #print('Loaded obstacles for the current callback id: ' + str(amount_obstacles) + ' ' + str(c))
     # Important: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
     # -> Idea1: call this callback a lot (amount of calling = c) and only after that start with the calculations: easier way, since the obstacle parts do not have to be calculated, but slower and there is no guarantee that it is enough for other bigger scenarios
     # -> Idea2: set the parameter 'obstacles_amount' to the amount of obstacle parts for the current scenario by launching: all parts should be calculated, but once this is done, it will work with every scenario, also faster
     node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
     #if c == 100 and read_markers_info == 1: # Idea1
-    if amount_obstacles == node_obstacles_amount and read_markers_info == 1: # Idea2
+    #if amount_obstacles == node_obstacles_amount and read_markers_info == 1: # Idea2
+    if len(obstacle_markers) == node_obstacles_amount and read_markers_info == 1 and len(obstacle_names) == node_obstacles_amount: # Idea2.2 consider the len(obstacle_markers) instead of amount_obstacles (also make sure that the correspondance color-type table is already ready, since this could also take a while)
+        print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26 for scenario 1
         read_markers_info = 0
-        counter_spheres = 0
-        counter_polygons = 0
-        counter_others = 0
-        counter_lines = 0
-        origin_x = -6
-        origin_y = -6
-        resolution = 0.05
-        obstacle_markers = []
-        ObstacleMarker = namedtuple("ObstacleMarker", "x y markers") # a struct per obstacle (center_x, center_y, markers_array)
-
-        # collect all parts that belog to the same obstacle - if center_x and center_y are the same, they are part of the same obstacle (important for later to rotate the whole obstacle at once)
-        for marker in markers_data.markers:
-            center_x = marker.pose.position.x
-            center_y = marker.pose.position.y
-            i = 0
-            new_center = 1
-            for m in obstacle_markers:
-                if round(m.x, 2) == round(center_x, 2) and round(m.y, 2) == round(center_y, 2): # round it until the second digit after the comma
-                    obstacle_markers[i].markers.append(marker)
-                    new_center = 0
-                i += 1
-            if new_center == 1:
-                # Important: do not include the robot in the ground truth map
-                # -> at the beginning the robot should be at (0,0) [idea1], but maybe it moved before the data was colected (get its position from /flatland_server/debug/model/myrobot) [idea2]
-                # -> or filter out its green rgb color [idea3] (no obstacle is then allowed to have this color!)
-                # -> to be 100% sure, just run this node (for ground truth data colection) when the robot is not moving [idea4]
-                #tolerance = 2 # in px
-                #if not(int(center_x) >= -tolerance and int(center_x) <= tolerance and int(center_y) >= -tolerance and int(center_y) <= tolerance): # idea1
-                #if not(int(center_x) >= robot_cur_pos_x-tolerance and int(center_x) <= robot_cur_pos_x+tolerance and int(center_y) >= robot_cur_pos_y-tolerance and int(center_y) <= robot_cur_pos_y+tolerance): # idea2
-                if not(marker.color.r == robot_color_r and marker.color.g == robot_color_g and marker.color.b == robot_color_b): # idea3
-                    if not(center_x == origin_x and center_y == origin_y): # filter out also the type 'line' with center=origin (the walls)
-                        part_markers = [marker]
-                        obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
-        print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26
-
         for obstacle in obstacle_markers:
             print('AMOUNT OF MARKERS PER OBSTACLE: ' + str(len(obstacle.markers)))
             # params that are the same for all parts of an obstacle:
@@ -336,7 +340,7 @@ def callback_flatland_server(flatland_server_data):
                 obstacle_names.append(topic)
     #print(obstacle_names) # ['model/1_table1', ...]
     #print(len(obstacle_names)) # 26 # they are loading one by one! so wait until the last one is loaded
-    
+
     global name_id_type_color_ar, id_type_color_ar
     NameIDTypeColorRef = namedtuple("NameIDTypeColorRef", "name id type color")
     IDTypeColorRef = namedtuple("IDTypeColorRef", "id type color")
@@ -345,8 +349,8 @@ def callback_flatland_server(flatland_server_data):
         #rospy.Subscriber('/flatland_server/debug/' + str(topic_sub_name), MarkerArray, callback)
         msg = rospy.wait_for_message('/flatland_server/debug/' + str(topic_sub_name), MarkerArray)
         RGB_color = msg.markers[0].color
-        # obstacle name's: table types = 'model/[global_nummer]_table[nummer]', chair types = 'model/[global_nummer]_table[nummer]_chair[nummer]_counter'
-        # => split the name: take only the [global_nummer] for the id; without 'model/[global_nummer]_' for the tables and for the chairs leave only the middle part 'chair[nummer]'
+        # obstacle name's: table types = 'model/[global_nummer]_table[nummer]_counter', chair types = 'model/[global_nummer]_table[nummer]_chair[nummer]_counter'
+        # => split the name: take only the [global_nummer] for the id; without 'model/[global_nummer]_' and '_counter' for the tables and for the chairs leave only the middle part 'chair[nummer]'
         # => example: topic_sub_name = 'model/5_table5_chair2_1', name = 'table5_chair2_1', type = 'chair2' and id = 5
         name = topic_sub_name.split("model/")[1]
         id = int(name.split("_")[0])

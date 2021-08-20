@@ -82,7 +82,29 @@ def fill_markers_table(marker_table, marker, obstacle_id, obstacle_type):
 
 def callback_flatland_markers(markers_data):
     global amount_obstacles, read_markers_info
-    amount_obstacles = len(markers_data.markers)
+    origin_x = -6
+    origin_y = -6
+    obstacle_markers = []
+    ObstacleMarker = namedtuple("ObstacleMarker", "x y markers") # a struct per obstacle (center_x, center_y, markers_array)
+    # collect all parts that belog to the same obstacle - if center_x and center_y are the same, they are part of the same obstacle (important for later to rotate the whole obstacle at once)
+    for marker in markers_data.markers:
+        center_x = marker.pose.position.x
+        center_y = marker.pose.position.y
+        i = 0
+        new_center = 1
+        for m in obstacle_markers:
+            if round(m.x, 2) == round(center_x, 2) and round(m.y, 2) == round(center_y, 2): # round it until the second digit after the comma
+                obstacle_markers[i].markers.append(marker)
+                new_center = 0
+            i += 1
+        if new_center == 1:
+            # Important: do not include the robot in the ground truth map
+            if not(marker.color.r == robot_color_r and marker.color.g == robot_color_g and marker.color.b == robot_color_b): # the robot is green
+                if not(center_x == origin_x and center_y == origin_y): # filter out also the type 'line' with center=origin (the walls)
+                    part_markers = [marker]
+                    obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
+    #amount_obstacles = len(markers_data.markers) # for working with amount of obstacle parts of all obstacles
+    amount_obstacles = len(obstacle_markers) # for working with amount of all obstacles
     node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
     if amount_obstacles == node_obstacles_amount: # should be publishing the whole time from the point all obstacles have been loaded
         new_marker_array = MarkerArray()

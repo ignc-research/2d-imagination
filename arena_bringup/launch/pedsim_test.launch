@@ -33,7 +33,7 @@
   <param name="show_viz"      value="$(arg show_viz)"/>
 
   <!-- Scenarios -->
-  <arg name="obstacles_amount"  default="142"/> <!-- value="142" for scenario 1 --> <!-- amount of all obstacle parts: for example for table 1 it is 5 (1 plate + 4 legs) -->
+  <arg name="obstacles_amount"  default="26"/> <!-- value="26" for scenario 1 --> <!-- amount of all obstacles, not obstacle types! -->
 
  <!-- use flatland simulator and rviz-->
   <include file="$(find arena_bringup)/launch/sublaunch/flatland_simulator.launch">
