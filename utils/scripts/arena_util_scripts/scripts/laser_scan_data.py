@@ -16,6 +16,8 @@ from geometry_msgs.msg import Twist
 import sensor_msgs.point_cloud2 as pc2
 import laser_geometry.laser_geometry as lg
 from visualization_msgs.msg import MarkerArray
+from map_msgs.msg import OccupancyGridUpdate
+from std_msgs.msg import Float64
 
 lp = lg.LaserProjection()
 read_laser_scan_info = 1
@@ -170,42 +172,6 @@ def callback(data):
     # TODO: postprocessing: transform the laser scan data to a semantic laser scan data (transform to a 2d bird eye view map and add semantics like 'table1')
     # -> it was done with the local costmap insted!
 
-def callback_map(map_data):
-    #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
-    map_data_array = asarray([map_data.data])
-    savetxt('map_data.csv', map_data_array, delimiter=',') # will be saved in folder $HOME\.ros
-    free_amount = 0
-    unknown_amount = 0
-    ocupied_amount = 0
-    for i in map_data_array[0]:
-        if i == 0:
-            free_amount += 1
-        if i == -1:
-            unknown_amount += 1
-        if i == 100:
-            ocupied_amount += 1
-    print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
-
-    # save the map as a grey image (black = free; grey = occupied; unknown = white):
-    rospack = rospkg.RosPack()
-    map_data_array2 = np.array(map_data.data) # array of size 346986
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
-    print(map_reshaped)
-    row,col = map_reshaped.shape
-    temp = np.zeros((row,col))
-    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
-    for i in range(row):
-        for j in range(col):
-            if(map_reshaped[i,j]==-1):
-                temp[row-1-i,j]=255 # unknown = white
-            else:
-                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
-    #cv2.imshow("map_topic", temp)
-    cv2.imwrite("map_topic.png", temp) # will be saved in folder $HOME\.ros
-    #cv2.waitKey(0)
-
 def callback_local_costmap(map_data):
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
     local_costmap_width = map_data.info.width # 60
@@ -333,8 +299,79 @@ def callback_local_costmap(map_data):
     # 3) compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
     # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
 
-def callback_global_costmap(map_data):
-    print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length and info as the one from /map)
+def callback_map(map_data):
+    # TODO: wait for the obstacles to be spawned!?
+    #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
+    map_data_array = asarray([map_data.data])
+    savetxt('map_data.csv', map_data_array, delimiter=',') # will be saved in folder $HOME\.ros
+    free_amount = 0
+    unknown_amount = 0
+    ocupied_amount = 0
+    for i in map_data_array[0]:
+        if i == 0:
+            free_amount += 1
+        if i == -1:
+            unknown_amount += 1
+        if i == 100:
+            ocupied_amount += 1
+    print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
+
+    # save the map as a grey image (black = free; grey = occupied; unknown = white):
+    rospack = rospkg.RosPack()
+    map_data_array2 = np.array(map_data.data) # array of size 346986
+    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    print(map_reshaped)
+    row,col = map_reshaped.shape
+    temp = np.zeros((row,col))
+    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    for i in range(row):
+        for j in range(col):
+            if(map_reshaped[i,j]==-1):
+                temp[row-1-i,j]=255 # unknown = white
+            else:
+                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+    #cv2.imshow("map_topic", temp)
+    cv2.imwrite("map_topic.png", temp) # will be saved in folder $HOME\.ros
+    #cv2.waitKey(0)
+
+def callback_global_costmap(map_data): # TODO: it does not update itself when the robots is moving, even though it does in rviz!?
+    print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length as the one from /map), but different info: it updates globally with the info from the obstacles while the robot is moving)
+    #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
+    map_data_array = asarray([map_data.data])
+    savetxt('global_costmap_data.csv', map_data_array, delimiter=',') # will be saved in folder $HOME\.ros
+    free_amount = 0
+    unknown_amount = 0
+    ocupied_amount = 0
+    for i in map_data_array[0]:
+        if i == 0:
+            free_amount += 1
+        if i == -1:
+            unknown_amount += 1
+        if i == 100:
+            ocupied_amount += 1
+    print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # should be updating
+
+    # save the map as a grey image (black = free; grey = occupied; unknown = white):
+    rospack = rospkg.RosPack()
+    map_data_array2 = np.array(map_data.data) # array of size 346986
+    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    print(map_reshaped)
+    row,col = map_reshaped.shape
+    temp = np.zeros((row,col))
+    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    for i in range(row):
+        for j in range(col):
+            if(map_reshaped[i,j]==-1):
+                temp[row-1-i,j]=255 # unknown = white
+            else:
+                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+    #cv2.imshow("map_global_costmap", temp)
+    cv2.imwrite("map_global_costmap.png", temp) # will be saved in folder $HOME\.ros
+    #cv2.waitKey(0)
 
 def callback_odom(odom_data):
     #print('(pos_x, pos_y, angle_z) = (' + str(odom_data.pose.pose.position.x) + ', ' + str(odom_data.pose.pose.position.y) + ', ' + str(odom_data.pose.pose.orientation.z) + ')')
@@ -357,15 +394,53 @@ def callback_odom(odom_data):
     robot_angle_yaw = math.atan2(siny_cosp, cosy_cosp)
     robot_angle_yaw_grad = math.degrees(robot_angle_yaw) # the same as the given 'theta' in the pose2d form in pedsim_test.py
 
+def callback_global_costmap_updates(map_data):
+    #print(map_data.data)
+    #print('GLOBAL COSTMAP UPDATE: ' + str(len(map_data.data))) # 23220/29068/.. (the length changes; not the same length as the one from /map 346986)
+    # TODO: the images are always from a different size; probably locally placed; the amount of occupied and free pixels changes over time
+
+    map_data_array = asarray([map_data.data])
+    free_amount = 0
+    unknown_amount = 0
+    ocupied_amount = 0
+    for i in map_data_array[0]:
+        if i == 0:
+            free_amount += 1
+        if i == -1:
+            unknown_amount += 1
+        if i == 100:
+            ocupied_amount += 1
+    print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # should be updating
+
+    # save the map as a grey image (black = free; grey = occupied; unknown = white):
+    map_data_array2 = np.array(map_data.data) # array of different length
+    map_reshaped = map_data_array2.reshape((map_data.width,map_data.height))
+    print(map_reshaped)
+    row,col = map_reshaped.shape
+    temp = np.zeros((row,col))
+    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    for i in range(row):
+        for j in range(col):
+            if(map_reshaped[i,j]==-1):
+                temp[row-1-i,j]=255 # unknown = white
+            else:
+                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+    cv2.imwrite("map_global_costmap_updates_data.png", temp) # will be saved in folder $HOME\.ros
+
+def callback_mapping(data):
+    print(data)
+
 def laser_scan_data_listener():
     rospy.init_node('scan_values')
     #time.sleep(2) # wait for the obstacles to be spawned
     # read the laser scan data and save also the absolute and relative position of the robot the whole time,
     # to be able to match it with the laser scan data; save also the info from the map to know where the obstacles are
     #rospy.Subscriber("/scan", LaserScan, callback) # queue_size=1
-    rospy.Subscriber('/map', OccupancyGrid, callback_map) # /move_base/global_costmap/costmap similar to /map
+    rospy.Subscriber('/map', OccupancyGrid, callback_map) # /move_base/global_costmap/costmap similar to /map # TODO NEXT: the map do not update? the newly spawned obstacles are not visible!
     rospy.Subscriber('/move_base/local_costmap/costmap', OccupancyGrid, callback_local_costmap)
-    rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, callback_global_costmap)
+    rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, callback_global_costmap) # TODO NEXT: the map do not update although it does in rviz!? the newly spawned obstacles are not visible!
+    #rospy.Subscriber('/move_base/global_costmap/costmap_updates', OccupancyGridUpdate, callback_global_costmap_updates) # TODO: an unvizualisable topic in rviz
+    #rospy.Subscriber('/slam_gmapping/entropy ', Float64, callback_mapping) # TODO?
     rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns position and velocity of the robot
     rospy.spin()
 

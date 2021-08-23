@@ -65,7 +65,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                 if not(center_x == origin_x and center_y == origin_y): # filter out also the type 'line' with center=origin (the walls)
                     part_markers = [marker]
                     obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
-    print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26 for scenario 1
+    #print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26 for scenario 1
 
     #print('Loaded obstacles for the current callback id: ' + str(amount_obstacles) + ' ' + str(c))
     # Important: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
@@ -125,6 +125,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,0), -1) # a black filled circle
                     cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (b,g,r), -1) # a filled circle with the original color of the obstacle
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (b,g,r), 2) # a circle with the original color of the obstacle
                     # Important: the color in opencv is in order BGR!
@@ -145,6 +146,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.polylines(temp_image_for_obstacle_rotations,[pts],True,(0,255,255)) # a polygon with yellow contours
                     #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (0,255,255)) # a yellow filled polygon
                     #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (100,100,100)) # a grey filled polygon
+                    #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (0,0,0)) # a black filled polygon
                     cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (b,g,r)) # a filled polygon with the original color of the obstacle
                     #cv2.polylines(temp_image_for_obstacle_rotations, [pts], True, (b,g,r)) # a polygon with the original color of the obstacle
                 elif marker.type == 5: # 'line list' = the room walls?; 4 lines; TODO: filtered out anyway, but maybe needed, so that the walls get also an assigned obstacle color/id!?
@@ -161,6 +163,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     last_elem_y_px = int(last_elem_y / resolution) + center_y_px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(100,100,100),10) # a grey line with thickness of 10 px
+                    #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(0,0,0),10) # a black line with thickness of 10 px
                     cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(b,g,r),10) # a line with thickness of 10 px with the original color of the obstacle
                 else:
                     counter_others += 1
