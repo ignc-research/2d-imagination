@@ -266,7 +266,15 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     ground_truth_map[i, j] = (color_temp_grey,color_temp_grey,color_temp_grey) # black or grey
                     ground_truth_array_image_order.append(color_temp_grey) # black or grey
 
-        dist = 3 # px # 1 px works for almost every case, but to be sure make it 2-3px, also not bigger since overlapping from other near obstacles may occur
+        # TODO NEXT: a problem for scenario 2 and 3 if the number is big, because the obstacles there are really close to each other
+        # -> if dist is a bigger number, then it could occur that an obstacle gets the color of another one
+        # -> but if dist is too small, it could happen that the border of an obstacle is this undefined color that brings nothing
+        # -> idea: since all four neigbour are checked, take this color different from black that mostly occurs!? then should the number be rather big like 3-4px
+        # --> better, but not perfect..
+        # -> Question: is the color taken before or after rotation? because of the little grey marked pixels it looks like it was taken before the rotation (see the circles in scenario2)??
+        # --> maybe just wrong position?; maybe check also the diagonals;
+        # --> when the diagonals are taken is best when dist = 1, but with diagonals is maybe not enough to find two from 8 equal colors!?
+        dist = 1 # px # 1 px works for almost every case, but to be sure make it 2-3px, also not bigger since overlapping from other near obstacles may occur
         for i in range(ground_truth_semantic_map.shape[0]):
             for j in range(ground_truth_semantic_map.shape[1]):
                 BGR_color = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
@@ -277,14 +285,85 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     BGR_color_right_neighbour = [ground_truth_semantic_map[i+dist, j, 0], ground_truth_semantic_map[i+dist, j, 1], ground_truth_semantic_map[i+dist, j, 2]]
                     BGR_color_bottom_neighbour = [ground_truth_semantic_map[i, j-dist, 0], ground_truth_semantic_map[i, j-dist, 1], ground_truth_semantic_map[i, j-dist, 2]]
                     BGR_color_upper_neighbour = [ground_truth_semantic_map[i, j+dist, 0], ground_truth_semantic_map[i, j+dist, 1], ground_truth_semantic_map[i, j+dist, 2]]
+                    BGR_color_left_upper_neighbour = [ground_truth_semantic_map[i-dist, j+dist, 0], ground_truth_semantic_map[i-dist, j+dist, 1], ground_truth_semantic_map[i-dist, j+dist, 2]]
+                    BGR_color_right_upper_neighbour = [ground_truth_semantic_map[i+dist, j+dist, 0], ground_truth_semantic_map[i+dist, j+dist, 1], ground_truth_semantic_map[i+dist, j+dist, 2]]
+                    BGR_color_left_bottom_neighbour = [ground_truth_semantic_map[i-dist, j-dist, 0], ground_truth_semantic_map[i-dist, j-dist, 1], ground_truth_semantic_map[i-dist, j-dist, 2]]
+                    BGR_color_right_bottom_neighbour = [ground_truth_semantic_map[i+dist, j-dist, 0], ground_truth_semantic_map[i+dist, j-dist, 1], ground_truth_semantic_map[i+dist, j-dist, 2]]
+                    new_color_left = new_color_right = new_color_bottom = new_color_up = (100,100,100)
+                    new_color_left_up = new_color_right_up = new_color_left_bottom = new_color_right_bottom = (100,100,100)
                     if BGR_color_left_neighbour!=white_ar and BGR_color_left_neighbour!=black_ar:
-                        ground_truth_semantic_map[i, j] = (BGR_color_left_neighbour[0], BGR_color_left_neighbour[1], BGR_color_left_neighbour[2])
+                        new_color_left = (BGR_color_left_neighbour[0], BGR_color_left_neighbour[1], BGR_color_left_neighbour[2])
                     if BGR_color_right_neighbour!=white_ar and BGR_color_right_neighbour!=black_ar:
-                        ground_truth_semantic_map[i, j] = (BGR_color_right_neighbour[0], BGR_color_right_neighbour[1], BGR_color_right_neighbour[2])
+                        new_color_right = (BGR_color_right_neighbour[0], BGR_color_right_neighbour[1], BGR_color_right_neighbour[2])
                     if BGR_color_bottom_neighbour!=white_ar and BGR_color_bottom_neighbour!=black_ar:
-                        ground_truth_semantic_map[i, j] = (BGR_color_bottom_neighbour[0], BGR_color_bottom_neighbour[1], BGR_color_bottom_neighbour[2])
+                        new_color_bottom = (BGR_color_bottom_neighbour[0], BGR_color_bottom_neighbour[1], BGR_color_bottom_neighbour[2])
                     if BGR_color_upper_neighbour!=white_ar and BGR_color_upper_neighbour!=black_ar:
-                        ground_truth_semantic_map[i, j] = (BGR_color_upper_neighbour[0], BGR_color_upper_neighbour[1], BGR_color_upper_neighbour[2])
+                        new_color_up = (BGR_color_upper_neighbour[0], BGR_color_upper_neighbour[1], BGR_color_upper_neighbour[2])
+                    if BGR_color_left_upper_neighbour!=white_ar and BGR_color_left_upper_neighbour!=black_ar:
+                        new_color_left_up = (BGR_color_left_upper_neighbour[0], BGR_color_left_upper_neighbour[1], BGR_color_left_upper_neighbour[2])
+                    if BGR_color_right_upper_neighbour!=white_ar and BGR_color_right_upper_neighbour!=black_ar:
+                        new_color_right_up = (BGR_color_right_upper_neighbour[0], BGR_color_right_upper_neighbour[1], BGR_color_right_upper_neighbour[2])
+                    if BGR_color_left_bottom_neighbour!=white_ar and BGR_color_left_bottom_neighbour!=black_ar:
+                        new_color_left_bottom = (BGR_color_left_bottom_neighbour[0], BGR_color_left_bottom_neighbour[1], BGR_color_left_bottom_neighbour[2])
+                    if BGR_color_right_bottom_neighbour!=white_ar and BGR_color_right_bottom_neighbour!=black_ar:
+                        new_color_right_bottom = (BGR_color_right_bottom_neighbour[0], BGR_color_right_bottom_neighbour[1], BGR_color_right_bottom_neighbour[2])
+                    
+                    # try to make sure that the right color is taken and not the color from another obstacle near by:
+                    # for now check if from 8 neighbours, two of the colors are the same (TODO: not enough!?)
+                    if new_color_left != (100,100,100) and new_color_left == new_color_right or new_color_left == new_color_bottom or new_color_left == new_color_up or new_color_left == new_color_left_up or new_color_left == new_color_right_up or new_color_left == new_color_left_bottom or new_color_left == new_color_right_bottom:
+                        new_color = new_color_left
+                    elif new_color_right != (100,100,100) and new_color_right == new_color_left or new_color_right == new_color_bottom or new_color_right == new_color_up or new_color_right == new_color_left_up or new_color_right == new_color_right_up or new_color_right == new_color_left_bottom or new_color_right == new_color_right_bottom:
+                        new_color = new_color_right
+                    elif new_color_bottom != (100,100,100) and new_color_bottom == new_color_left or new_color_bottom == new_color_right or new_color_bottom == new_color_up or new_color_bottom == new_color_left_up or new_color_bottom == new_color_right_up or new_color_bottom == new_color_left_bottom or new_color_bottom == new_color_right_bottom:
+                        new_color = new_color_bottom
+                    elif new_color_up != (100,100,100) and new_color_up == new_color_left or new_color_up == new_color_right or new_color_up == new_color_bottom or new_color_up == new_color_left_up or new_color_up == new_color_right_up or new_color_up == new_color_left_bottom or new_color_up == new_color_right_bottom:
+                        new_color = new_color_up
+                    elif new_color_left_up != (100,100,100) and new_color_left_up == new_color_right or new_color_left_up == new_color_bottom or new_color_left_up == new_color_up or new_color_left_up == new_color_left or new_color_left_up == new_color_right_up or new_color_left_up == new_color_left_bottom or new_color_left_up == new_color_right_bottom:
+                        new_color = new_color_left_up
+                    elif new_color_right_up != (100,100,100) and new_color_right_up == new_color_left or new_color_right_up == new_color_bottom or new_color_right_up == new_color_up or new_color_right_up == new_color_left_up or new_color_right_up == new_color_right or new_color_right_up == new_color_left_bottom or new_color_right_up == new_color_right_bottom:
+                        new_color = new_color_right_up
+                    elif new_color_left_bottom != (100,100,100) and new_color_left_bottom == new_color_left or new_color_left_bottom == new_color_right or new_color_left_bottom == new_color_up or new_color_left_bottom == new_color_left_up or new_color_left_bottom == new_color_right_up or new_color_left_bottom == new_color_bottom or new_color_left_bottom == new_color_right_bottom:
+                        new_color = new_color_right_bottom
+                    elif new_color_right_bottom != (100,100,100) and new_color_right_bottom == new_color_left or new_color_right_bottom == new_color_right or new_color_right_bottom == new_color_bottom or new_color_right_bottom == new_color_left_up or new_color_right_bottom == new_color_right_up or new_color_right_bottom == new_color_left_bottom or new_color_right_bottom == new_color_up:
+                        new_color = new_color_left_bottom
+
+                    # if no two neigbours have the same color different from black and white, then just take one of the possible other colors:
+                    if new_color_left != (100,100,100):
+                        new_color = new_color_left
+                    elif new_color_right != (100,100,100):
+                        new_color = new_color_right
+                    elif new_color_bottom != (100,100,100):
+                        new_color = new_color_bottom
+                    elif new_color_up != (100,100,100):
+                        new_color = new_color_up
+                    elif new_color_left_up != (100,100,100):
+                        new_color = new_color_left_up
+                    elif new_color_right_up != (100,100,100):
+                        new_color = new_color_right_up
+                    elif new_color_right_bottom != (100,100,100):
+                        new_color = new_color_right_bottom
+                    elif new_color_left_bottom != (100,100,100):
+                        new_color = new_color_left_bottom
+
+                    # better alternative of all the if cases above: find the color from all 8 neighbours that occurs the most (with dist=1):
+                    color_ar = [new_color_left, new_color_right, new_color_bottom, new_color_up, new_color_left_up, new_color_right_up, new_color_right_bottom, new_color_left_bottom]
+                    color_freq_ar = []
+                    color_freq_max = 0
+                    index_color_freq_max = 0
+                    count = 0
+                    for color1 in color_ar:
+                        freq_temp = 0
+                        for color2 in color_ar:
+                            if color2 == color1 and color1 != (255,255,255) and color1 != (0,0,0) and color1 != (100,100,100): # make also sure that it is not black, white or grey!
+                                freq_temp += 1
+                        color_freq_ar.append(freq_temp)
+                        if freq_temp > color_freq_max:
+                            color_freq_max = freq_temp
+                            index_color_freq_max = count
+                        count += 1
+                    new_color = color_ar[index_color_freq_max] # should always have the right color! (TODO NEXT)
+                        
+                    ground_truth_semantic_map[i, j] = new_color
                     #print(ground_truth_semantic_map[i, j]) # for debugging: [100 100 100], [178   0 127], [127  25   0] etc.
                     # also update the id:
                     for elem in id_type_color_ar:
