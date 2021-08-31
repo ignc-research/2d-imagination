@@ -126,6 +126,24 @@ def goal_publisher_move_base_client():
         y_temp += y_step
         movebase_client(x_min, y_temp, goal_pub)
 
+    # TODO DEBUGGING gmapping (for scenario 1):
+    #movebase_client(5, -1, goal_pub)
+    #movebase_client(24, -1, goal_pub)
+    #movebase_client(24, 17, goal_pub)
+    #movebase_client(5, 17, goal_pub)
+    #movebase_client(5, 0, goal_pub)
+
+def training_script():
+    print('Training started')
+    # TODO NEXT
+    # parse the yaml file created from the gui (arena-tool)
+    # - get the name of the map (or names -> then dynamically publish a differen map) -> find the png/pgm/yaml map files and load to rviz
+    # - get the robot position -> if not the default one, move the robot there first (before starting recording the data)
+    # - get the robot's path (waypoints / robot's subgoals) -> move the robot with move_base to each point
+    # - get the amount of images per second -> save the laser scan data (local costmap -> image pairs (local costmap part & ground truth part)) in those intervals
+    # output: 1000-2000 images => input: 5 scenarios & 3-4 paths per scenario => ca 50-100 'images' per path
+    # -> the robot should move in each direction with the same velocity
+
 if __name__ == '__main__':
     #goal_publisher() # the robot moves to the goal, but does not avoid obstacles
     #goal_publisher_move_base() # the robot doeas not move (theoretically it should avoid the obstacles)

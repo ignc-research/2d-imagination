@@ -27,6 +27,9 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
     rospack = rospkg.RosPack()
     img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
     used_map_image = cv2.imread(img_path)
+    used_map_image_legs = cv2.imread(img_path)
+    used_map_image_robot_map_more_points = cv2.imread(img_path)
+    used_map_image_robot_map_less_points = cv2.imread(img_path)
     row_big,col_big,val = used_map_image.shape
     global read_markers_info, amount_obstacles, c
     amount_obstacles = len(markers_data.markers)
@@ -103,6 +106,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             # test image per obstacle to avoid overlapping afer obstacle rotation; here the obstacles will be rotated before being placed on the final image 'used_map_image' that should have all obstacles at the end
             # necessary to avoid the problems: while cutting an obstacle to take parts of other obstacles and while putting the obstacle to overwrite with white other obstacles
             temp_image_for_obstacle_rotations = cv2.imread(img_path) # the map image without obstacles
+            temp_image_for_obstacle_rotations_legs = cv2.imread(img_path) # the map image without obstacles
 
             for marker in obstacle.markers:
                 # color the obstacles in the ground truth map with the same color from rviz (from their definition in the yaml file)
@@ -110,7 +114,11 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                 r = int(marker.color.r*255)
                 g = int(marker.color.g*255)
                 b = int(marker.color.b*255)
-                # parameter 'a' is also available, but for the ground truth map not significant
+                # Idea: have a ground truth map also with only the legs
+                # -> filter the name of the obstacle part -> should include 'leg' (no access to that!?)
+                # -> color.a != 1
+                a  = marker.color.a # 1 for the legs of the tables and chairs, 0.5 for the rest (a way to filter out the obstacle parts)
+                
                 # handle differently based on the type:
                 if marker.type == 7: # 'sphere list'
                     counter_spheres += 1
@@ -123,11 +131,12 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     center_x_px_part_obstacle = int(((center_x + marker.points[0].x) - origin_x) / resolution) # x coordinate of the center of the current circle part of an obstacle
                     center_y_px_part_obstacle = int(((center_y + marker.points[0].y) - origin_y) / resolution)
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
-                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,255), -1) # a red filled circle
-                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (100,100,100), -1) # a grey filled circle
-                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (0,0,0), -1) # a black filled circle
-                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (b,g,r), -1) # a filled circle with the original color of the obstacle
-                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px,row_big-1-center_y_px), radius_px, (b,g,r), 2) # a circle with the original color of the obstacle
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), -1) # a red filled circle
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (100,100,100), -1) # a grey filled circle
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,0), -1) # a black filled circle
+                    cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (b,g,r), -1) # a filled circle with the original color of the obstacle
+                    #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (b,g,r), 2) # a circle with the original color of the obstacle
+                    if a == 1: cv2.circle(temp_image_for_obstacle_rotations_legs,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (b,g,r), -1) # a filled circle with the original color of the obstacle
                     # Important: the color in opencv is in order BGR!
                 elif marker.type == 11: # 'triangle list' = polygon
                     counter_polygons += 1
@@ -149,6 +158,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (0,0,0)) # a black filled polygon
                     cv2.fillPoly(temp_image_for_obstacle_rotations, np.array([corners_array], np.int32), (b,g,r)) # a filled polygon with the original color of the obstacle
                     #cv2.polylines(temp_image_for_obstacle_rotations, [pts], True, (b,g,r)) # a polygon with the original color of the obstacle
+                    if a == 1: cv2.fillPoly(temp_image_for_obstacle_rotations_legs, np.array([corners_array], np.int32), (b,g,r)) # a filled polygon with the original color of the obstacle
                 elif marker.type == 5: # 'line list' = the room walls?; 4 lines; TODO: filtered out anyway, but maybe needed, so that the walls get also an assigned obstacle color/id!?
                     counter_lines += 1
                     # TODO: since an example consists of like ~25 points, it may also include edges, so better take all points in a loop then just the forst and last one
@@ -165,6 +175,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(100,100,100),10) # a grey line with thickness of 10 px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(0,0,0),10) # a black line with thickness of 10 px
                     cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(b,g,r),10) # a line with thickness of 10 px with the original color of the obstacle
+                    if a == 1: cv2.line(temp_image_for_obstacle_rotations_legs,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(b,g,r),10) # a line with thickness of 10 px with the original color of the obstacle
                 else:
                     counter_others += 1
 
@@ -172,6 +183,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             # rotate the whole obstacle with all of its parts at once:
             M = cv2.getRotationMatrix2D((center_x_px,row_big-1-center_y_px),yaw_grad,1) # create the transformation matrix (center, angle, scale); important: (0,0) top left corner
             dst = cv2.warpAffine(temp_image_for_obstacle_rotations,M,(col_big,row_big))
+            dst_legs = cv2.warpAffine(temp_image_for_obstacle_rotations_legs,M,(col_big,row_big))
             # cut a rectangle around the rotated obstacle from the img and upload it in the same position on top of the obstacle_map to update it with another obstacle
             x_distance = x_px_rel_max # before the rotation
             y_distance = y_px_rel_max
@@ -199,6 +211,28 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             cv2.imwrite("map_obstacles_part_debug.png", figure_img)
             #cv2.imwrite("map_obstacles_part_debug_" + str(obstacle.x) + "_" + str(obstacle.y) + ".png", figure_img) # good for DEBUGGING
             cv2.imwrite("map_obstacles.png", used_map_image)
+
+            # do the same only for the legs (TODO):
+            figure_img = dst_legs[row_big-1-y_end:row_big-1-y_start, x_start:x_end] # just a step in between for debugging
+            for r in range(row_big-1-y_end, row_big-1-y_start):
+                for c in range(x_start, x_end):
+                    RGB_color_dst_legs_ar = [dst_legs[r, c, 2], dst_legs[r, c, 1], dst_legs[r, c, 0]]
+                    white_ar = [255,255,255]
+                    black_ar = [0,0,0]
+                    if RGB_color_dst_legs_ar != white_ar: # filter out the white pixels to get only the obstacle contours to prevent overlapping
+                        used_map_image_legs[r, c] = dst_legs[r, c]
+                        used_map_image_robot_map_more_points[r,c] = black_ar
+                    if RGB_color_dst_legs_ar == black_ar:
+                        used_map_image_robot_map_less_points[r,c] = black_ar
+                    # Info: because of rotation some of the colors are not that perfect any more (for example red is not only (255,0,0) etc.) 
+            cv2.imwrite("map_obstacles_part_debug_legs.png", figure_img)
+            #cv2.imwrite("map_obstacles_part_debug_legs_" + str(obstacle.x) + "_" + str(obstacle.y) + ".png", figure_img) # good for DEBUGGING
+            cv2.imwrite("map_obstacles_legs.png", used_map_image_legs)
+            # for the slam robot map:
+            # 1) (the obstacles could be colored or black) color every pixel different from white black -> get a little more points then wanted/expected
+            cv2.imwrite("map_obstacles_legs_robot_map_more_points.png", used_map_image_robot_map_more_points)
+            # 2) (the obstacles should be black) get only the perfect black color from the obstacles -> get a little less points then wanted/expected
+            cv2.imwrite("map_obstacles_legs_robot_map_less_points.png", used_map_image_robot_map_less_points)
             
         # for debugging:
         print('amount of obstacles: ' + str(amount_obstacles)) # 9 -> 142
@@ -302,8 +336,18 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
 
         # Important: creating the white-black (slam-like) map like "map_small.png", where the black areas are obstacles (needed to be uploaded in the GUI for creating scenarios),
         # should be done here from the ground truth map (and not coloring the obstacles black from the beginning, since the obstacle borders will not be displayed correct!?)
-        # TODO NEXT: color everything black white and after that everything else black
-        # TODO NEXT: compare both ways of creating this map!
+        # -> color everything black white and after that everything else black
+        # TODO: compare both ways of creating this map! -> maybe both are equally useful to be loaded later on in rviz since everything that is not white will be handled as occupied
+        map_slam = ground_truth_semantic_map
+        for i in range(ground_truth_semantic_map.shape[0]):
+            for j in range(ground_truth_semantic_map.shape[1]):
+                BGR_color = [ground_truth_semantic_map[i, j, 0], ground_truth_semantic_map[i, j, 1], ground_truth_semantic_map[i, j, 2]]
+                if BGR_color == black_ar:
+                    map_slam[i,j] = white_ar
+                else:
+                    map_slam[i,j] = black_ar
+        cv2.imwrite("map_slam.png", map_slam)
+        print('SLAM MAP DONE!')
 
         #ground_truth_map here is already only in black and grey, so for the color take the info from ground_truth_semantic_map
         i = ground_truth_map.shape[0] - 1

@@ -219,7 +219,7 @@ def tables_test():
     # -> for a chair: '[global_nummer]_table[nummer]_chair[nummer]_counter'
 
     models = []
-    scenario2(models)
+    scenario1(models)
     response = spawn_model_srv.call(models)
     print("successfully spawned model" if response.success else "failed")
 
@@ -349,7 +349,7 @@ def scenario5(models): # obstacles_amount := 31 (obstacles) / 156 (obstale parts
     table2_chair5.ns = "namespace1"
     table2_chair5.pose.x = 15.4
     table2_chair5.pose.y = 13.0
-    table2_chair5.pose.theta = math.pi
+    table2_chair5.pose.theta = -math.pi/2
     models.append(table2_chair5)
 
     table5_chair1 = Model()

@@ -241,9 +241,9 @@ def callback_local_costmap(map_data):
     else:
         temp_img = cv2.imread("map_local_costmap.png")
         temp_img_grey = cv2.imread("map_local_costmap_grey.png") # should definetely include all laser scan points (in grey)
-        for i in range(col_big):
+        for i in range(row_big):
             if i > block_abs_height_bottom_rviz and i <= block_abs_height_top_rviz:
-                for j in range(row_big):
+                for j in range(col_big):
                     if j > block_abs_width_left_rviz and j <= block_abs_width_right_rviz:
                         if(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1]==-1):
                             temp_img[row_big-1-i,j] = 255 # unknown = white
@@ -298,6 +298,8 @@ def callback_local_costmap(map_data):
     cv2.imwrite("map_local_costmap_part_color.png", temp_img_part)
     # 3) compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
     # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
+
+    # Important: to get the local costmap, also the teleoperation could be used to drive the robot manually around (could be faster then running a script to random go through the room)
 
 def callback_map(map_data):
     # TODO: wait for the obstacles to be spawned!?
