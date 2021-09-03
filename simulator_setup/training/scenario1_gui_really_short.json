@@ -1,0 +1,26 @@
+{
+    "map_path": "/home/m-yordanova/catkin_ws_ma/src/arena-rosnav/simulator_setup/maps/scenario1/map.yaml",
+    "num_images": 20,
+    "robot_paths": [
+        {
+            "initial_pos": [
+                8.649789029535865,
+                0.6329113924050632
+            ],
+            "subgoals": [
+                [
+                    9.135021097046412,
+                    -0.3902953586497895
+                ],
+                [
+                    10.90717299578059,
+                    -0.1793248945147674
+                ],
+                [
+                    11.20253164556962,
+                    0.7489451476793247
+                ]
+            ]
+        }
+    ]
+}
