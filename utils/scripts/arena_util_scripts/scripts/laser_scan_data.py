@@ -7,6 +7,7 @@ import rospkg
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import PIL
 from pathlib import Path
 from numpy import asarray, savetxt
 from collections import namedtuple
@@ -18,6 +19,8 @@ import laser_geometry.laser_geometry as lg
 from visualization_msgs.msg import MarkerArray
 from map_msgs.msg import OccupancyGridUpdate
 from std_msgs.msg import Float64
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 
 lp = lg.LaserProjection()
 read_laser_scan_info = 1
@@ -258,7 +261,7 @@ def callback_local_costmap(map_data):
                                     color_r1 = ground_truth_colored_map[row_big-1-i, j, 2] # everything visualized in opencv is in form BGR and not RGB!
                                     color_g1 = ground_truth_colored_map[row_big-1-i, j, 1]
                                     color_b1 = ground_truth_colored_map[row_big-1-i, j, 0]
-                                    # Idea: get the color from the neighbours: row_big-2-i vs. row_big-1-i & j vs. j+1 -> if the color is black, check the color of the upper-left 1/4 of the neighbours:
+                                    # Idea: get the color from the neighbours: row_big-2-i vs. row_big-1-i & j vs. j+1 -> if the color is black, check the color of the upper-left (3/8) of the neighbours:
                                     color_r2 = ground_truth_colored_map[row_big-1-i, j+1, 2]
                                     color_g2 = ground_truth_colored_map[row_big-1-i, j+1, 1]
                                     color_b2 = ground_truth_colored_map[row_big-1-i, j+1, 0]
@@ -268,7 +271,23 @@ def callback_local_costmap(map_data):
                                     color_r4 = ground_truth_colored_map[row_big-2-i, j+1, 2]
                                     color_g4 = ground_truth_colored_map[row_big-2-i, j+1, 1]
                                     color_b4 = ground_truth_colored_map[row_big-2-i, j+1, 0]
-                                    # Debugging: check maybe also the rest of the neighbours
+                                    # TODO Debugging: check maybe also the rest of the neighbours (check in a radius bigger then 1 px!?)
+                                    # do it like on another place, get the color that occurs the most and is not black, white or grey
+                                    color_r5 = ground_truth_colored_map[row_big-1-i, j-1, 2]
+                                    color_g5 = ground_truth_colored_map[row_big-1-i, j-1, 1]
+                                    color_b5 = ground_truth_colored_map[row_big-1-i, j-1, 0]
+                                    color_r6 = ground_truth_colored_map[row_big-2-i, j-1, 2]
+                                    color_g6 = ground_truth_colored_map[row_big-2-i, j-1, 1]
+                                    color_b6 = ground_truth_colored_map[row_big-2-i, j-1, 0]
+                                    color_r7 = ground_truth_colored_map[row_big-2-i, j-1, 2]
+                                    color_g7 = ground_truth_colored_map[row_big-i, j-1, 1]
+                                    color_b7 = ground_truth_colored_map[row_big-i, j-1, 0]
+                                    color_r8 = ground_truth_colored_map[row_big-i, j, 2]
+                                    color_g8 = ground_truth_colored_map[row_big-i, j, 1]
+                                    color_b8 = ground_truth_colored_map[row_big-i, j, 0]
+                                    color_r9 = ground_truth_colored_map[row_big-i, j+1, 2]
+                                    color_g9 = ground_truth_colored_map[row_big-i, j+1, 1]
+                                    color_b9 = ground_truth_colored_map[row_big-i, j+1, 0]
                                     temp_img[row_big-1-i,j] = (color_b1,color_g1,color_r1) # everything visualized in opencv is in form BGR and not RGB!
                                     # laser scan data, that couldn't have been colored properly because of the ground truth data:
                                     if color_r1 == 0 and color_g1 == 0 and color_b1 == 0: # if black, take a neighbour color with the hope of not being black
@@ -278,7 +297,17 @@ def callback_local_costmap(map_data):
                                             if color_r3 == 0 and color_g3 == 0 and color_b3 == 0:
                                                 temp_img[row_big-1-i,j] = (color_b4,color_g4,color_r4)
                                                 if color_r4 == 0 and color_g4 == 0 and color_b4 == 0:
-                                                    temp_img[row_big-1-i,j] = (100,100,100) # if still black, color it grey to not loose a laser scan information only because of the ground truth
+                                                    temp_img[row_big-1-i,j] = (color_b5,color_g5,color_r5)
+                                                    if color_r5 == 0 and color_g5 == 0 and color_b5 == 0:
+                                                        temp_img[row_big-1-i,j] = (color_b6,color_g6,color_r6)
+                                                        if color_r6 == 0 and color_g6 == 0 and color_b6 == 0:
+                                                            temp_img[row_big-1-i,j] = (color_b7,color_g7,color_r7)
+                                                            if color_r7 == 0 and color_g7 == 0 and color_b7 == 0:
+                                                                temp_img[row_big-1-i,j] = (color_b8,color_g8,color_r8)
+                                                                if color_r8 == 0 and color_g8 == 0 and color_b8 == 0:
+                                                                    temp_img[row_big-1-i,j] = (color_b9,color_g9,color_r9)
+                                                                    if color_r9 == 0 and color_g9 == 0 and color_b9 == 0:
+                                                                        temp_img[row_big-1-i,j] = (100,100,100) # if still black, color it grey to not loose a laser scan information only because of the ground truth
     #cv2.imshow("map_local_costmap", temp_img)
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     cv2.imwrite("map_local_costmap_grey.png", temp_img_grey)
@@ -300,6 +329,26 @@ def callback_local_costmap(map_data):
     # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
 
     # Important: to get the local costmap, also the teleoperation could be used to drive the robot manually around (could be faster then running a script to random go through the room)
+
+    # TODO NEXT: publish the important images to a topic/s:
+    # map_local_costmap_part_color.png
+    # converting OpenCV images to ROS image messages
+    pub_costmap = rospy.Publisher('costmap_temp', Image, queue_size=10)
+    bridge = CvBridge()
+    image_message = bridge.cv2_to_imgmsg(temp_img_part, encoding="passthrough")
+    pub_costmap.publish(image_message)
+
+    # map_ground_truth_semantic_part.png
+    pub_ground_truth = rospy.Publisher('ground_truth_map_temp', Image, queue_size=10)
+    bridge = CvBridge()
+    image_message2 = bridge.cv2_to_imgmsg(ground_truth_map_2_part, encoding="passthrough")
+    pub_ground_truth.publish(image_message2)
+
+    # map_obstacles_part.png
+    pub_obstacles = rospy.Publisher('obstacles_map_temp', Image, queue_size=10)
+    bridge = CvBridge()
+    image_message3 = bridge.cv2_to_imgmsg(ground_truth_map_part, encoding="passthrough")
+    pub_obstacles.publish(image_message3)
 
 def callback_map(map_data):
     # TODO: wait for the obstacles to be spawned!?
