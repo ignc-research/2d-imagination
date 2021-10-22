@@ -285,7 +285,7 @@ def delete_empty_images_get_raw_data():
     # -> a quick check is that the number of images should be an odd number!
     # -> it is also better to run this function separately at the end once it was made sure that the image pairs are fine and final!
     # 2) get the raw data from every image and save it into a npy file
-    print('Preparing the raw training data ...')
+    print('\nPreparing the raw training data ...\n')
     path = './training'
     container_costmap_color = [] # TODO: one for ground truth data and one for costmap data (both arrays should have the same order!)
     container_ground_truth_color = []
@@ -305,7 +305,10 @@ def delete_empty_images_get_raw_data():
     id_type_color_ar.append({'id' : 9, 'color' : (0.7,0.3,0.6)})
     id_type_color_ar.append({'id' : 10, 'color' : (0.8,0.5,0.1)})
     
-    for filename in glob.glob(os.path.join(path, '*.png')):
+    # TODO NEXT: is it sure that the images are taken alphabetically? at least in pairs? -> sorted() ?!
+    img_count = 0
+    for filename in sorted(glob.glob(os.path.join(path, '*.png'))):
+        img_count += 1
         img = cv2.imread(filename)
         all_black = True
         black_ar = [0,0,0]
@@ -362,6 +365,20 @@ def delete_empty_images_get_raw_data():
     #plt.imshow(img_loaded_temp) # plt.imshow(img_loaded_temp, cmap='gray')
     #plt.show() # it is showing the same image as 01_test.png only not in RGB, but in BGR format (or the other way around)
 
+    # TODO NEXT:
+    # both files should display the costmap / the ground truth of the same image!
+    file_2_1 = np.load('training/2_1_container_costmap_id.npz')
+    file_2_2 = np.load('training/2_2_container_ground_truth_id.npz')
+    #plt.imshow(file_2_1['arr_60'])
+    #plt.show()
+    #plt.imshow(file_2_2['arr_60'])
+    #plt.show()
+    for i in range(img_count/2): # starts with arr_0, all together img_count/2 files
+        plt.imshow(file_2_1['arr_' + str(i)])
+        #plt.show()
+        plt.imshow(file_2_2['arr_' + str(i)])
+        #plt.show()
+
     print('DONE!')
 
 # TODO: when the robot gets stuck, multiple images that are the same are taken
@@ -397,5 +414,5 @@ if __name__ == '__main__':
     # goal_publisher() # the robot moves to the goal, but does not avoid obstacles
     # goal_publisher_move_base() # the robot doeas not move (theoretically it should avoid the obstacles)
     #goal_publisher_move_base_client() # the robot moves to goal and avoids the obstacles
-    training_script()
-    #delete_empty_images_get_raw_data()
+    #training_script()
+    delete_empty_images_get_raw_data()
