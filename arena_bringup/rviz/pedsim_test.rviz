@@ -310,6 +310,26 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: false
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: false
+      Name: Imagination_costmap
+      Topic: /imagination
+      Unreliable: false
+      Use Timestamp: false
+      Value: false
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Imagination_costmap
+      Topic: /imagination_global
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /waypoint_markers

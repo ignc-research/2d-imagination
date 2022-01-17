@@ -17,7 +17,7 @@
   <arg name="local_planner"   default="teb"/> <!-- teb/dwa -->
 
   <!-- Map parameters -->
-  <arg name="map_file"        default="map_empty"/>
+  <arg name="map_file"        default="map_empty"/> <!-- map_empty vs. scenarioX -->
   <arg name="map_path"        default="$(find simulator_setup)/maps/$(arg map_file)/map.yaml"/>
   <arg name="world_path"      default="$(find simulator_setup)/maps/$(arg map_file)/map.world.yaml"/>
   <param name="world_path" value="$(find simulator_setup)/maps/$(arg map_file)/map.world.yaml" />
@@ -98,8 +98,8 @@
   <include file="$(find arena_bringup)/launch/sublaunch/move_base/move_base_$(arg local_planner).launch">
   </include>
 
-  <!--<node name="pedsim_test" pkg="arena_util_scripts" type="pedsim_test.py" output="screen">
-  </node>-->
+  <node name="pedsim_test" pkg="arena_util_scripts" type="pedsim_test.py" output="screen">
+  </node>
 
   <node name="show_obstacle_types" pkg="arena_util_scripts" type="show_obstacle_types.py" output="screen">
    <param name="obstacles_amount" value="$(arg obstacles_amount)"/>
