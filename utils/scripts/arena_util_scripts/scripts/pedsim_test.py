@@ -223,6 +223,306 @@ def tables_test():
     response = spawn_model_srv.call(models)
     print("successfully spawned model" if response.success else "failed")
 
+def scenario6(models): # obstacles_amount := 31 (obstacles) / 145 (obstale parts) / 154 (obstacle parts + walls + robot (9 extra))
+    rospack = rospkg.RosPack()
+
+    table1 = Model()
+    table1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "4_table4_polygon_4legs_square.yaml")
+    table1.name = "4_table4_1"
+    table1.ns = "namespace1"
+    table1.pose.x = 3.0
+    table1.pose.y = 10.0
+    table1.pose.theta = 0
+    models.append(table1)
+
+    table2 = Model()
+    table2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "4_table4_polygon_4legs_square.yaml")
+    table2.name = "4_table4_2"
+    table2.ns = "namespace1"
+    table2.pose.x = 4.6
+    table2.pose.y = 10.0
+    table2.pose.theta = 0
+    models.append(table2)
+
+    table2_chair1 = Model()
+    table2_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair1.name = "9_table4_chair3_1"
+    table2_chair1.ns = "namespace1"
+    table2_chair1.pose.x = 1.5
+    table2_chair1.pose.y = 11.25
+    table2_chair1.pose.theta = 0
+    models.append(table2_chair1)
+
+    table2_chair2 = Model()
+    table2_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair2.name = "9_table4_chair3_2"
+    table2_chair2.ns = "namespace1"
+    table2_chair2.pose.x = 1.5
+    table2_chair2.pose.y = 10.0
+    table2_chair2.pose.theta = 0
+    models.append(table2_chair2)
+
+    table2_chair3 = Model()
+    table2_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair3.name = "9_table4_chair3_3"
+    table2_chair3.ns = "namespace1"
+    table2_chair3.pose.x = 1.5
+    table2_chair3.pose.y = 8.75
+    table2_chair3.pose.theta = 0
+    models.append(table2_chair3)
+
+    table2_chair4 = Model()
+    table2_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair4.name = "9_table4_chair3_4"
+    table2_chair4.ns = "namespace1"
+    table2_chair4.pose.x = 6.1
+    table2_chair4.pose.y = 11.25
+    table2_chair4.pose.theta = 0
+    models.append(table2_chair4)
+
+    table2_chair5 = Model()
+    table2_chair5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair5.name = "9_table4_chair3_5"
+    table2_chair5.ns = "namespace1"
+    table2_chair5.pose.x = 6.1
+    table2_chair5.pose.y = 10.0
+    table2_chair5.pose.theta = 0
+    models.append(table2_chair5)
+
+    table2_chair6 = Model()
+    table2_chair6.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair6.name = "9_table4_chair3_6"
+    table2_chair6.ns = "namespace1"
+    table2_chair6.pose.x = 6.1
+    table2_chair6.pose.y = 8.75
+    table2_chair6.pose.theta = 0
+    models.append(table2_chair6)
+
+    table2_chair7 = Model()
+    table2_chair7.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair7.name = "9_table4_chair3_7"
+    table2_chair7.ns = "namespace1"
+    table2_chair7.pose.x = 3.0
+    table2_chair7.pose.y = 12.7
+    table2_chair7.pose.theta = 0
+    models.append(table2_chair7)
+
+    table2_chair8 = Model()
+    table2_chair8.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair8.name = "9_table4_chair3_8"
+    table2_chair8.ns = "namespace1"
+    table2_chair8.pose.x = 4.6
+    table2_chair8.pose.y = 12.7
+    table2_chair8.pose.theta = 0
+    models.append(table2_chair8)
+
+    table2_chair9 = Model()
+    table2_chair9.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair9.name = "9_table4_chair3_9"
+    table2_chair9.ns = "namespace1"
+    table2_chair9.pose.x = 3.0
+    table2_chair9.pose.y = 7.25
+    table2_chair9.pose.theta = 0
+    models.append(table2_chair9)
+
+    table2_chair10 = Model()
+    table2_chair10.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "9_chair3_circle_4legs_circle.yaml")
+    table2_chair10.name = "9_table4_chair3_10"
+    table2_chair10.ns = "namespace1"
+    table2_chair10.pose.x = 4.6
+    table2_chair10.pose.y = 7.25
+    table2_chair10.pose.theta = 0
+    models.append(table2_chair10)
+
+    table3 = Model()
+    table3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "2_table2_circle_4legs_circle.yaml")
+    table3.name = "2_table2_1"
+    table3.ns = "namespace1"
+    table3.pose.x = 16.0
+    table3.pose.y = 10.0
+    table3.pose.theta = 0
+    models.append(table3)
+
+    table3_chair1 = Model()
+    table3_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair1.name = "8_table2_chair2_1"
+    table3_chair1.ns = "namespace1"
+    table3_chair1.pose.x = 16.0
+    table3_chair1.pose.y = 12.0
+    table3_chair1.pose.theta = 0
+    models.append(table3_chair1)
+
+    table3_chair2 = Model()
+    table3_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair2.name = "8_table2_chair2_2"
+    table3_chair2.ns = "namespace1"
+    table3_chair2.pose.x = 16.0
+    table3_chair2.pose.y = 8.0
+    table3_chair2.pose.theta = 0
+    models.append(table3_chair2)
+
+    table3_chair3 = Model()
+    table3_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair3.name = "8_table2_chair2_3"
+    table3_chair3.ns = "namespace1"
+    table3_chair3.pose.x = 14.65 # 14.75
+    table3_chair3.pose.y = 11.8 # 11.7
+    table3_chair3.pose.theta = 0
+    models.append(table3_chair3) #
+
+    table3_chair4 = Model()
+    table3_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair4.name = "8_table2_chair2_4"
+    table3_chair4.ns = "namespace1"
+    table3_chair4.pose.x = 14.0 # 14.1
+    table3_chair4.pose.y = 10.75 # 10.85
+    table3_chair4.pose.theta = 0
+    models.append(table3_chair4)
+
+    table3_chair5 = Model()
+    table3_chair5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair5.name = "8_table2_chair2_5"
+    table3_chair5.ns = "namespace1"
+    table3_chair5.pose.x = 13.85
+    table3_chair5.pose.y = 10.0
+    table3_chair5.pose.theta = 0
+    #models.append(table3_chair5)
+
+    table3_chair6 = Model()
+    table3_chair6.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair6.name = "8_table2_chair2_6"
+    table3_chair6.ns = "namespace1"
+    table3_chair6.pose.x = 14.0 # 14.1
+    table3_chair6.pose.y = 9.25 # 9.15
+    table3_chair6.pose.theta = 0
+    models.append(table3_chair6) #
+
+    table3_chair7 = Model()
+    table3_chair7.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair7.name = "8_table2_chair2_7"
+    table3_chair7.ns = "namespace1"
+    table3_chair7.pose.x = 14.75
+    table3_chair7.pose.y = 8.3
+    table3_chair7.pose.theta = 0
+    models.append(table3_chair7)
+
+    table3_chair8 = Model()
+    table3_chair8.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair8.name = "8_table2_chair2_8"
+    table3_chair8.ns = "namespace1"
+    table3_chair8.pose.x = 17.35 # 17.25
+    table3_chair8.pose.y = 11.8 # 11.7
+    table3_chair8.pose.theta = 0
+    models.append(table3_chair8) #
+
+    table3_chair9 = Model()
+    table3_chair9.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair9.name = "8_table2_chair2_9"
+    table3_chair9.ns = "namespace1"
+    table3_chair9.pose.x = 18.0 # 17.9
+    table3_chair9.pose.y = 10.75 # 19.85
+    table3_chair9.pose.theta = 0
+    models.append(table3_chair9)
+
+    table3_chair10 = Model()
+    table3_chair10.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair10.name = "8_table2_chair2_10"
+    table3_chair10.ns = "namespace1"
+    table3_chair10.pose.x = 18.15
+    table3_chair10.pose.y = 10.0
+    table3_chair10.pose.theta = 0
+    #models.append(table3_chair10)
+
+    table3_chair11 = Model()
+    table3_chair11.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair11.name = "8_table2_chair2_11"
+    table3_chair11.ns = "namespace1"
+    table3_chair11.pose.x = 18.0 # 17.9
+    table3_chair11.pose.y = 9.25 # 9.15
+    table3_chair11.pose.theta = 0
+    models.append(table3_chair11) #
+
+    table3_chair12 = Model()
+    table3_chair12.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "8_chair2_polygon_4legs_rectangle.yaml")
+    table3_chair12.name = "8_table2_chair2_12"
+    table3_chair12.ns = "namespace1"
+    table3_chair12.pose.x = 17.25
+    table3_chair12.pose.y = 8.3
+    table3_chair12.pose.theta = 0
+    models.append(table3_chair12)
+
+    table4 = Model()
+    table4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "5_table5_square_4legs_square.yaml")
+    table4.name = "5_table5_1"
+    table4.ns = "namespace1"
+    table4.pose.x = 8.0
+    table4.pose.y = 4.0
+    table4.pose.theta = 0
+    models.append(table4)
+
+    table5 = Model()
+    table5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "5_table5_square_4legs_square.yaml")
+    table5.name = "5_table5_2"
+    table5.ns = "namespace1"
+    table5.pose.x = 11.25
+    table5.pose.y = 4.0
+    table5.pose.theta = 0
+    models.append(table5)
+
+    table5_chair1 = Model()
+    table5_chair1.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table5_chair1.name = "10_table5_chair4_1"
+    table5_chair1.ns = "namespace1"
+    table5_chair1.pose.x = 8.0
+    table5_chair1.pose.y = 2.5
+    table5_chair1.pose.theta = 0
+    models.append(table5_chair1)
+
+    table5_chair2 = Model()
+    table5_chair2.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table5_chair2.name = "10_table5_chair4_2"
+    table5_chair2.ns = "namespace1"
+    table5_chair2.pose.x = 7.0
+    table5_chair2.pose.y = 2.5
+    table5_chair2.pose.theta = 0
+    models.append(table5_chair2)
+    
+    table5_chair3 = Model()
+    table5_chair3.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table5_chair3.name = "10_table5_chair4_3"
+    table5_chair3.ns = "namespace1"
+    table5_chair3.pose.x = 9.0
+    table5_chair3.pose.y = 2.5
+    table5_chair3.pose.theta = 0
+    models.append(table5_chair3)
+
+    table5_chair4 = Model()
+    table5_chair4.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table5_chair4.name = "10_table5_chair4_4"
+    table5_chair4.ns = "namespace1"
+    table5_chair4.pose.x = 11.25
+    table5_chair4.pose.y = 2.5
+    table5_chair4.pose.theta = 0
+    models.append(table5_chair4)
+
+    table5_chair5 = Model()
+    table5_chair5.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table5_chair5.name = "10_table5_chair4_5"
+    table5_chair5.ns = "namespace1"
+    table5_chair5.pose.x = 10.25
+    table5_chair5.pose.y = 2.5
+    table5_chair5.pose.theta = 0
+    models.append(table5_chair5)
+
+    table5_chair6 = Model()
+    table5_chair6.yaml_path = os.path.join(rospack.get_path("simulator_setup"), "static_obstacles", "10_chair4_circle_3legs_circle.yaml")
+    table5_chair6.name = "10_table5_chair4_6"
+    table5_chair6.ns = "namespace1"
+    table5_chair6.pose.x = 12.25
+    table5_chair6.pose.y = 2.5
+    table5_chair6.pose.theta = 0
+    models.append(table5_chair6)
+
 def scenario5(models): # obstacles_amount := 31 (obstacles) / 156 (obstale parts) / 165 (obstacle parts + walls + robot (9 extra))
     rospack = rospkg.RosPack()
 
