@@ -53,7 +53,10 @@ add_message_files(
    FILES
    RobotState.msg
    RobotStateStamped.msg
-
+   IntList.msg
+   ListIntList.msg
+   ListListIntList.msg
+   ListOccupancyGrid.msg
  )
 
 # Generate services in the 'srv' folder
