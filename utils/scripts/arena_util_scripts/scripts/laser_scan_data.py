@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from ctypes import Array
+from array import ArrayType
 import rospy
 import os
 import math
@@ -21,6 +23,9 @@ from map_msgs.msg import OccupancyGridUpdate
 from std_msgs.msg import Float64
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+from arena_plan_msgs.msg import IntList, ListIntList, ListListIntList, ListOccupancyGrid
+import threading
+from std_msgs.msg import String
 
 lp = lg.LaserProjection()
 read_laser_scan_info = 1
@@ -175,13 +180,50 @@ def callback(data):
     # TODO: postprocessing: transform the laser scan data to a semantic laser scan data (transform to a 2d bird eye view map and add semantics like 'table1')
     # -> it was done with the local costmap insted!
 
+timer_bool = "yes"
+
+def timeout():
+    print("No costmap received for 5 seconds")
+    global timer_bool
+    timer_bool = "yes"
+    pub_timer = rospy.Publisher('costmap_timer_done', String, queue_size=10)
+    pub_timer.publish(timer_bool) # "yes"
+    # when "yes" is published, the robot should continue moving, so that the topic has again data to publish
+
+timer = threading.Timer(5,timeout) # If 5 seconds elapse, call timeout()
+timer.start()
+
 def callback_local_costmap(map_data):
+    # By using a timer you can check when no message are received.
+    # If a message is received, you reset the timer (by cancelling and starting a new timer).
+    # If no message are received, then you can do what you want in the timeout() function.
+    # (https://answers.ros.org/question/334695/how-to-check-whether-the-topic-is-publishing-msg/)
+    global timer, timer_bool
+    print("Costmap received")
+    # idea1: publish both "no" (almost the whole time) and "yes" for the 'critical moments'
+    # idea2 (used): publish only "yes" when necessary, when the robot should wait so that the whole laser scan data is taken
+    if timer_bool == "yes":
+        pub_timer = rospy.Publisher("/costmap_timer_done", String, queue_size=10)
+        pub_timer.publish(timer_bool)
+    timer_bool = "no" # change only after the first "yes" per period
+    timer.cancel() # reset the timer
+    timer = threading.Timer(5,timeout)
+    timer.start()
+
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
-    local_costmap_width = map_data.info.width # 60
+    local_costmap_width = map_data.info.width # 60 => 60 [px] * 0.05 (resolution) = 3.0 [m]
     local_costmap_height = map_data.info.height # 60
-    robot_position_x = map_data.info.origin.position.x
-    robot_position_y = map_data.info.origin.position.y
-    robot_orientation_z = map_data.info.origin.orientation.z # the orientation of the robot was not used, always z = 0 rad
+    robot_map_origin_x = robot_map_origin_y = -6
+    # robot_pos_x, robot_pos_y come from /odom, not perfect/entirely correct on time!?!
+    robot_pos_px_x = int((robot_pos_x - robot_map_origin_x) / local_costmap_resolution)
+    robot_pos_px_y = int((robot_pos_y - robot_map_origin_y) / local_costmap_resolution)
+    # ! The origin of the map [m, m, rad]. This is the real-world pose of the cell (0,0) in the map. => the bottom left corner of the 60x60 costmap block!
+    # => (TODO) the robot should be in the middle of the costmap => the difference between robot_pos_x/y and costmap_origin_x/y should be 60/2=30px
+    costmap_origin_x = map_data.info.origin.position.x
+    costmap_origin_y = map_data.info.origin.position.y
+    costmap_orientation_z = map_data.info.origin.orientation.z # not used, always z = 0 rad
+    costmap_origin_px_x = int((costmap_origin_x - robot_map_origin_x) / local_costmap_resolution)
+    costmap_origin_px_y = int((costmap_origin_y - robot_map_origin_y) / local_costmap_resolution)
     map_data_array = map_data.data
     map_data_length = len(map_data_array) # 3600
     print('LOCAL COSTMAP: \nlength: ' + str(map_data_length))
@@ -202,15 +244,14 @@ def callback_local_costmap(map_data):
 
     # Important: for rviz origin is on the bottom left, for an image is always on the top left; bottom left corner is for this map (-6,-6)! => corect the robot's position so that it is always positive
     # TODO: get params like resolution, origin etc. directly from the map yaml file instead of hard-coding them
-    robot_position_x += 6
-    robot_position_y += 6
-    block_abs_width_left_rviz = int(robot_position_x / local_costmap_resolution)
-    block_abs_width_right_rviz = int((robot_position_x / local_costmap_resolution) + local_costmap_width)
-    block_abs_height_bottom_rviz = int(robot_position_y / local_costmap_resolution)
-    block_abs_height_top_rviz = int((robot_position_y / local_costmap_resolution) + local_costmap_height)
-
+    block_abs_width_left_rviz = costmap_origin_px_x
+    block_abs_width_right_rviz = costmap_origin_px_x + local_costmap_width
+    block_abs_height_bottom_rviz = costmap_origin_px_y
+    block_abs_height_top_rviz = costmap_origin_px_y + local_costmap_height
+    # TODO NEXT: check that the robot is in the middle of the laser scanned costmap (should be the case!)
+    
     # save the map as a grey image (black = free; grey = occupied; unknown = white):
-    # the local costmap consits of a 60m x 60m block with the robot positioned in the bottom left corner
+    # the local costmap consits of a 60px x 60px block with origin positioned in the bottom left corner
     map_data_array2 = np.array(map_data_array)
     map_reshaped = map_data_array2.reshape(local_costmap_height,local_costmap_width)
     print(map_reshaped)
@@ -314,11 +355,11 @@ def callback_local_costmap(map_data):
     #cv2.waitKey(0)
 
     # prepare the ground truth data for comparing it with the local (60x60 block) data from the costmap
-    # 1) cut from the ground truth map exactly the same 60x60 block
+    # 1) cut from the ground truth map (obstacles map) exactly the same 60x60 block
     ground_truth_map = cv2.imread("map_obstacles.png")
     ground_truth_map_part = ground_truth_map[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     cv2.imwrite("map_obstacles_part.png", ground_truth_map_part)
-    # 1) alternative
+    # 1) alternative: cut from the ground truth map
     ground_truth_map_2 = cv2.imread("map_ground_truth_semantic.png")
     ground_truth_map_2_part = ground_truth_map_2[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_2_part)
@@ -328,27 +369,176 @@ def callback_local_costmap(map_data):
     # 3) compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
     # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
 
+    # TODO NEXT: cut blocks 60x60, 80x80 and 100x100 from the ground truth map
+    # TODO NEXT: make sure that the robot is in the middle of the block!?!
+    ground_truth_map_60x60 = ground_truth_map_2_part # already 60x60 (standard = laser data)
+    # 80x80 => -10px left, +10px right, +10px top, -10px bottom
+    border = 10 # [px] -> 10 [px] * 0.05 (resolution) = 0.5 [m]
+    ground_truth_map_80x80 = image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
+    cv2.imwrite("map_ground_truth_semantic_part_80x80.png", ground_truth_map_80x80)
+    # 80x80 => -20px left, +20px right, +20px top, -20px bottom
+    border = 20 # [px] -> 20 [px] * 0.05 (resolution) = 1.0 [m]
+    ground_truth_map_100x100 = image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
+    cv2.imwrite("map_ground_truth_semantic_part_100x100.png", ground_truth_map_100x100)
+    
     # Important: to get the local costmap, also the teleoperation could be used to drive the robot manually around (could be faster then running a script to random go through the room)
 
-    # TODO NEXT: publish the important images to a topic/s:
-    # map_local_costmap_part_color.png
-    # converting OpenCV images to ROS image messages
-    pub_costmap = rospy.Publisher('costmap_temp', Image, queue_size=10)
+    ## publish the important images (I, II and III) to topics:
+
+    # I - map_local_costmap_part_color.png
+    ## publish Image - converting OpenCV images to ROS image messages
+    #publish_image('costmap_temp', temp_img_part) # works, but cvbridge does not work in rosnav python environment
+    ## try publishing an array instead of an image (create an user-defined ros message: http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
+    #publish_listintlist('costmap_temp', temp_img_part) # does not work # with 'ListIntList' or 'ListListIntList' => NotImplementedError: multi-dimensional sub-views are not implemented
+    ## publish IntList - convert OpenCV images to user-defined array messages
+    #publish_intlist('costmap_temp', temp_img_part) # works # (60,60,3) -> (10800,1,1)
+    ## publish OccupancyGrid
+    grid_costmap = publish_occupancygrid('costmap_temp', temp_img_part, map_data)
+
+    ## TODO: the whole global costmap, ("map_local_costmap.png", temp_img) vs. ("map_local_costmap_grey.png", temp_img_grey)
+    #publish_intlist('costmap_global_temp', temp_img_grey) # works # (60,60,3) -> (10800,1,1)
+
+    # II - map_ground_truth_semantic_part.png
+    ## publish Image - converting OpenCV images to ROS image messages
+    #publish_image('ground_truth_map_temp', ground_truth_map_2_part) # works, but cvbridge does not work in rosnav python environment
+    ## publish IntList - convert OpenCV images to user-defined array messages
+    #publish_intlist('ground_truth_map_temp', ground_truth_map_2_part) # works # (60,60,3) -> (10800,1,1)
+    ## publish OccupancyGrid
+    grid_ground_truth_60x60 = publish_occupancygrid('ground_truth_map_temp', ground_truth_map_2_part, map_data)
+    grid_ground_truth_80x80 = publish_occupancygrid('ground_truth_map_temp_80x80', ground_truth_map_80x80, map_data)
+    grid_ground_truth_100x100 = publish_occupancygrid('ground_truth_map_temp_100x100', ground_truth_map_100x100, map_data)
+
+    ## publish the ground truth and costmap as a pair -> a list of OccupancyGrids
+    publish_pairoccupancygrid('pair_temp_60x60', grid_costmap, grid_ground_truth_60x60)
+    publish_pairoccupancygrid('pair_temp_80x80', grid_costmap, grid_ground_truth_80x80)
+    publish_pairoccupancygrid('pair_temp_100x100', grid_costmap, grid_ground_truth_100x100)
+
+    # III - map_obstacles_part.png
+    ## publish Image - converting OpenCV images to ROS image messages
+    #publish_image('obstacles_map_temp', ground_truth_map_part) # works, but cvbridge does not work in rosnav python environment
+    ## publish IntList - convert OpenCV images to user-defined array messages
+    #publish_intlist('obstacles_map_temp', ground_truth_map_part) # works # (60,60,3) -> (10800,1,1)
+    ## publish OccupancyGrid
+    grid_obstacles = publish_occupancygrid('obstacles_map_temp', ground_truth_map_part, map_data)
+
+def publish_image(publisher_name, temp_img_part):
+    ## map_local_costmap_part_color.png
+    ## publish Image - converting OpenCV images to ROS image messages
+    pub = rospy.Publisher(publisher_name, Image, queue_size=10)
     bridge = CvBridge()
     image_message = bridge.cv2_to_imgmsg(temp_img_part, encoding="passthrough")
+    pub.publish(image_message)
+
+def publish_listintlist(publisher_name, temp_img_part): # does not work
+    ## try publishing an array instead of an image (create an user-defined ros message: http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
+    pub_costmap = rospy.Publisher(publisher_name, ListListIntList, queue_size=10)
+    image_message = asarray([temp_img_part]) # example shape: (200, 400, 3) # [[[ 0  0  0] [ 0  0  0]] ..., [[ 0  0  0] [ 0  0  0]]]
     pub_costmap.publish(image_message)
+    ## with types 'ListIntList' or 'ListListIntList' => NotImplementedError: multi-dimensional sub-views are not implemented
 
-    # map_ground_truth_semantic_part.png
-    pub_ground_truth = rospy.Publisher('ground_truth_map_temp', Image, queue_size=10)
-    bridge = CvBridge()
-    image_message2 = bridge.cv2_to_imgmsg(ground_truth_map_2_part, encoding="passthrough")
-    pub_ground_truth.publish(image_message2)
+def publish_intlist(publisher_name, temp_img_part):
+    ## try publishing an array instead of an image (create an user-defined ros message: http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
+    ## publish IntList - convert OpenCV images to user-defined array messages
+    # convert from (X,Y,3) to (A,B,1) to (Z,1,1) => from (60,60,3) to (10800,1,1)
+    # convert from np.array to list (with or without commas between the elements)
+    pub = rospy.Publisher(publisher_name, IntList, queue_size=10)
+    list_message = asarray(temp_img_part) # shape [60, 60, 3]
+    list_message_reshaped = list_message.reshape(-1) # list()
+    list_message_int = []
+    for i in list_message_reshaped:
+        # TODO: int (=np.int32 or np.int16) -> np.int8 changes the color of the image!!
+        list_message_int.append(int(i))
+    #print(list_message_int) # [0, 0, 0, ... 0, 0, 0]
+    pub.publish(list_message_int)
 
-    # map_obstacles_part.png
-    pub_obstacles = rospy.Publisher('obstacles_map_temp', Image, queue_size=10)
-    bridge = CvBridge()
-    image_message3 = bridge.cv2_to_imgmsg(ground_truth_map_part, encoding="passthrough")
-    pub_obstacles.publish(image_message3)
+def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
+    ## publish OccupancyGrid
+    pub = rospy.Publisher(publisher_name, OccupancyGrid, queue_size=10)
+    grid = OccupancyGrid()
+    grid.header.seq = 0
+    grid.header.stamp = rospy.Time.now()
+    grid.header.frame_id = ""
+    grid.info = map_data.info
+    # TODO: grid.data must be int8
+    # TODO: the array int8[] includes IDs like 0=free, -1=unknown, 100=occupied, 1 to 10 for colored occupied
+    # => take the grey image and from [0,0,0] => 0; [100,100,100] => 100
+    list_message = asarray(ground_truth_map_2_part)
+    #row,col,color = list_message.shape # (60,60,3) -> (60,60) # TODO: sometimes at the very beggining an error occures that the shape is (60,60) instead of (60,60,3)
+    row = list_message.shape[0]
+    col = list_message.shape[1]
+    #array_new = get_id_from_color(list_message) # TODO NEXT: make it colorful!?
+    array_new = np.zeros((row,col)) # black = free
+    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    # TODO: array order!?
+    for i in range(row):
+        for j in range(col):
+            if(list_message[row-1-i,j][0] != 0 or list_message[row-1-i,j][1] != 0 or list_message[row-1-i,j][2] != 0):
+            #if(list_message[i,j][0] != 0 or list_message[i,j][1] != 0 or list_message[i,j][2] != 0):
+                #array_new[row-1-i,j] = 100 # color 1 to 10 /grey 100 = occupied # wrong order!
+                array_new[i,j] = 100 # color 1 to 10 /grey 100 = occupied # correct order!
+    array_new_reshaped = array_new.reshape(-1)
+    array_new_int = []
+    for i in array_new_reshaped:
+        array_new_int.append(int(i))
+    grid.data = array_new_int
+    pub.publish(grid)
+    #print('***')
+    #print(array_new.shape) # (60, 60)
+    #print(array_new_reshaped.shape) # (3600,)
+    #print(len(array_new_int)) # 3600
+    #print(grid.data) # [0 0 0 ... 0 0 0]; [[0. 0. 0. ... 0. 0. 0.] ... [0. 0. 0. ... 0. 0. 0.]]
+    #print('***')
+    return grid
+
+def get_id_from_color(img_costmap_color):
+    id_type_color_ar = type_color_reference()
+    row = img_costmap_color.shape[0]
+    col = img_costmap_color.shape[1]
+    img_costmap_id = np.zeros((row,col))
+    for i in range(row):
+        for j in range(col):
+            #BGR_color = [img_costmap_color[row-1-i, j, 0], img_costmap_color[row-1-i, j, 1], img_costmap_color[row-1-i, j, 2]]
+            id_temp = 0 # per default 0 = free = no obstacles
+            if 100 == img_costmap_color[row-1-i,j][2] and 100 == img_costmap_color[row-1-i,j][1] and 100 == img_costmap_color[row-1-i,j][0]:
+                id_temp = 100 # TODO: 100 or 1 .. (should be the same as 'GREY DEFAULT')
+            # map here the color to the id:
+            for elem in id_type_color_ar:
+                #print('RED from RGB: ' + str(int(elem['color'][0]*255)) + ' ' + str(BGR_color[0])) # for debugging
+                # Important: RGB vs. BGR!
+                if int(elem['color'][0]*255) == img_costmap_color[row-1-i,j][2] and int(elem['color'][1]*255) == img_costmap_color[row-1-i,j][1] and int(elem['color'][2]*255) == img_costmap_color[row-1-i,j][0]:
+                    #id_temp = elem['id']
+                    id_temp = 100 # 1 or 100 (should be the same as 'GREY DEFAULT') # one layer for now! already done in CustomDatasetSingle() (TODO)
+                    break
+            img_costmap_id[i,j] = id_temp
+    return img_costmap_id
+
+def type_color_reference():
+    id_type_color_ar = [] # TODO: better parse it from somewhere
+    id_type_color_ar.append({'id' : 1, 'color' : (0.3,0.0,0.1)})
+    id_type_color_ar.append({'id' : 2, 'color' : (0.0,0.6,0.1)})
+    id_type_color_ar.append({'id' : 3, 'color' : (0.1,0.6,1.0)})
+    id_type_color_ar.append({'id' : 4, 'color' : (0.4,0.0,0.5)})
+    id_type_color_ar.append({'id' : 5, 'color' : (0.5,0.1,0.0)})
+    id_type_color_ar.append({'id' : 6, 'color' : (0.6,1.0,0.3)})
+    id_type_color_ar.append({'id' : 7, 'color' : (0.7,0.0,0.0)})
+    id_type_color_ar.append({'id' : 8, 'color' : (0.7,0.0,0.5)})
+    id_type_color_ar.append({'id' : 9, 'color' : (0.7,0.3,0.6)})
+    id_type_color_ar.append({'id' : 10, 'color' : (0.8,0.5,0.1)})
+    return id_type_color_ar
+
+def publish_pairoccupancygrid(publisher_name, grid1, grid2):
+    ## publish the ground truth and costmap as a pair -> a list of OccupancyGrids
+    pub_pair = rospy.Publisher(publisher_name, ListOccupancyGrid, queue_size=10)
+    array_pair = [grid1, grid2]
+    pub_pair.publish(array_pair)
+
+def image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz):
+    block_abs_width_left_rviz_PXxPX = block_abs_width_left_rviz - border
+    block_abs_width_right_rviz_PXxPX = block_abs_width_right_rviz + border
+    block_abs_height_bottom_rviz_PXxPX = block_abs_height_bottom_rviz - border
+    block_abs_height_top_rviz_PXxPX = block_abs_height_top_rviz + border
+    ground_truth_map_PXxPX =  ground_truth_map_2[row_big-1-block_abs_height_top_rviz_PXxPX+1:row_big-1-block_abs_height_bottom_rviz_PXxPX+1, block_abs_width_left_rviz_PXxPX+1:block_abs_width_right_rviz_PXxPX+1]
+    return ground_truth_map_PXxPX
 
 def callback_map(map_data):
     # TODO: wait for the obstacles to be spawned!?
