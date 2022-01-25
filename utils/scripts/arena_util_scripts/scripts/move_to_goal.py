@@ -506,7 +506,7 @@ def delete_empty_images_get_raw_data():
         # skip the name of a file, which has already been deleted, because its paired, empty costmap or ground truth map has been deleted
         if img is None: continue
         img_count += 1
-        img_id = np.zeros((img.shape[0],img.shape[1]))
+        img_id = np.zeros((img.shape[0],img.shape[1])) # (row,col) vs. (row,col,3)
         for i in range(img.shape[0]):
             for j in range(img.shape[1]):
                 BGR_color = [img[i, j, 0], img[i, j, 1], img[i, j, 2]]
@@ -595,7 +595,7 @@ def delete_empty_images_get_raw_data():
     print('DONE!')
 
 def get_id_from_color(img_costmap_color):
-    img_costmap_id = np.zeros((img_costmap_color.shape[0],img_costmap_color.shape[1]))
+    img_costmap_id = np.zeros((img_costmap_color.shape[0],img_costmap_color.shape[1])) # (row,col) vs. (row,col,3)
     id_type_color_ar = type_color_reference()
     for i in range(img_costmap_color.shape[0]):
         for j in range(img_costmap_color.shape[1]):
@@ -631,8 +631,7 @@ def get_color_from_id(id):
 
 def get_color_from_id_array(ar):
     row,col = ar.shape
-    #img = np.zeros((row,col))
-    img = np.zeros((row,col,3)) # !
+    img = np.zeros((row,col,3)) # (row,col) vs. (row,col,3); (row,col,3), because the black color (0,0,0) is needed!
     for i in range(row):
         for j in range(col):
             img[i,j] = get_color_from_id(ar[i,j])
@@ -744,7 +743,7 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     imagination_map_100_cv2_grey = cv2.cvtColor(imagination_map_100, cv2.COLOR_BGR2GRAY)
     #cv2.imwrite(path_name_imagination_map_100_id_png_grey, imagination_map_100_cv2_grey)
     # save it in black & white to be able to visualize in rviz -> if < 100 => = 0 (black=free), else => =255 (white=occupied):
-    imagination_map_100_cv2_black_white = np.zeros((imagination_map_100_cv2_grey.shape[0],imagination_map_100_cv2_grey.shape[1]))
+    imagination_map_100_cv2_black_white = np.zeros((imagination_map_100_cv2_grey.shape[0],imagination_map_100_cv2_grey.shape[1])) # (row,col) vs. (row,col,3)
     for i in range(imagination_map_100_cv2_grey.shape[0]):
         for j in range(imagination_map_100_cv2_grey.shape[1]):
             if imagination_map_100_cv2_grey[i,j] >= 100: imagination_map_100_cv2_black_white[i,j] = 255
@@ -760,7 +759,7 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     imagination_map_2760_cv2_grey = cv2.cvtColor(imagination_map_2760, cv2.COLOR_BGR2GRAY)
     #cv2.imwrite(path_name_imagination_map_2760_id_png_grey, imagination_map_2760_cv2_grey)
     # save it in black & white to be able to visualize in rviz -> if < 100 => = 0 (black=free), else => =255 (white=occupied):
-    imagination_map_2760_cv2_black_white = np.zeros((imagination_map_2760_cv2_grey.shape[0],imagination_map_2760_cv2_grey.shape[1]))
+    imagination_map_2760_cv2_black_white = np.zeros((imagination_map_2760_cv2_grey.shape[0],imagination_map_2760_cv2_grey.shape[1])) # (row,col) vs. (row,col,3)
     for i in range(imagination_map_2760_cv2_grey.shape[0]):
         for j in range(imagination_map_2760_cv2_grey.shape[1]):
             if imagination_map_2760_cv2_grey[i,j] >= 100 : imagination_map_2760_cv2_black_white[i,j] = 255
@@ -817,7 +816,7 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     my_file = Path("imagination_map_global.png")
     if not(my_file.is_file()): # at the beginning when/if the file does not exist
         # idea 1: a completely black image
-        temp_img = np.zeros((row_big,col_big)) # size of the big map image
+        temp_img = np.zeros((row_big,col_big)) # size of the big map image # (row,col) vs. (row,col,3)
         temp_img_grey = np.zeros((row_big,col_big))
         temp_img_one_color = np.zeros((row_big,col_big))
         # idea 2: /imagination_global should be = /map topic (TODO)
@@ -977,7 +976,7 @@ def callback_global_costmap(map_data): # TODO: it does not update itself when th
     map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
     print(map_reshaped)
     row,col = map_reshaped.shape
-    temp = np.zeros((row,col))
+    temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
     for i in range(row):
         for j in range(col):
@@ -1014,7 +1013,7 @@ def callback_map(map_data):
     map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
     print(map_reshaped)
     row,col = map_reshaped.shape
-    temp = np.zeros((row,col))
+    temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
     for i in range(row):
         for j in range(col):
@@ -1028,7 +1027,7 @@ def callback_map(map_data):
 
 def flip_img_x_axis(img):
     row,col = img.shape
-    img_flipped = np.zeros((row,col))
+    img_flipped = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     for i in range(row):
         for j in range(col):
             img_flipped[row-1-i,j] = img[i,j]

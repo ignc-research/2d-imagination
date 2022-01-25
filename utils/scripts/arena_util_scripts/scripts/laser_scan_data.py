@@ -82,7 +82,7 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
     row_big,col_big,val = used_map_image.shape
 
     # for the map and the robot the origin (0,0) is in the left down corner; for an image it is always the upper left corner => mirror the pixels regarding the x axis to be right
-    temp_small = np.zeros((row,col))
+    temp_small = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     for i in range(point_y_min, point_y_max+1):
         for j in range(point_x_min, point_x_max+1):
             for point in point_list_abs:
@@ -110,7 +110,7 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
     # if not - an image will be generated, but this takes time and in between the robot moves => some laser scan data can be missed and not be visualized
     my_file = Path("map_laser_scan.png")
     if not(my_file.is_file()): # if the file does not exist
-        temp = np.zeros((row_big,col_big))
+        temp = np.zeros((row_big,col_big)) # (row,col) vs. (row,col,3)
     else:
         temp = cv2.imread("map_laser_scan.png")
         for i in range(row_big): # row_big - 0:521-1
@@ -131,7 +131,7 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
 def mark_laser_scan_area(row_big, col_big, row_start, row_end, col_start, col_end):
     my_file = Path("map_laser_scan_seen_area.png")
     if not(my_file.is_file()): # the file does not exist
-        temp = np.zeros((row_big,col_big))
+        temp = np.zeros((row_big,col_big)) # (row,col) vs. (row,col,3)
     else:
         temp = cv2.imread("map_laser_scan_seen_area.png")
         for i in range(row_big):
@@ -258,7 +258,7 @@ def callback_local_costmap(map_data):
     map_reshaped = map_data_array2.reshape(local_costmap_height,local_costmap_width)
     print("costmap: " + str(map_reshaped))
     row,col = map_reshaped.shape
-    temp = np.zeros((row,col))
+    temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
     for i in range(row):
         for j in range(col):
@@ -287,8 +287,8 @@ def callback_local_costmap(map_data):
     img_global_costmap = cv2.imread("map_global_costmap.png") # img_global_costmap[0,0] == [100 100 100]
     my_file = Path("map_local_costmap.png")
     if not(my_file.is_file()): # the file does not exist
-        temp_img = np.zeros((row_big,col_big)) # size of the big map image
-        temp_img_grey = np.zeros((row_big,col_big))
+        temp_img = np.zeros((row_big,col_big,3)) # size of the big map image # (row_big,col_big,3), because the black color (0,0,0) is needed!
+        temp_img_grey = np.zeros((row_big,col_big,3))
     else:
         temp_img = cv2.imread("map_local_costmap.png")
         temp_img_grey = cv2.imread("map_local_costmap_grey.png") # should definetely include all laser scan points (in grey)
@@ -367,7 +367,7 @@ def callback_local_costmap(map_data):
                             if map_topic_2darray[i,j] == 101: # optimization: check only there where an imagination is
                                 if not(img_global_costmap[row_big-1-i,j][0] == 100 and img_global_costmap[row_big-1-i,j][1] == 100 and img_global_costmap[row_big-1-i,j][2] == 100):
                                     temp_img_grey[row_big-1-i,j] = (0,0,0)
-                                    temp_img[row_big-1-i,j] = (0,255,0)
+                                    temp_img[row_big-1-i,j] = (0,0,0)
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     cv2.imwrite("map_local_costmap_grey.png", temp_img_grey)
 
@@ -485,7 +485,7 @@ def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
     col = list_message.shape[1]
     id_type_color_ar = type_color_reference()
     #array_new = get_id_from_color(list_message) # TODO NEXT: make it colorful!?
-    array_new = np.zeros((row,col)) # black = free
+    array_new = np.zeros((row,col)) # black = free # (row,col) vs. (row,col,3)
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
     # TODO: array order!?
     for i in range(row):
@@ -520,7 +520,7 @@ def get_id_from_color(img_costmap_color):
     id_type_color_ar = type_color_reference()
     row = img_costmap_color.shape[0]
     col = img_costmap_color.shape[1]
-    img_costmap_id = np.zeros((row,col))
+    img_costmap_id = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     for i in range(row):
         for j in range(col):
             #BGR_color = [img_costmap_color[row-1-i, j, 0], img_costmap_color[row-1-i, j, 1], img_costmap_color[row-1-i, j, 2]]
@@ -593,7 +593,7 @@ def callback_map(map_data):
     map_topic_2darray = map_reshaped
     print("map: " + str(map_reshaped))
     row,col = map_reshaped.shape
-    temp = np.zeros((row,col))
+    temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
     for i in range(row):
         for j in range(col):
@@ -630,7 +630,7 @@ def callback_global_costmap(map_data): # TODO: it does not update itself when th
     map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
     print(map_reshaped)
     row,col = map_reshaped.shape
-    temp = np.zeros((row,col))
+    temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
     for i in range(row):
         for j in range(col):
@@ -686,7 +686,7 @@ def callback_global_costmap_updates(map_data):
     map_reshaped = map_data_array2.reshape((map_data.width,map_data.height))
     print(map_reshaped)
     row,col = map_reshaped.shape
-    temp = np.zeros((row,col))
+    temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
     for i in range(row):
         for j in range(col):
@@ -701,7 +701,14 @@ def callback_mapping(data):
 
 def laser_scan_data_listener():
     rospy.init_node('scan_values')
+
+    # init the global images of the local costmap as black images, so that every roslaunch rewrites them
+    temp_black_img = np.zeros((521,666,3)) # (row,col) vs. (row,col,3)
+    cv2.imwrite("map_local_costmap.png", temp_black_img)
+    cv2.imwrite("map_local_costmap_grey.png", temp_black_img)
+
     #time.sleep(2) # wait for the obstacles to be spawned
+
     # read the laser scan data and save also the absolute and relative position of the robot the whole time,
     # to be able to match it with the laser scan data; save also the info from the map to know where the obstacles are
     #rospy.Subscriber("/scan", LaserScan, callback) # queue_size=1
@@ -711,6 +718,7 @@ def laser_scan_data_listener():
     #rospy.Subscriber('/move_base/global_costmap/costmap_updates', OccupancyGridUpdate, callback_global_costmap_updates) # TODO: an unvizualisable topic in rviz
     #rospy.Subscriber('/slam_gmapping/entropy ', Float64, callback_mapping) # TODO?
     rospy.Subscriber('/odom', Odometry, callback_odom) # /odom returns position and velocity of the robot
+    
     rospy.spin()
 
 if __name__ == '__main__':
