@@ -1,4 +1,4 @@
-#base_global_planner: "navfn/NavfnROS" #"global_planner/GlobalPlanner"
+#base_global_planner: "navfn/NavfnROS" #"navfn/NavfnROS" vs. "global_planner/GlobalPlanner"
 base_local_planner: "dwa_local_planner/DWAPlannerROS"
 shutdown_costmaps: false
 controller_frequency: 10.0

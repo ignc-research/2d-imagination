@@ -262,9 +262,56 @@ def goal_publisher_move_base_client():
     #movebase_client(0, 0, goal_pub, 0, 0)
     #movebase_client(5, 0, goal_pub, 0, 0)
 
+def imagination_global_init():
+    # TODO: at the beginning /imagination_global != /map (init /imagination_global with /map topic)
+    white_ar = [255,255,255]
+    black_ar = [0,0,0]
+    temp_img_grey = cv2.imread("map_topic.png")
+    cv2.imwrite("imagination_map_global_grey.png", temp_img_grey)
+    cv2.imwrite("imagination_map_global_one_color.png", temp_img_grey)
+    # publish the imagination costmap to a topic and visualize in rviz (include the topics also directly in the .rviz file)
+    # (as an alternative in rviz for Map the default topic /map could be changed to /imagination_global)
+    pub2 = rospy.Publisher("/imagination_global", OccupancyGrid, queue_size=10) # (521, 666)
+    grid = OccupancyGrid()
+    grid.header.seq = 0
+    grid.header.stamp = rospy.Time.now()
+    grid.header.frame_id = ""
+    # get info directly from the subscribed topic, but change width, hight and position!
+    grid.info.width = temp_img_grey.shape[1] # 666 !
+    grid.info.height = temp_img_grey.shape[0] # 521 !
+    grid.info.resolution = 0.05
+    #grid.info.map_load_time = map_data.info.map_load_time
+    grid.info.origin.orientation.x = 0
+    grid.info.origin.orientation.y = 0
+    grid.info.origin.orientation.z = 0
+    grid.info.origin.orientation.w = 1
+    grid.info.origin.position.x = -6 # !
+    grid.info.origin.position.y = -6 # !
+    grid.info.origin.position.z = 0
+    map_array = []
+    i = temp_img_grey.shape[0] - 1
+    while i >=0:
+        for j in range(temp_img_grey.shape[1]):
+            if len(temp_img_grey.shape) < 3: map_array.append(0)
+            else:
+                #map_array.append(temp_img_grey[i,j])
+                BGR_color = [temp_img_grey[i, j, 0], temp_img_grey[i, j, 1], temp_img_grey[i, j, 2]]
+                if(BGR_color==black_ar): # black
+                    map_array.append(0) # 0 = black = free
+                elif(BGR_color==white_ar): # white
+                    map_array.append(-1) # -1 = white = unknown
+                else: # grey
+                    map_array.append(100) # 100 = grey = occupied
+        i -= 1
+    grid.data = map_array
+    pub2.publish(grid)
+
 def training_script():
     goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped) # shows the goals (their position and orientation with an arrow)
     
+    # TODO: at the beginning /imagination_global != /map (init /imagination_global with /map topic)
+    imagination_global_init()
+
     print('\n\n*** Training started ***\n')
     # TODO:
     # start gui with $ python PathCreator.py / $ python PathCreator2.py
@@ -302,6 +349,7 @@ def training_script():
             print(exc)
 
     # One json file per scenario map!
+    # TODO: change the json file to a get a different path
     with open("/home/m-yordanova/catkin_ws_ma/src/arena-rosnav/simulator_setup/training/scenario1.json", 'r') as stream:
     #with open("$(find simulator_setup)/training/test.json", 'r') as stream:
         doc = json.load(stream)
@@ -577,9 +625,18 @@ def get_color_from_id(id):
             if elem['id'] == id:
                 # Important: RGB vs. BGR!
                 color_BGR_temp = [int(elem['color'][2]*255), int(elem['color'][1]*255), int(elem['color'][0]*255)]
-                #id_temp = grey_ar # 1 or 100 (should be the same as 'GREY DEFAULT') # one layer for now! already done in CustomDatasetSingle() (TODO)
+                #color_BGR_temp = grey_ar # 1 or 100 (should be the same as 'GREY DEFAULT') # one layer for now! already done in CustomDatasetSingle() (TODO)
                 break
     return color_BGR_temp
+
+def get_color_from_id_array(ar):
+    row,col = ar.shape
+    #img = np.zeros((row,col))
+    img = np.zeros((row,col,3)) # !
+    for i in range(row):
+        for j in range(col):
+            img[i,j] = get_color_from_id(ar[i,j])
+    return img
 
 class CustomDatasetSingle(Dataset): # (TODO) test dataset generator for a single npy file
     def __init__(self, ground_truth, costmap, num_catagories, catagories):
@@ -595,6 +652,7 @@ class CustomDatasetSingle(Dataset): # (TODO) test dataset generator for a single
         gt = np.zeros((self.num_catagories, self.ground_truth.shape[0], self.ground_truth.shape[1]))
         for i in range(self.num_catagories):
             gt[i][self.ground_truth > 0] = 1 # one layer ground truth data for now, so occupied or not
+            #gt[i][self.ground_truth.all() > 0 and self.ground_truth.all() != 100] = 1 # one layer ground truth data for now, so occupied or not # TODO
             # -> 1 as just a random, easy id, or 100 if you want to refer to the color grey (should be the same as 'GREY DEFAULT')
             #gt[i][self.ground_truth > 0.2] = 1 # one layer ground truth data for now, so occupied or not
         lidar = self.costmap
@@ -717,6 +775,7 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     white_ar = [255,255,255]
     grey_ar = [100,100,100]
     black_ar = [0,0,0]
+    color_ar = [50,50,50] # dark grey
 
     # map_data comes from the subscribed topic with type OccupancyGrid
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
@@ -757,11 +816,18 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     # -> solution: publish all together both gt+costmap as an array[2] of occupancygrids!
     my_file = Path("imagination_map_global.png")
     if not(my_file.is_file()): # at the beginning when/if the file does not exist
+        # idea 1: a completely black image
         temp_img = np.zeros((row_big,col_big)) # size of the big map image
         temp_img_grey = np.zeros((row_big,col_big))
+        temp_img_one_color = np.zeros((row_big,col_big))
+        # idea 2: /imagination_global should be = /map topic (TODO)
+        temp_img = cv2.imread("map_topic.png")
+        temp_img_grey = cv2.imread("map_topic.png")
+        temp_img_one_color = cv2.imread("map_topic.png")
     else:
         temp_img = cv2.imread("imagination_map_global.png")
         temp_img_grey = cv2.imread("imagination_map_global_grey.png") # should definetely include all laser scan points (in grey)
+        temp_img_one_color = cv2.imread("imagination_map_global_one_color.png")
         for i in range(row_big):
             if i > block_abs_height_bottom_rviz and i <= block_abs_height_top_rviz:
                 for j in range(col_big):
@@ -769,8 +835,10 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
                         if(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1].all()==-1):
                             temp_img[row_big-1-i,j] = 255 # unknown = white
                             temp_img_grey[row_big-1-i,j] = 255 # unknown = white
+                            temp_img_one_color[row_big-1-i,j] = 255 # unknown = white
                             #temp_img[i,j] = 255 # unknown = white
                             #temp_img_grey[i,j] = 255 # unknown = white
+                            #temp_img_one_color[i,j] = 255 # unknown = white
                         else:
                             if temp_img_grey[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1].all() > 0:
@@ -780,7 +848,11 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1].all() > 0:
                                     temp_img[row_big-1-i,j] = get_color_from_id(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1])
                                     #temp_img[i,j] = get_color_from_id(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1])
-                                    
+                            if temp_img_one_color[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
+                                if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1].all() > 0:
+                                    temp_img_one_color[row_big-1-i,j] = color_ar # black = free; color = occupied
+                                    #temp_img_one_color[i,j] = grey_ar # black = free; color = occupied
+
     #cv2.imshow("map_imagination_costmap", temp_img)
     # TODO: the not grey one is always black!?
     # temp imagination global image: (for debugging the progress of updating the global imagination)
@@ -789,6 +861,7 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     # final imagination global image:
     cv2.imwrite("imagination_map_global.png", temp_img)
     cv2.imwrite("imagination_map_global_grey.png", temp_img_grey)
+    cv2.imwrite("imagination_map_global_one_color.png", temp_img_one_color)
     #cv2.waitKey(0)
 
     # TODO NEXT: update the occupancy grid of the rviz map with the imagination?!
@@ -827,11 +900,23 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
                 elif(BGR_color==white_ar): # white
                     map_array.append(-1) # -1 = white = unknown
                 else: # grey
-                    map_array.append(100) # 100 = grey = occupied
+                    #map_array.append(100) # 100 = grey = occupied
+                    map_array.append(101) # different color then grey, but still occupied!?
+                    # with -1 or 50 for example: colored differently in rviz, costmap not changed, move_base drives over (as if free)
+                    # with 101: as if it was 100: costmap overlapped with gt, move_base does not drive over
         i -= 1
     grid.data = map_array
     #pub1.publish(grid)
     pub2.publish(grid)
+    # TODO Important: update /map? Be careful!, because then the local_costmap changes too and the model can not deal with such kind of data!
+    ##time.sleep(2) # sleep() in between to give time to the planner to plan again a new path?
+    pub3 = rospy.Publisher("/map", OccupancyGrid, queue_size=10)
+    grid.header.frame_id = "map"
+    pub3.publish(grid)
+    ##time.sleep(2)
+
+    # Important!: subscribing to the topic, updates the global_costmap image, otherwise it will remain showing only its initial state!!!
+    rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, callback_global_costmap)
 
     # cut temp_img_grey to the current, local 60x60 block:
     temp_img_grey_part = temp_img_grey[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
@@ -866,6 +951,80 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     #print('*//*//*')
     
     # TODO: this new imagination costmap image (the prediction) should also be checked while deleting the black images!
+
+def callback_global_costmap(map_data): # TODO: it does not update itself when the robots is moving, even though it does in rviz!?
+    print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length as the one from /map), but different info: it updates globally with the info from the obstacles while the robot is moving)
+    #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
+    map_data_array = asarray([map_data.data])
+    #savetxt('global_costmap_data.csv', map_data_array, delimiter=',') # will be saved in folder $HOME\.ros
+    free_amount = 0
+    unknown_amount = 0
+    ocupied_amount = 0
+    for i in map_data_array[0]:
+        if i == 0:
+            free_amount += 1
+        if i == -1:
+            unknown_amount += 1
+        if i == 100:
+            ocupied_amount += 1
+    print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # should be updating
+
+    # save the map as a grey image (black = free; grey = occupied; unknown = white):
+    rospack = rospkg.RosPack()
+    map_data_array2 = np.array(map_data.data) # array of size 346986
+    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    print(map_reshaped)
+    row,col = map_reshaped.shape
+    temp = np.zeros((row,col))
+    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    for i in range(row):
+        for j in range(col):
+            if(map_reshaped[i,j]==-1):
+                temp[row-1-i,j]=255 # unknown = white
+            else:
+                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+    #cv2.imshow("map_global_costmap", temp)
+    cv2.imwrite("map_global_costmap.png", temp) # will be saved in folder $HOME\.ros
+    #cv2.waitKey(0)
+
+def callback_map(map_data):
+    # TODO: wait for the obstacles to be spawned!?
+    #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
+    map_data_array = asarray([map_data.data])
+    #savetxt('map_data.csv', map_data_array, delimiter=',') # will be saved in folder $HOME\.ros
+    free_amount = 0
+    unknown_amount = 0
+    ocupied_amount = 0
+    for i in map_data_array[0]:
+        if i == 0:
+            free_amount += 1
+        if i == -1:
+            unknown_amount += 1
+        if i == 100:
+            ocupied_amount += 1
+    #print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
+
+    # save the map as a grey image (black = free; grey = occupied; unknown = white):
+    rospack = rospkg.RosPack()
+    map_data_array2 = np.array(map_data.data) # array of size 346986
+    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    print(map_reshaped)
+    row,col = map_reshaped.shape
+    temp = np.zeros((row,col))
+    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    for i in range(row):
+        for j in range(col):
+            if(map_reshaped[i,j]==-1):
+                temp[row-1-i,j]=255 # unknown = white
+            else:
+                temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+    #cv2.imshow("map_topic", temp)
+    cv2.imwrite("map_topic.png", temp) # will be saved in folder $HOME\.ros
+    #cv2.waitKey(0)
 
 def flip_img_x_axis(img):
     row,col = img.shape
@@ -944,8 +1103,11 @@ def save_img(data, img_name): # data.data[costmap, gt]
                     path_name_costmap = "training/" + str(rospy.get_rostime().secs) + "_costmap_part.png"
                     path_name_gt = "training/" + str(rospy.get_rostime().secs) + "_ground_truth_map_part.png"
                     # the saved part images themself should be also flipped around the x axis -> convert an OccupancyGrid pixel order to an image order
-                    cv2.imwrite(path_name_costmap, flip_img_x_axis(costmap_image))
-                    cv2.imwrite(path_name_gt, flip_img_x_axis(gt_image))
+                    #cv2.imwrite(path_name_costmap, flip_img_x_axis(costmap_image))
+                    #cv2.imwrite(path_name_gt, flip_img_x_axis(gt_image))
+                    # Important: in addition, to have it in color, get_color_from_id() should be used:
+                    cv2.imwrite(path_name_costmap, get_color_from_id_array(flip_img_x_axis(costmap_image)))
+                    cv2.imwrite(path_name_gt, get_color_from_id_array(flip_img_x_axis(gt_image)))
                     imagination(data.data[0], path_name_costmap)
                     print('The predicted imagination image has been created!')
                     # TODO:
@@ -1046,6 +1208,7 @@ def callback_timer(data):
 if __name__ == '__main__':
     rospy.init_node('reach_goal', anonymous=True)
     rospy.Subscriber("/costmap_timer_done", String, callback_timer)
+    #rospy.Subscriber('/map', OccupancyGrid, callback_map)
     #rospy.Subscriber("/cmd_vel", Twist, callback_move) # TODO NEXT?
     #rospy.Subscriber("/odom", Odometry, callback_move) # TODO NEXT?
     # goal_publisher() # the robot moves to the goal, but does not avoid obstacles

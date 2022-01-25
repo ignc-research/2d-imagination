@@ -14,16 +14,71 @@
 # scan: {sensor_frame: base_scan, data_type: LaserScan, topic: scan, marking: true, clearing: true}
 
 
-# flatland **************************
-obstacle_range: 3.0
-raytrace_range: 3.5
-# obstacle_range: 2.5
-# raytrace_range: 3.0
-# footprint: [[-0.105, -0.105], [-0.105, 0.105], [0.041, 0.105], [0.041, -0.105]]
-#robot_radius: 0.105
-robot_radius: 0.3
-inflation_radius: 0.8
-cost_scaling_factor: 3.0
-map_type: costmap
-observation_sources: scan
-scan: {data_type: LaserScan, topic: /scan, marking: true, clearing: true}
+## flatland **************************
+#obstacle_range: 3.0
+#raytrace_range: 3.5
+## obstacle_range: 2.5
+## raytrace_range: 3.0
+## footprint: [[-0.105, -0.105], [-0.105, 0.105], [0.041, 0.105], [0.041, -0.105]]
+##robot_radius: 0.105
+#robot_radius: 0.3
+#inflation_radius: 0.8
+#cost_scaling_factor: 3.0
+#map_type: costmap
+#observation_sources: scan
+#scan: {data_type: LaserScan, topic: /scan, marking: true, clearing: true}
+
+obstacle_layer:
+ enabled:                 true
+ obstacle_range:          3.0
+ raytrace_range:          3.5
+ robot_radius:            0.3
+ inflation_radius:        0.8
+ track_unknown_space:     false # true?
+ combination_method:      1
+
+ cost_scaling_factor:     3.0
+ map_type:                costmap
+ observation_sources:     scan
+ scan:                    {data_type: LaserScan, topic: /scan, marking: true, clearing: true}
+
+inflation_layer:
+  enabled:              true
+  cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
+  inflation_radius:     0.5  # max. distance from an obstacle at which costs are incurred for planning paths.
+
+static_layer: # for the local_costmap
+  enabled:              true
+  map_topic:            "/map" # /map vs. /imagination_global vs. /imagination
+  subscribe_to_updates: true
+
+static_layer2: # for the global_costmap (TODO)
+  enabled:              true
+  map_topic:            "/map" # /map vs. /imagination_global vs. /imagination
+  subscribe_to_updates: true
+  first_map_only:       true # Only subscribe to the first message on the map topic, ignoring all subsequent messages!
+
+imagination_global_layer: # TODO
+  enabled:              true
+
+  obstacle_range:          3.0
+  raytrace_range:          3.5
+  robot_radius:            0.3
+  inflation_radius:        0.8
+  track_unknown_space:     false
+  combination_method:      1
+
+  cost_scaling_factor:     3.0
+  map_type:                costmap
+
+  map_topic:            "/imagination_global"
+  observation_sources:  imagination_global
+  imagination_global:   {data_type: OccupancyGrid, topic: /imagination_global, marking: true, clearing: true}
+  subscribe_to_updates: true
+
+imagination_local_layer: # TODO
+  enabled:              true
+  map_topic:            "/imagination"
+  #observation_sources:  imagination
+  #imagination:          {data_type: OccupancyGrid, topic: /imagination, marking: true, clearing: true}
+  subscribe_to_updates: true

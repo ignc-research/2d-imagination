@@ -105,9 +105,6 @@
    <param name="obstacles_amount" value="$(arg obstacles_amount)"/>
   </node>
 
-  <node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
-  </node>
-
   <!--<node name="ground_truth_data" pkg="arena_util_scripts" type="create_ground_truth_map.py" output="screen">
    <param name="obstacles_amount" value="$(arg obstacles_amount)"/>
   </node>-->
@@ -119,6 +116,9 @@
   </node>-->
 
   <node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
+  </node>
+  
+  <node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
   </node>
 
   <!--<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />-->

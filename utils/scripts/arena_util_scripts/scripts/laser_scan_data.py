@@ -34,6 +34,8 @@ robot_pos_x = 0.0
 robot_pos_y = 0.0
 robot_angle_yaw_grad = 0.0
 
+map_topic_2darray = []
+
 def calculate_avg_x_y_value(point_generator):
     sum_temp_x = 0.0
     num_temp_x = 0
@@ -254,7 +256,7 @@ def callback_local_costmap(map_data):
     # the local costmap consits of a 60px x 60px block with origin positioned in the bottom left corner
     map_data_array2 = np.array(map_data_array)
     map_reshaped = map_data_array2.reshape(local_costmap_height,local_costmap_width)
-    print(map_reshaped)
+    print("costmap: " + str(map_reshaped))
     row,col = map_reshaped.shape
     temp = np.zeros((row,col))
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
@@ -268,6 +270,7 @@ def callback_local_costmap(map_data):
     #cv2.imshow("map_local_costmap_part", temp)
     cv2.imwrite("map_local_costmap_part.png", temp) # will be saved in folder $HOME\.ros # updates every time the robot moves
     #cv2.waitKey(0)
+    # TODO: map_local_costmap_part.png is for now not used, it shows the costmap with the overlapping of the imagination for comparison, if not wanted, just cut an image from map_local_costmap.png, as done for the semantic one
 
     # collect all local costmap data while the robot is moving and update the map image:
     # 1) create a black image with the size of the map image (at the beginning everything is black = 0 = free)
@@ -278,6 +281,10 @@ def callback_local_costmap(map_data):
     # Debugging: check again if the corners of the small images are correctly displayed
     # preferably there should be already a black image with this name and with the right dimensions in the $HOME\.ros folder,
     # if not - an image will be generated, but this takes time and in between the robot moves => some local costmap data can be missed and not be visualized
+    img_map_topic = cv2.imread("map_topic.png")
+    global map_topic_2darray
+    print("map2: " + str(map_topic_2darray)) # map_topic_2darray[0,0] == 100, map_topic_2darray[0,0] == 101
+    img_global_costmap = cv2.imread("map_global_costmap.png") # img_global_costmap[0,0] == [100 100 100]
     my_file = Path("map_local_costmap.png")
     if not(my_file.is_file()): # the file does not exist
         temp_img = np.zeros((row_big,col_big)) # size of the big map image
@@ -349,10 +356,20 @@ def callback_local_costmap(map_data):
                                                                     temp_img[row_big-1-i,j] = (color_b9,color_g9,color_r9)
                                                                     if color_r9 == 0 and color_g9 == 0 and color_b9 == 0:
                                                                         temp_img[row_big-1-i,j] = (100,100,100) # if still black, color it grey to not loose a laser scan information only because of the ground truth
-    #cv2.imshow("map_local_costmap", temp_img)
+                            ## Important: the local_costmap will always have only the values 0, 100 or -1, so there is no way to make difference between the obstacles (which are coming from the changed map or from the laser scan)!?
+                            ## Important idea (TODO): delete (make free again) the imagination area from the local costmap image (still part of the topic so that the robot does not move over, but not part of the pair images - inputs to the imagination model!)
+                            ## mark in black/grey/color the imagination area (doesn't help, because it marks over the laser scans):
+                            #if map_topic_2darray[i,j] == 101:
+                            #    temp_img_grey[row_big-1-i,j] = (0,0,0)
+                            #    temp_img[row_big-1-i,j] = (0,255,0)
+                            ## mark in black/grey/color the area that is not grey in the global_costmap (there are only the laser scans grey, no imagination there => it works!) (do it both for the grey and colored map: temp_img_grey & temp_img)
+                            ## use the green color (0,255,0) for debugging, to see what has been colored, then change to black (0,0,0) = free:
+                            if map_topic_2darray[i,j] == 101: # optimization: check only there where an imagination is
+                                if not(img_global_costmap[row_big-1-i,j][0] == 100 and img_global_costmap[row_big-1-i,j][1] == 100 and img_global_costmap[row_big-1-i,j][2] == 100):
+                                    temp_img_grey[row_big-1-i,j] = (0,0,0)
+                                    temp_img[row_big-1-i,j] = (0,255,0)
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     cv2.imwrite("map_local_costmap_grey.png", temp_img_grey)
-    #cv2.waitKey(0)
 
     # prepare the ground truth data for comparing it with the local (60x60 block) data from the costmap
     # 1) cut from the ground truth map (obstacles map) exactly the same 60x60 block
@@ -466,6 +483,7 @@ def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
     #row,col,color = list_message.shape # (60,60,3) -> (60,60) # TODO: sometimes at the very beggining an error occures that the shape is (60,60) instead of (60,60,3)
     row = list_message.shape[0]
     col = list_message.shape[1]
+    id_type_color_ar = type_color_reference()
     #array_new = get_id_from_color(list_message) # TODO NEXT: make it colorful!?
     array_new = np.zeros((row,col)) # black = free
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
@@ -473,9 +491,17 @@ def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
     for i in range(row):
         for j in range(col):
             if(list_message[row-1-i,j][0] != 0 or list_message[row-1-i,j][1] != 0 or list_message[row-1-i,j][2] != 0):
-            #if(list_message[i,j][0] != 0 or list_message[i,j][1] != 0 or list_message[i,j][2] != 0):
-                #array_new[row-1-i,j] = 100 # color 1 to 10 /grey 100 = occupied # wrong order!
-                array_new[i,j] = 100 # color 1 to 10 /grey 100 = occupied # correct order!
+            ##if(list_message[i,j][0] != 0 or list_message[i,j][1] != 0 or list_message[i,j][2] != 0):
+                ##array_new[row-1-i,j] = 100 # color 1 to 10 /grey 100 = occupied # wrong order!
+                #array_new[i,j] = 100 # color 1 to 10 /grey 100 = occupied # correct order!
+                array_new[i,j] = 0 # make the area per default better black=free then grey, since we want to filter out the imagination!
+                for elem in id_type_color_ar: # TODO: make it colorful
+                    #print('RED from RGB: ' + str(int(elem['color'][0]*255)) + ' ' + str(BGR_color[0])) # for debugging
+                    # Important: RGB vs. BGR!
+                    if int(elem['color'][0]*255) == list_message[row-1-i,j][2] and int(elem['color'][1]*255) == list_message[row-1-i,j][1] and int(elem['color'][2]*255) == list_message[row-1-i,j][0]:
+                        array_new[i,j] = elem['id']
+                        #array_new[i,j] = 100 # 1 or 100 (should be the same as 'GREY DEFAULT') # one layer for now! already done in CustomDatasetSingle() (TODO)
+                        break
     array_new_reshaped = array_new.reshape(-1)
     array_new_int = []
     for i in array_new_reshaped:
@@ -563,7 +589,9 @@ def callback_map(map_data):
     relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
     used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
     map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
-    print(map_reshaped)
+    global map_topic_2darray
+    map_topic_2darray = map_reshaped
+    print("map: " + str(map_reshaped))
     row,col = map_reshaped.shape
     temp = np.zeros((row,col))
     # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right

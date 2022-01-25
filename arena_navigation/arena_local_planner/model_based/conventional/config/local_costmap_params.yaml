@@ -12,6 +12,9 @@ local_costmap:
   height: 3
   resolution: 0.05
   
-  # plugins:
-  #  - {name: static_layer,        type: "costmap_2d::StaticLayer"}
-  #  - {name: obstacle_layer,      type: "costmap_2d::ObstacleLayer"}
+  plugins:
+   - {name: static_layer,                 type: "costmap_2d::StaticLayer"}
+   - {name: obstacle_layer,               type: "costmap_2d::ObstacleLayer"}
+  # - {name: inflation,                    type: "costmap_2d::InflationLayer"}
+  # - {name: imagination_global_layer,     type: "costmap_2d::StaticLayer"} # TODO
+  # - {name: imagination_local_layer,      type: "costmap_2d::StaticLayer"} # TODO
