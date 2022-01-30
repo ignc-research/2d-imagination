@@ -61,9 +61,14 @@ paths_between_start_and_end = 1 # easy change 0 vs. 1
 move_base_goal = MoveBaseGoal()
 goal_global = PoseStamped()
 position_global = Point()
+position_global.x = 0.0
+position_global.y = 0.0
+position_global.z = 0.0
 orientation_global = Quaternion()
 
 sub_goal = []
+
+global_speed = Twist()
 
 def newOdom(msg):
     global x_global
@@ -77,7 +82,7 @@ def newOdom(msg):
 def goal_publisher():
     rospy.init_node("reach_goal", anonymous=True)
     sub = rospy.Subscriber("/odom", Odometry, newOdom) # /odom, /odometry/ground_truth are on the topics list # "/odometry/filtered" does not exist
-    pub = rospy.Publisher("/cmd_vel", Twist)
+    pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
     speed = Twist()
     rate = rospy.Rate(10)
     goal = Point()
@@ -98,7 +103,7 @@ def goal_publisher():
 
 def goal_publisher_move_base():
     rospy.init_node("reach_goal", anonymous=True)
-    pub = rospy.Publisher("/move_base/goal", MoveBaseActionGoal)
+    pub = rospy.Publisher("/move_base/goal", MoveBaseActionGoal, queue_size=10)
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         goal = MoveBaseActionGoal()
@@ -132,6 +137,8 @@ def callback_move(data): # TODO NEXT: it is not working with a callback
     #synchronization(0, 0)
     #time.sleep(5)
     #data_counter = rospy.wait_for_message("/costmap_timer_done", String, timeout=5000)
+    global global_speed
+    global_speed = data
     
 def synchronization(start_path_arg, final_path_arg):
     global sync, start_path, final_path
@@ -189,6 +196,7 @@ def movebase_client(x, y, goal_pub, start_path_arg, final_path_arg):
     goal.target_pose.pose.orientation.y = 0.0
     goal.target_pose.pose.orientation.z = 0.0
     goal.target_pose.pose.orientation.w = 1.0
+    #print('C: ' + str(x) + ' ' + str(y)) # debugging
 
     # INFO: ros time = simulation time & clock time = real time; we work with ros time!
 
@@ -209,7 +217,7 @@ def movebase_client(x, y, goal_pub, start_path_arg, final_path_arg):
     # synchronization of the robot's position and the saved laser scan image data
     synchronization(start_path_arg, final_path_arg)
 
-    # TODO: why both publish() and actionlib? (visualiza the arrow vs. moves the robot?)
+    # TODO: why both publish() and actionlib? (visualize the arrow vs. moves the robot?)
     pose_stamped = PoseStamped()
     pose_stamped = goal.target_pose
     goal_pub.publish(pose_stamped)
@@ -221,6 +229,9 @@ def movebase_client(x, y, goal_pub, start_path_arg, final_path_arg):
     if wait:
         # Important: at this point the goal is just being reached (once per goal), but it is the moment right before the waiting for the rest of the laser scan data!
         # because the waiting is after reaching the goal and before starting moving to the next one
+        #print('D: ' + str(x) + ' ' + str(y)) # debugging
+        global sub_goal
+        sub_goal = [x,y]
         return client.get_result()
     #else:
     #    rospy.logerr("Action server not available!")
@@ -228,7 +239,7 @@ def movebase_client(x, y, goal_pub, start_path_arg, final_path_arg):
 
 def goal_publisher_move_base_client():
     goal_status_sub = rospy.Subscriber("/move_base/status", GoalStatusArray, goal_status_sub_callback)
-    goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped) # shows the goals (their position and orientation with an arrow)
+    goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
     # TODO: control the speed, overwrite only the linear.x value of the /cmd_vel topic!?
 
     # move directly to an example position (for debugging purposes)
@@ -266,7 +277,10 @@ def imagination_global_init():
     # TODO: at the beginning /imagination_global != /map (init /imagination_global with /map topic)
     white_ar = [255,255,255]
     black_ar = [0,0,0]
-    temp_img_grey = cv2.imread("map_topic.png")
+    temp_img_grey = np.zeros((521,666))
+    #temp_img_grey = cv2.imread("map_topic.png")
+    #temp_img_grey = cv2.imread("map_global_costmap.png")
+    cv2.imwrite("imagination_map_global.png", temp_img_grey)
     cv2.imwrite("imagination_map_global_grey.png", temp_img_grey)
     cv2.imwrite("imagination_map_global_one_color.png", temp_img_grey)
     # publish the imagination costmap to a topic and visualize in rviz (include the topics also directly in the .rviz file)
@@ -307,7 +321,7 @@ def imagination_global_init():
     pub2.publish(grid)
 
 def training_script():
-    goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped) # shows the goals (their position and orientation with an arrow)
+    goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
     
     # TODO: at the beginning /imagination_global != /map (init /imagination_global with /map topic)
     imagination_global_init()
@@ -349,7 +363,8 @@ def training_script():
             print(exc)
 
     # One json file per scenario map!
-    # TODO: change the json file to a get a different path
+    # TODO: change the json file to a get a different path # TODO X: scenario1_eval.json
+    # TODO X: the planer should be better tuned, it still planes to go trought a really small path etc.; the robot should drive slower etc.
     with open("/home/m-yordanova/catkin_ws_ma/src/arena-rosnav/simulator_setup/training/scenario1.json", 'r') as stream:
     #with open("$(find simulator_setup)/training/test.json", 'r') as stream:
         doc = json.load(stream)
@@ -412,6 +427,7 @@ def training_script():
         # TODO: amount of images per path vs. images per second -> images per second is easier since it could be the same for all paths in a scenario even if the paths have a different length
         num_images = doc['num_images'] # number of images per minute so that we always have an integer value; max: 1 img per millisecond, min: 1 img per minute
         img_sec = int(1.0/(num_images/60.0)) # no. of images = 20 => sec = 3 (for debugging)
+        #img_sec = 10 # debugging
         for path in doc['robot_paths']: # the paths normally start and end around the obstacles (so that possibly there are no empty images - without parts of obstacles)
             initial_pos = path['initial_pos']
             pub_counter = rospy.Publisher("/imagination_counter", String, queue_size=10)
@@ -439,10 +455,20 @@ def training_script():
             for subgoal in path['subgoals']:
                 # the robot automatically waits until the current goal has been reached before pursuing the next one
                 #print(rospy.get_rostime().secs)
-                sub_goal = subgoal
+            #    sub_goal = subgoal # now done in movebase_client()
+                #print('A: ' + str(subgoal)) # debugging
+                rospy.Subscriber("/odom", Odometry, callback_odom)
+                global position_global
+                radius = 0.1 # TODO: should be tuned!
+                # Important: do-while-loop, publish the same goal, until it has been reached and only after that move to the next one !!
                 movebase_client(subgoal[0], subgoal[1], goal_pub, 0, 0)
-                # TODO NEXT: tune the robot's orientation at each subgoal?! or just set a bigger radius around the goal that passes as 'goal reached'
+                ##while (position_global.x != subgoal[0] and position_global.y != subgoal[1]):
+                while not ((position_global.x <= (subgoal[0] + radius) and position_global.x >= (subgoal[0] - radius)) and (position_global.y <= (subgoal[1] + radius) and position_global.y >= (subgoal[1] - radius))):
+                    #print("must be: " + str(subgoal) + ", is: " + str(position_global.x) + "," + str(position_global.y)) # debugging
+                    movebase_client(subgoal[0], subgoal[1], goal_pub, 0, 0)
+                # TODO X NEXT: tune the robot's orientation at each subgoal?! or just set a bigger radius around the goal that passes as 'goal reached'
                 # -> change parameters xy_goal_tolerance and yaw_goal_tolerance to a bigger values!? in /arena-rosnav/arena_navigation/arena_local_planner/model_based/conventional/config/base_local_planner_params.yaml but no change visible!?
+                # -> pass the current orientation of the robot forward (the last orientation towards reaching the goal, in radius 0.1 for example)!? -> orientation_global
             # unsubscribe until the next initial_pos has been reached and then subscribe again:
             # but since computation of loca costmap takes time, we may lose the last data if we unsubscribe, so better don't unsubscribe here and spend more time at the end deleting the black images
             #sub_costmap.unregister()
@@ -478,7 +504,7 @@ def type_color_reference():
 
 def delete_empty_images_get_raw_data():
     # the next two lines are new, needed because of the synchronization
-    goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped) # shows the goals (their position and orientation with an arrow)
+    goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
     movebase_client(0, 0, goal_pub, 0, 0)
 
     # 1) open each img in the training folder and if it is complety black delete it, since they are not important/useful for the training
@@ -816,13 +842,15 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     my_file = Path("imagination_map_global.png")
     if not(my_file.is_file()): # at the beginning when/if the file does not exist
         # idea 1: a completely black image
-        temp_img = np.zeros((row_big,col_big)) # size of the big map image # (row,col) vs. (row,col,3)
-        temp_img_grey = np.zeros((row_big,col_big))
-        temp_img_one_color = np.zeros((row_big,col_big))
+        map_init = np.zeros((row_big,col_big)) # size of the big map image # (row,col) vs. (row,col,3)
         # idea 2: /imagination_global should be = /map topic (TODO)
-        temp_img = cv2.imread("map_topic.png")
-        temp_img_grey = cv2.imread("map_topic.png")
-        temp_img_one_color = cv2.imread("map_topic.png")
+        ##rospy.Subscriber('/map', OccupancyGrid, callback_map)
+        #map_init = cv2.imread("map_topic.png")
+        # idea 3: /imagination_global should be = /global_costmap topic (TODO)
+        #map_init = cv2.imread("map_global_costmap")
+        temp_img = map_init
+        temp_img_grey = map_init
+        temp_img_one_color = map_init
     else:
         temp_img = cv2.imread("imagination_map_global.png")
         temp_img_grey = cv2.imread("imagination_map_global_grey.png") # should definetely include all laser scan points (in grey)
@@ -835,9 +863,9 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
                             temp_img[row_big-1-i,j] = 255 # unknown = white
                             temp_img_grey[row_big-1-i,j] = 255 # unknown = white
                             temp_img_one_color[row_big-1-i,j] = 255 # unknown = white
-                            #temp_img[i,j] = 255 # unknown = white
-                            #temp_img_grey[i,j] = 255 # unknown = white
-                            #temp_img_one_color[i,j] = 255 # unknown = white
+                            ##temp_img[i,j] = 255 # unknown = white
+                            ##temp_img_grey[i,j] = 255 # unknown = white
+                            ##temp_img_one_color[i,j] = 255 # unknown = white
                         else:
                             if temp_img_grey[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1].all() > 0:
@@ -845,15 +873,16 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
                                     #temp_img_grey[i,j] = grey_ar # black = free; grey = occupied
                             if temp_img[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1].all() > 0:
-                                    temp_img[row_big-1-i,j] = get_color_from_id(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1])
-                                    #temp_img[i,j] = get_color_from_id(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1])
+                                    temp_img[row_big-1-i,j] = white_ar
+                                    # (TODO) get_color_from_id() does not work, since the imagination image is black and white and has been trained on with black and white images => black=0=free, white=255=occupied
+                                    #temp_img[row_big-1-i,j] = get_color_from_id(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1])
+                                    ##temp_img[i,j] = get_color_from_id(map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1])
                             if temp_img_one_color[row_big-1-i,j].all() == 0: # overwrite it only if it was before black (init status 'free'); if it was grey, leave it grey and do not overwrite it with black
                                 if map_reshaped[i-block_abs_height_bottom_rviz-1,j-block_abs_width_left_rviz-1].all() > 0:
                                     temp_img_one_color[row_big-1-i,j] = color_ar # black = free; color = occupied
-                                    #temp_img_one_color[i,j] = grey_ar # black = free; color = occupied
+                                    ##temp_img_one_color[i,j] = grey_ar # black = free; color = occupied
 
     #cv2.imshow("map_imagination_costmap", temp_img)
-    # TODO: the not grey one is always black!?
     # temp imagination global image: (for debugging the progress of updating the global imagination)
     #cv2.imwrite('imagination_map_global'.join(img_name.split('costmap')), temp_img)
     #cv2.imwrite('imagination_map_global_grey'.join(img_name.split('costmap')), temp_img_grey)
@@ -1057,99 +1086,124 @@ def save_img(data, img_name): # data.data[costmap, gt]
         # --> correct the part with deleting the paired black images
         if (img_name == "pair_part_60") or (img_name == "pair_part_80") or (img_name == "pair_part_100"):
             i = 0
-            while temp_time >= time_start + i*img_sec:
-                if temp_time == time_start + i*img_sec:
-                    sync_robot_step = 0
-                    if sync_robot_step == 1:
-                        # TODO NEXT: pause the robot's movement!? (synchronization)
-                        # -> the robot does stop, BUT the goal is sometimes updating to the next one, without being reached!?!
-                        # -> the indexes are not (always) in interval of 3?? -> with idea1.2 in interval of 6 (rarely 9)
-                        # idea1: subscribe to odom to get the current pos and in the callback function set the goal = current pos
-                        rospy.Subscriber("/move_base_simple/goal", PoseStamped, callback_pose)
-                        rospy.Subscriber("/odom", Odometry, callback_odom)
-                        pub_goal = rospy.Publisher("/move_base_simple/goal", PoseStamped)
-                        global position_global, orientation_global
-                        goal = PoseStamped()
-                        goal.header.seq = 0
-                        goal.header.frame_id = "map"
-                        goal.header.stamp = rospy.Time.now()
-                        goal.pose.position = position_global
-                        goal.pose.orientation = orientation_global
-                        pub_goal.publish(goal) # publish the current pos as goal to temporary stop the goal until done
-                        # 
-                        #actionlib_goal = MoveBaseGoal()
-                        #actionlib_goal.target_pose = goal
-                        #client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-                        #client.wait_for_server()
-                        #client.send_goal(actionlib_goal)
-                        #wait = client.wait_for_result()
-                        #if wait: return client.get_result()
-                        # idea2: use actionlib?
-                        client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-                        client.cancel_goal()
-                        # idea
-                        #goal3 = MoveBaseGoal()
-                        #goal3.target_pose = goal
-                        #client.send_goal(goal3)
-                        # 
-                        #movebase_client(position_global.x, position_global.y, pub_goal, 0, 0)
-                    
-                    costmap_image = np.array(data.data[0].data).reshape(60, 60)
-                    #gt_image = np.array(data.data[1].data).reshape(60, 60)
-                    if img_name == "pair_part_60": gt_image = np.array(data.data[1].data).reshape(60, 60)
-                    if img_name == "pair_part_80": gt_image = np.array(data.data[1].data).reshape(80, 80)
-                    if img_name == "pair_part_100": gt_image = np.array(data.data[1].data).reshape(100, 100)
-                    path_name_costmap = "training/" + str(rospy.get_rostime().secs) + "_costmap_part.png"
-                    path_name_gt = "training/" + str(rospy.get_rostime().secs) + "_ground_truth_map_part.png"
-                    # the saved part images themself should be also flipped around the x axis -> convert an OccupancyGrid pixel order to an image order
-                    #cv2.imwrite(path_name_costmap, flip_img_x_axis(costmap_image))
-                    #cv2.imwrite(path_name_gt, flip_img_x_axis(gt_image))
-                    # Important: in addition, to have it in color, get_color_from_id() should be used:
-                    cv2.imwrite(path_name_costmap, get_color_from_id_array(flip_img_x_axis(costmap_image)))
-                    cv2.imwrite(path_name_gt, get_color_from_id_array(flip_img_x_axis(gt_image)))
-                    imagination(data.data[0], path_name_costmap)
-                    print('The predicted imagination image has been created!')
-                    # TODO:
-                    pub_counter = rospy.Publisher("/imagination_counter", String, queue_size=10)
-                    global imagination_counter
-                    imagination_counter += 1
-                    #print(imagination_counter)
-                    pub_counter.publish(str(imagination_counter))
+        #    while temp_time >= time_start + i*img_sec: # this check is now in laser_scan_data.py in callback_local_costmap() !
+        #        if temp_time == time_start + i*img_sec:
+            sync_robot_step = 1 # TODO X
+            # TODO NEXT: make the robot's movement slower the whole time!?
+            # TODO NEXT: make the /cmd_vel has the same speed m/sec, as the needed time in sec for laser scan based on the path, so that the robot never stops, but just slows down!?
+            # -> laser scan is taken every three seconds = img_sec (make img_Sec bigger then it should be faster!?)
+            # --> even tough it is every 3 sec, the laser scan updates by every change! there should be also only every 3 sec!?!
+            # -> at the beginning vel=0.4m/sec and it is fast
+            # -> let's say that the laser scan needs around one second to generate the map
+            if sync_robot_step == 1:
+                # TODO NEXT: pause the robot's movement!? (synchronization)
+                # -> the robot does stop, BUT the goal is sometimes updating to the next one, without being reached!?!
+                # -> the indexes are not (always) in interval of 3?? -> with idea1.2 in interval of 6 (rarely 9)
+                # idea0?
+                rospy.Subscriber("/cmd_vel", Twist, callback_move)
+                pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+                speed = Twist()
+                speed.linear.x = 0.0
+                speed.linear.y = 0.0
+                speed.linear.z = 0.0
+                speed.angular.x = 0.0
+                speed.angular.y = 0.0
+                speed.angular.z = 0.0
+                #pub.publish(speed)
+                # idea1: subscribe to odom to get the current pos and in the callback function set the goal = current pos
+                rospy.Subscriber("/move_base_simple/goal", PoseStamped, callback_pose)
+                rospy.Subscriber("/odom", Odometry, callback_odom)
+                pub_goal = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10)
+                global position_global, orientation_global
+                goal = PoseStamped()
+                goal.header.seq = 0
+                goal.header.frame_id = "map"
+                goal.header.stamp = rospy.Time.now()
+                goal.pose.position = position_global
+                goal.pose.orientation = orientation_global
+                pub_goal.publish(goal) # publish the current pos as goal to temporary stop the goal until done
+                # 
+                #actionlib_goal = MoveBaseGoal()
+                #actionlib_goal.target_pose = goal
+                #client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+                #client.wait_for_server()
+                #client.send_goal(actionlib_goal)
+                #wait = client.wait_for_result()
+                #if wait: return client.get_result()
+                # idea2: use actionlib?
+            #    client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+            #    client.cancel_goal()
+                # idea
+                #goal3 = MoveBaseGoal()
+                #goal3.target_pose = goal
+                #client.send_goal(goal3)
+                # 
+                #movebase_client(position_global.x, position_global.y, pub_goal, 0, 0)
+            
+            costmap_image = np.array(data.data[0].data).reshape(60, 60)
+            #gt_image = np.array(data.data[1].data).reshape(60, 60)
+            if img_name == "pair_part_60": gt_image = np.array(data.data[1].data).reshape(60, 60)
+            if img_name == "pair_part_80": gt_image = np.array(data.data[1].data).reshape(80, 80)
+            if img_name == "pair_part_100": gt_image = np.array(data.data[1].data).reshape(100, 100)
+            path_name_costmap = "training/" + str(rospy.get_rostime().secs) + "_costmap_part.png"
+            path_name_gt = "training/" + str(rospy.get_rostime().secs) + "_ground_truth_map_part.png"
+            # the saved part images themself should be also flipped around the x axis -> convert an OccupancyGrid pixel order to an image order
+            #cv2.imwrite(path_name_costmap, flip_img_x_axis(costmap_image))
+            #cv2.imwrite(path_name_gt, flip_img_x_axis(gt_image))
+            # Important: in addition, to have it in color, get_color_from_id() should be used:
+            cv2.imwrite(path_name_costmap, get_color_from_id_array(flip_img_x_axis(costmap_image)))
+            cv2.imwrite(path_name_gt, get_color_from_id_array(flip_img_x_axis(gt_image)))
+            imagination(data.data[0], path_name_costmap)
+            print('The predicted imagination image has been created!')
+            # TODO:
+            pub_counter = rospy.Publisher("/imagination_counter", String, queue_size=10)
+            global imagination_counter
+            imagination_counter += 1
+            #print(imagination_counter)
+            pub_counter.publish(str(imagination_counter))
 
-                    if sync_robot_step == 1:
-                        # TODO NEXT: continue the robot's movement!?
-                        # idea1
-                        pub_goal = rospy.Publisher("/move_base_simple/goal", PoseStamped)
-                        global goal_global, sub_goal
-                        #pub_goal.publish(goal_global) # publish back the same goal
-                        # idea1.2 (better)
-                        goal.header.seq = 0
-                        goal.header.frame_id = "map"
-                        goal.header.stamp = rospy.Time.now()
-                        goal.pose.position.x = sub_goal[0]
-                        goal.pose.position.y = sub_goal[1]
-                        goal.pose.position.z = 0.0
-                        goal.pose.orientation = orientation_global
-                        pub_goal.publish(goal)
-                        # 
-                        #actionlib_goal = MoveBaseGoal()
-                        #actionlib_goal.target_pose = goal_global
-                        #client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-                        #client.wait_for_server()
-                        #client.send_goal(actionlib_goal)
-                        #wait = client.wait_for_result()
-                        #if wait: return client.get_result()
-                        # idea2
-                        #global move_base_goal
-                        #client.send_goal(move_base_goal)
-                        # idea
-                        #client.cancel_goal()
-                        #goal2 = MoveBaseGoal()
-                        #goal2.target_pose = goal
-                        #client.send_goal(goal2)
-                        # 
-                        #movebase_client(sub_goal[0], sub_goal[1], pub_goal, 0, 0)
-                i += 1
+            if sync_robot_step == 1:
+                # TODO NEXT: continue the robot's movement!?
+                # idea0?
+                rospy.Subscriber("/cmd_vel", Twist, callback_move)
+                pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+                speed = Twist()
+                global global_speed
+                speed = global_speed
+                #pub.publish(speed)
+                # idea1
+                pub_goal = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10)
+                global goal_global, sub_goal
+                #print('B: ' + str(sub_goal)) # debugging
+                #pub_goal.publish(goal_global) # publish back the same goal
+                # idea1.2 (better)
+                goal.header.seq = 0
+                goal.header.frame_id = "map"
+                goal.header.stamp = rospy.Time.now()
+                goal.pose.position.x = sub_goal[0]
+                goal.pose.position.y = sub_goal[1]
+                goal.pose.position.z = 0.0
+                goal.pose.orientation = orientation_global
+                pub_goal.publish(goal)
+                # 
+                #actionlib_goal = MoveBaseGoal()
+                #actionlib_goal.target_pose = goal_global
+                #client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+                #client.wait_for_server()
+                #client.send_goal(actionlib_goal)
+                #wait = client.wait_for_result()
+                #if wait: return client.get_result()
+                # idea2
+                #global move_base_goal
+                #client.send_goal(move_base_goal)
+                # idea
+                #client.cancel_goal()
+                #goal2 = MoveBaseGoal()
+                #goal2.target_pose = goal
+                #client.send_goal(goal2)
+                # 
+                #movebase_client(sub_goal[0], sub_goal[1], pub_goal, 0, 0)
+        #        i += 1
         else:
             # subscribe only every img_sec seconds (for example every 1, 2 or 3 seconds):
             # TODO: is the rospy time the same as the one in the simulation / as the one in real world?
@@ -1207,7 +1261,7 @@ def callback_timer(data):
 if __name__ == '__main__':
     rospy.init_node('reach_goal', anonymous=True)
     rospy.Subscriber("/costmap_timer_done", String, callback_timer)
-    #rospy.Subscriber('/map', OccupancyGrid, callback_map)
+    rospy.Subscriber('/map', OccupancyGrid, callback_map)
     #rospy.Subscriber("/cmd_vel", Twist, callback_move) # TODO NEXT?
     #rospy.Subscriber("/odom", Odometry, callback_move) # TODO NEXT?
     # goal_publisher() # the robot moves to the goal, but does not avoid obstacles

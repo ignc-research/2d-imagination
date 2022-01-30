@@ -34,7 +34,11 @@ robot_pos_x = 0.0
 robot_pos_y = 0.0
 robot_angle_yaw_grad = 0.0
 
-map_topic_2darray = []
+map_topic_2darray = [] # 521x666
+
+time_start = 0.0
+temp_time = 0.0
+img_sec = 1 # default
 
 def calculate_avg_x_y_value(point_generator):
     sum_temp_x = 0.0
@@ -195,13 +199,12 @@ def timeout():
 timer = threading.Timer(5,timeout) # If 5 seconds elapse, call timeout()
 timer.start()
 
-def callback_local_costmap(map_data):
+def timer_func():
     # By using a timer you can check when no message are received.
     # If a message is received, you reset the timer (by cancelling and starting a new timer).
     # If no message are received, then you can do what you want in the timeout() function.
     # (https://answers.ros.org/question/334695/how-to-check-whether-the-topic-is-publishing-msg/)
     global timer, timer_bool
-    print("Costmap received")
     # idea1: publish both "no" (almost the whole time) and "yes" for the 'critical moments'
     # idea2 (used): publish only "yes" when necessary, when the robot should wait so that the whole laser scan data is taken
     if timer_bool == "yes":
@@ -212,6 +215,32 @@ def callback_local_costmap(map_data):
     timer = threading.Timer(5,timeout)
     timer.start()
 
+def callback_local_costmap(map_data):
+    timer_func() # Important: this function should be here and not in local_costmap(); otherwise the robot may not move at all (so the imagination_map_global_grey.png should be deleted, the console restared, .. for it to work, and sometimes even this does not help!?); makes a difference of course only for version 2;
+    
+    # version 1: save the local_costmap by every change
+    #local_costmap(map_data)
+    
+    # version 2: Important: save the local_costmap only every X seconds (for example very 3 seconds) (see move_to_goal.py!)
+    # -> but then remove the same check from move_to_goal.py?!!
+    # --> ! so dauert es deutlich kuerzer, es muss nur weiterhin das problem mit dem folgenden goal geloest werden!?!
+    global temp_time, time_start, img_sec
+    # TODO X: the images have inconsistent time stamp, sometimes every 9 seconds, or 6 or .. !?
+    img_sec = 3 # 3 -> 5? (because the timer waits also for 5 sec!?)
+    temp_time = rospy.get_rostime().secs
+    i = 0
+    while temp_time >= time_start + i*img_sec:
+        if temp_time == time_start + i*img_sec:
+            local_costmap(map_data)
+        i += 1
+
+def local_costmap(map_data):
+    # calculate how much it takes to save the local_costmap as the desired map image
+    time_A = rospy.get_rostime()
+
+    # timer_func() # moved to callback_local_costmap() !
+
+    print("Costmap received")
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
     local_costmap_width = map_data.info.width # 60 => 60 [px] * 0.05 (resolution) = 3.0 [m]
     local_costmap_height = map_data.info.height # 60
@@ -239,10 +268,16 @@ def callback_local_costmap(map_data):
     #    real: ground_truth_colored_map = cv2.imread("map_ground_truth_semantic.png") -> "map_local_costmap.png" -> "map_local_costmap_part_color.png"
     #   ideal: "map_ground_truth_semantic_part.png" (cut from "map_ground_truth_semantic.png")
 
-    rospack = rospkg.RosPack()
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    row_big,col_big,val = used_map_image.shape
+    optimization = 1 # TODO X: optimize further, reduce some of the not necessarily generated images in /.ros
+
+    if optimization == 0:
+        rospack = rospkg.RosPack()
+        relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+        used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+        row_big,col_big,val = used_map_image.shape
+    else:
+        row_big = 521 # height
+        col_big = 666 # width
 
     # Important: for rviz origin is on the bottom left, for an image is always on the top left; bottom left corner is for this map (-6,-6)! => corect the robot's position so that it is always positive
     # TODO: get params like resolution, origin etc. directly from the map yaml file instead of hard-coding them
@@ -258,19 +293,20 @@ def callback_local_costmap(map_data):
     map_reshaped = map_data_array2.reshape(local_costmap_height,local_costmap_width)
     print("costmap: " + str(map_reshaped))
     row,col = map_reshaped.shape
-    temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
-    # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
-    for i in range(row):
-        for j in range(col):
-            if(map_reshaped[i,j]==-1):
-                temp[row-1-i,j]=255 # unknown = white
-            else:
-                if map_reshaped[i,j] == 100: # == 100 or > 90 # filter out the dark grey color -> leave the source (grey=~100) preferably without distortion
-                    temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
-    #cv2.imshow("map_local_costmap_part", temp)
-    cv2.imwrite("map_local_costmap_part.png", temp) # will be saved in folder $HOME\.ros # updates every time the robot moves
-    #cv2.waitKey(0)
-    # TODO: map_local_costmap_part.png is for now not used, it shows the costmap with the overlapping of the imagination for comparison, if not wanted, just cut an image from map_local_costmap.png, as done for the semantic one
+    if optimization == 0:
+        temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
+        # the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+        for i in range(row):
+            for j in range(col):
+                if(map_reshaped[i,j]==-1):
+                    temp[row-1-i,j]=255 # unknown = white
+                else:
+                    if map_reshaped[i,j] == 100: # == 100 or > 90 # filter out the dark grey color -> leave the source (grey=~100) preferably without distortion
+                        temp[row-1-i,j]=map_reshaped[i,j] # black = free; grey = occupied
+        #cv2.imshow("map_local_costmap_part", temp)
+        cv2.imwrite("map_local_costmap_part.png", temp) # will be saved in folder $HOME\.ros # updates every time the robot moves
+        #cv2.waitKey(0)
+        # TODO: map_local_costmap_part.png is for now not used, it shows the costmap with the overlapping of the imagination for comparison, if not wanted, just cut an image from map_local_costmap.png, as done for the semantic one
 
     # collect all local costmap data while the robot is moving and update the map image:
     # 1) create a black image with the size of the map image (at the beginning everything is black = 0 = free)
@@ -281,7 +317,7 @@ def callback_local_costmap(map_data):
     # Debugging: check again if the corners of the small images are correctly displayed
     # preferably there should be already a black image with this name and with the right dimensions in the $HOME\.ros folder,
     # if not - an image will be generated, but this takes time and in between the robot moves => some local costmap data can be missed and not be visualized
-    img_map_topic = cv2.imread("map_topic.png")
+    #img_map_topic = cv2.imread("map_topic.png")
     global map_topic_2darray
     print("map2: " + str(map_topic_2darray)) # map_topic_2darray[0,0] == 100, map_topic_2darray[0,0] == 101
     img_global_costmap = cv2.imread("map_global_costmap.png") # img_global_costmap[0,0] == [100 100 100]
@@ -309,6 +345,8 @@ def callback_local_costmap(map_data):
                                     color_r1 = ground_truth_colored_map[row_big-1-i, j, 2] # everything visualized in opencv is in form BGR and not RGB!
                                     color_g1 = ground_truth_colored_map[row_big-1-i, j, 1]
                                     color_b1 = ground_truth_colored_map[row_big-1-i, j, 0]
+                                    temp_img[row_big-1-i,j] = (color_b1,color_g1,color_r1) # everything visualized in opencv is in form BGR and not RGB!
+                                    #if optimization == 0:
                                     # Idea: get the color from the neighbours: row_big-2-i vs. row_big-1-i & j vs. j+1 -> if the color is black, check the color of the upper-left (3/8) of the neighbours:
                                     color_r2 = ground_truth_colored_map[row_big-1-i, j+1, 2]
                                     color_g2 = ground_truth_colored_map[row_big-1-i, j+1, 1]
@@ -336,7 +374,6 @@ def callback_local_costmap(map_data):
                                     color_r9 = ground_truth_colored_map[row_big-i, j+1, 2]
                                     color_g9 = ground_truth_colored_map[row_big-i, j+1, 1]
                                     color_b9 = ground_truth_colored_map[row_big-i, j+1, 0]
-                                    temp_img[row_big-1-i,j] = (color_b1,color_g1,color_r1) # everything visualized in opencv is in form BGR and not RGB!
                                     # laser scan data, that couldn't have been colored properly because of the ground truth data:
                                     if color_r1 == 0 and color_g1 == 0 and color_b1 == 0: # if black, take a neighbour color with the hope of not being black
                                         temp_img[row_big-1-i,j] = (color_b2,color_g2,color_r2)
@@ -364,25 +401,27 @@ def callback_local_costmap(map_data):
                             #    temp_img[row_big-1-i,j] = (0,255,0)
                             ## mark in black/grey/color the area that is not grey in the global_costmap (there are only the laser scans grey, no imagination there => it works!) (do it both for the grey and colored map: temp_img_grey & temp_img)
                             ## use the green color (0,255,0) for debugging, to see what has been colored, then change to black (0,0,0) = free:
-                            if map_topic_2darray[i,j] == 101: # optimization: check only there where an imagination is
-                                if not(img_global_costmap[row_big-1-i,j][0] == 100 and img_global_costmap[row_big-1-i,j][1] == 100 and img_global_costmap[row_big-1-i,j][2] == 100):
-                                    temp_img_grey[row_big-1-i,j] = (0,0,0)
-                                    temp_img[row_big-1-i,j] = (0,0,0)
+                            if len(map_topic_2darray) != 0:
+                                if map_topic_2darray[i,j] == 101: # optimization: check only there where an imagination is
+                                    if not(img_global_costmap[row_big-1-i,j][0] == 100 and img_global_costmap[row_big-1-i,j][1] == 100 and img_global_costmap[row_big-1-i,j][2] == 100):
+                                        temp_img_grey[row_big-1-i,j] = (0,0,0)
+                                        temp_img[row_big-1-i,j] = (0,0,0)
     cv2.imwrite("map_local_costmap.png", temp_img) # will be saved in folder $HOME\.ros
     cv2.imwrite("map_local_costmap_grey.png", temp_img_grey)
 
     # prepare the ground truth data for comparing it with the local (60x60 block) data from the costmap
-    # 1) cut from the ground truth map (obstacles map) exactly the same 60x60 block
-    ground_truth_map = cv2.imread("map_obstacles.png")
-    ground_truth_map_part = ground_truth_map[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
-    cv2.imwrite("map_obstacles_part.png", ground_truth_map_part)
+    if optimization == 0:
+        # 1) cut from the ground truth map (obstacles map) exactly the same 60x60 block
+        ground_truth_map = cv2.imread("map_obstacles.png")
+        ground_truth_map_part = ground_truth_map[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
+        cv2.imwrite("map_obstacles_part.png", ground_truth_map_part)
     # 1) alternative: cut from the ground truth map
     ground_truth_map_2 = cv2.imread("map_ground_truth_semantic.png")
     ground_truth_map_2_part = ground_truth_map_2[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
-    cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_2_part)
+    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_2_part)
     # 2) cut from the big colorful local cost map exactly the same 60x60 block
     temp_img_part = temp_img[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
-    cv2.imwrite("map_local_costmap_part_color.png", temp_img_part)
+    if optimization == 0: cv2.imwrite("map_local_costmap_part_color.png", temp_img_part)
     # 3) compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
     # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
 
@@ -392,11 +431,11 @@ def callback_local_costmap(map_data):
     # 80x80 => -10px left, +10px right, +10px top, -10px bottom
     border = 10 # [px] -> 10 [px] * 0.05 (resolution) = 0.5 [m]
     ground_truth_map_80x80 = image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
-    cv2.imwrite("map_ground_truth_semantic_part_80x80.png", ground_truth_map_80x80)
+    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part_80x80.png", ground_truth_map_80x80)
     # 80x80 => -20px left, +20px right, +20px top, -20px bottom
     border = 20 # [px] -> 20 [px] * 0.05 (resolution) = 1.0 [m]
     ground_truth_map_100x100 = image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
-    cv2.imwrite("map_ground_truth_semantic_part_100x100.png", ground_truth_map_100x100)
+    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part_100x100.png", ground_truth_map_100x100)
     
     # Important: to get the local costmap, also the teleoperation could be used to drive the robot manually around (could be faster then running a script to random go through the room)
 
@@ -430,13 +469,17 @@ def callback_local_costmap(map_data):
     publish_pairoccupancygrid('pair_temp_80x80', grid_costmap, grid_ground_truth_80x80)
     publish_pairoccupancygrid('pair_temp_100x100', grid_costmap, grid_ground_truth_100x100)
 
-    # III - map_obstacles_part.png
-    ## publish Image - converting OpenCV images to ROS image messages
-    #publish_image('obstacles_map_temp', ground_truth_map_part) # works, but cvbridge does not work in rosnav python environment
-    ## publish IntList - convert OpenCV images to user-defined array messages
-    #publish_intlist('obstacles_map_temp', ground_truth_map_part) # works # (60,60,3) -> (10800,1,1)
-    ## publish OccupancyGrid
-    grid_obstacles = publish_occupancygrid('obstacles_map_temp', ground_truth_map_part, map_data)
+    if optimization == 0:
+        # III - map_obstacles_part.png
+        ## publish Image - converting OpenCV images to ROS image messages
+        #publish_image('obstacles_map_temp', ground_truth_map_part) # works, but cvbridge does not work in rosnav python environment
+        ## publish IntList - convert OpenCV images to user-defined array messages
+        #publish_intlist('obstacles_map_temp', ground_truth_map_part) # works # (60,60,3) -> (10800,1,1)
+        ## publish OccupancyGrid
+        grid_obstacles = publish_occupancygrid('obstacles_map_temp', ground_truth_map_part, map_data)
+
+    time_B = rospy.get_rostime()
+    print('laser scan delay = ' + str(time_B - time_A) + ' ns') # 1760000000 ns = 1.76 sec # no optimization: 1.7-2.0 sec # optimization: 0.6-1.15 sec -> 0.34-0.93 sec
 
 def publish_image(publisher_name, temp_img_part):
     ## map_local_costmap_part_color.png
@@ -708,6 +751,10 @@ def laser_scan_data_listener():
     cv2.imwrite("map_local_costmap_grey.png", temp_black_img)
 
     #time.sleep(2) # wait for the obstacles to be spawned
+
+    global time_start, temp_time
+    time_start = rospy.get_rostime().secs # get only the seconds (it's enough?), then the number do not have to be converted to integer while comparing the times
+    temp_time = rospy.get_rostime().secs
 
     # read the laser scan data and save also the absolute and relative position of the robot the whole time,
     # to be able to match it with the laser scan data; save also the info from the map to know where the obstacles are
