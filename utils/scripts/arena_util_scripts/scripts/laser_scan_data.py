@@ -420,10 +420,30 @@ def local_costmap(map_data):
     ground_truth_map_2_part = ground_truth_map_2[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_2_part)
     # 2) cut from the big colorful local cost map exactly the same 60x60 block
-    temp_img_part = temp_img[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
-    if optimization == 0: cv2.imwrite("map_local_costmap_part_color.png", temp_img_part)
-    # 3) compare the local costmap part image with the ground truth part image: temp_img_part (real) vs. ground_truth_map_part (ideal)
+    local_costmap_60x60 = temp_img[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
+    if optimization == 0: cv2.imwrite("map_local_costmap_part_color.png", local_costmap_60x60)
+    # 3) compare the local costmap part image with the ground truth part image: local_costmap_60x60 (real) vs. ground_truth_map_part (ideal)
     # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
+
+    # TODO X: resize the observation 60x60 img to an 80x80/100x100 img with white color (unknown, id = -1?) from all sides (robot should be still in the middle), so that it could be used with a 80x80/100x100 ground truth image
+    range_old = 60
+    range_new = 80
+    #local_costmap_80x80 = np.zeros((range_new,range_new,3)) # init with [0,0,0]=black
+    local_costmap_80x80 = np.full((range_new,range_new,3), 255) # init with [255,255,255]=white # optimization!
+    step = int((range_new - range_old)/2) # (80-60)/2=10
+    for i in range(range_new):
+        for j in range(range_new):
+            if not((i < step or i >= (range_old + step)) or (j < step or j >= (range_old + step))): # border from all sides: 0-9 & 70-79
+                local_costmap_80x80[i,j] = local_costmap_60x60[i-step,j-step] # take the color only in the middle, the inside of the borders
+                #print(str(i) + ' ' + str(j) + ' ' + str(i-step) + ' ' + str(j-step)) # debugging
+    range_new = 100
+    #local_costmap_100x100 = np.zeros((range_new,range_new,3)) # init with [0,0,0]=black
+    local_costmap_100x100 = np.full((range_new,range_new,3), 255) # init with [255,255,255]=white # optimization!
+    step = int((range_new - range_old)/2) # (100-60)/2=20
+    for i in range(range_new):
+        for j in range(range_new):
+            if not((i < step or i >= (range_old + step)) or (j < step or j >= (range_old + step))): # border from all sides: 0-19 & 80-99
+                local_costmap_100x100[i,j] = local_costmap_60x60[i-step,j-step] # take the color only in the middle, the inside of the borders
 
     # TODO NEXT: cut blocks 60x60, 80x80 and 100x100 from the ground truth map
     # TODO NEXT: make sure that the robot is in the middle of the block!?!
@@ -443,13 +463,15 @@ def local_costmap(map_data):
 
     # I - map_local_costmap_part_color.png
     ## publish Image - converting OpenCV images to ROS image messages
-    #publish_image('costmap_temp', temp_img_part) # works, but cvbridge does not work in rosnav python environment
+    #publish_image('costmap_temp', local_costmap_60x60) # works, but cvbridge does not work in rosnav python environment
     ## try publishing an array instead of an image (create an user-defined ros message: http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
-    #publish_listintlist('costmap_temp', temp_img_part) # does not work # with 'ListIntList' or 'ListListIntList' => NotImplementedError: multi-dimensional sub-views are not implemented
+    #publish_listintlist('costmap_temp', local_costmap_60x60) # does not work # with 'ListIntList' or 'ListListIntList' => NotImplementedError: multi-dimensional sub-views are not implemented
     ## publish IntList - convert OpenCV images to user-defined array messages
-    #publish_intlist('costmap_temp', temp_img_part) # works # (60,60,3) -> (10800,1,1)
+    #publish_intlist('costmap_temp', local_costmap_60x60) # works # (60,60,3) -> (10800,1,1)
     ## publish OccupancyGrid
-    grid_costmap = publish_occupancygrid('costmap_temp', temp_img_part, map_data)
+    grid_costmap_60x60 = publish_occupancygrid('costmap_temp', local_costmap_60x60, map_data)
+    grid_costmap_80x80 = publish_occupancygrid('costmap_temp_80x80', local_costmap_80x80, map_data)
+    grid_costmap_100x100 = publish_occupancygrid('costmap_temp_100x100', local_costmap_100x100, map_data)
 
     ## TODO: the whole global costmap, ("map_local_costmap.png", temp_img) vs. ("map_local_costmap_grey.png", temp_img_grey)
     #publish_intlist('costmap_global_temp', temp_img_grey) # works # (60,60,3) -> (10800,1,1)
@@ -465,9 +487,9 @@ def local_costmap(map_data):
     grid_ground_truth_100x100 = publish_occupancygrid('ground_truth_map_temp_100x100', ground_truth_map_100x100, map_data)
 
     ## publish the ground truth and costmap as a pair -> a list of OccupancyGrids
-    publish_pairoccupancygrid('pair_temp_60x60', grid_costmap, grid_ground_truth_60x60)
-    publish_pairoccupancygrid('pair_temp_80x80', grid_costmap, grid_ground_truth_80x80)
-    publish_pairoccupancygrid('pair_temp_100x100', grid_costmap, grid_ground_truth_100x100)
+    publish_pairoccupancygrid('pair_temp_60x60', grid_costmap_60x60, grid_ground_truth_60x60)
+    publish_pairoccupancygrid('pair_temp_80x80', grid_costmap_80x80, grid_ground_truth_80x80)
+    publish_pairoccupancygrid('pair_temp_100x100', grid_costmap_100x100, grid_ground_truth_100x100)
 
     if optimization == 0:
         # III - map_obstacles_part.png
@@ -538,6 +560,8 @@ def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
                 ##array_new[row-1-i,j] = 100 # color 1 to 10 /grey 100 = occupied # wrong order!
                 #array_new[i,j] = 100 # color 1 to 10 /grey 100 = occupied # correct order!
                 array_new[i,j] = 0 # make the area per default better black=free then grey, since we want to filter out the imagination!
+                if list_message[row-1-i,j][2] == 255 and list_message[row-1-i,j][1] == 255 and list_message[row-1-i,j][0] == 255:
+                    array_new[i,j] = -1 # TODO X
                 for elem in id_type_color_ar: # TODO: make it colorful
                     #print('RED from RGB: ' + str(int(elem['color'][0]*255)) + ' ' + str(BGR_color[0])) # for debugging
                     # Important: RGB vs. BGR!

@@ -446,7 +446,7 @@ def training_script():
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", OccupancyGrid, callback_ground_truth_map_temp)
             #sub_pair_map_60x60 = rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
             #sub_pair_map_80x80 = rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
-            sub_pair_map_100x100 = rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100)
+            sub_pair_map_100x100 = rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100) # TODO X
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", Image, callback_obstacles_map_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", IntList, callback_obstacles_map_temp)
             global sub_goal
@@ -503,7 +503,7 @@ def type_color_reference():
     return id_type_color_ar
 
 def delete_empty_images_get_raw_data():
-    # the next two lines are new, needed because of the synchronization
+    # the next two lines are new, needed because of the synchronization (=> if you just need to run only this function, comment out the lines)
     goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
     movebase_client(0, 0, goal_pub, 0, 0)
 
@@ -606,17 +606,17 @@ def delete_empty_images_get_raw_data():
 
     # TODO NEXT:
     # both files should display the costmap / the ground truth of the same image!
-    file_2_1 = np.load('training/2_1_container_costmap_id.npz')
-    file_2_2 = np.load('training/2_2_container_ground_truth_id.npz')
+#    file_2_1 = np.load('training/2_1_container_costmap_id.npz')
+#    file_2_2 = np.load('training/2_2_container_ground_truth_id.npz')
     #plt.imshow(file_2_1['arr_60'])
     #plt.show()
     #plt.imshow(file_2_2['arr_60'])
     #plt.show()
-    for i in range(int(img_count/2)): # starts with arr_0, all together img_count/2 files
-        plt.imshow(file_2_1['arr_' + str(i)])
-        #plt.show()
-        plt.imshow(file_2_2['arr_' + str(i)])
-        #plt.show()
+#    for i in range(int(img_count/2)): # starts with arr_0, all together img_count/2 files
+#        plt.imshow(file_2_1['arr_' + str(i)])
+#        #plt.show()
+#        plt.imshow(file_2_2['arr_' + str(i)])
+#        #plt.show()
 
     print('DONE!')
 
@@ -629,6 +629,8 @@ def get_id_from_color(img_costmap_color):
             id_temp = 0 # per default 0 = free = no obstacles
             if 100 == BGR_color[2] and 100 == BGR_color[1] and 100 == BGR_color[0]:
                 id_temp = 1 # TODO: 100 or 1 .. (should be the same as 'GREY DEFAULT')
+            if 255 == BGR_color[2] and 255 == BGR_color[1] and 255 == BGR_color[0]:
+                id_temp = -1 # TODO X: 1/50/-1/..?
             # map here the color to the id:
             for elem in id_type_color_ar:
                 #print('RED from RGB: ' + str(int(elem['color'][0]*255)) + ' ' + str(BGR_color[0])) # for debugging
@@ -644,8 +646,10 @@ def get_color_from_id(id):
     id_type_color_ar = type_color_reference()
     grey_ar = [100,100,100]
     black_ar = [0,0,0]
+    white_ar = [255,255,255]
     color_BGR_temp = black_ar
     if id == 100: color_BGR_temp = grey_ar
+    if id == -1: color_BGR_temp = white_ar # TODO X
     else:
         for elem in id_type_color_ar:
             if elem['id'] == id:
@@ -657,7 +661,7 @@ def get_color_from_id(id):
 
 def get_color_from_id_array(ar):
     row,col = ar.shape
-    img = np.zeros((row,col,3)) # (row,col) vs. (row,col,3); (row,col,3), because the black color (0,0,0) is needed!
+    img = np.zeros((row,col,3)) # (row,col) vs. (row,col,3); (row,col,3), because a color, for example the black color (0,0,0) is needed!
     for i in range(row):
         for j in range(col):
             img[i,j] = get_color_from_id(ar[i,j])
@@ -686,7 +690,7 @@ class CustomDatasetSingle(Dataset): # (TODO) test dataset generator for a single
 # TODO NEXT: it looks like the data is taken the whole time and not at first when the robot reaches the starting point?!?
 # TODO NEXT: put the imagination part in a separate function, so that it could be called for testing but commented out while collecting training data
 # get_single_raw_data -> imagination
-def imagination(map_data, img_name): # TODO: get the raw data from an image and save it into a npy file
+def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data from an image and save it into a npy file
     print('\nImagination in process ...\n')
     # costmap_color, ground_truth_color, costmap_id, ground_truth_id
     img_costmap_color = cv2.imread(img_name)
@@ -804,21 +808,26 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
 
     # map_data comes from the subscribed topic with type OccupancyGrid
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
-    local_costmap_width = map_data.info.width # 60
-    local_costmap_height = map_data.info.height # 60
+    #local_costmap_width = map_data.info.width # 60
+    #local_costmap_height = map_data.info.height # 60
+    local_costmap_width_default = map_data.info.width
+    local_costmap_width = costmap_gt_range # could be 60/80/100/..
+    local_costmap_height = costmap_gt_range # could be 60/80/100/..
     robot_position_x = map_data.info.origin.position.x
     robot_position_y = map_data.info.origin.position.y
     robot_orientation_z = map_data.info.origin.orientation.z # the orientation of the robot was not used, always z = 0 rad
-    map_data_array = map_data.data # len() = 3600
+    map_data_array = map_data.data # len() = 3600/6400/10000
 
     # Important: for rviz origin is on the bottom left, for an image is always on the top left; bottom left corner is for this map (-6,-6)! => corect the robot's position so that it is always positive
     # TODO: get params like resolution, origin etc. directly from the map yaml file instead of hard-coding them
     robot_position_x += 6
     robot_position_y += 6
-    block_abs_width_left_rviz = int(robot_position_x / local_costmap_resolution)
-    block_abs_width_right_rviz = int((robot_position_x / local_costmap_resolution) + local_costmap_width)
-    block_abs_height_bottom_rviz = int(robot_position_y / local_costmap_resolution)
-    block_abs_height_top_rviz = int((robot_position_y / local_costmap_resolution) + local_costmap_height)
+    # (TODO X) Important: the 'correction' is needed to adjust the parameters of the default map of size 60x60 to another one of size like 80x80 or 100x100
+    correction = int((local_costmap_width - local_costmap_width_default)/2) # int((100-60)/2)=20; int((80-60)/2)=10; int((60-60)/2)=0
+    block_abs_width_left_rviz = int(robot_position_x / local_costmap_resolution) - correction
+    block_abs_width_right_rviz = int((robot_position_x / local_costmap_resolution) + local_costmap_width) - correction
+    block_abs_height_bottom_rviz = int(robot_position_y / local_costmap_resolution) - correction
+    block_abs_height_top_rviz = int((robot_position_y / local_costmap_resolution) + local_costmap_height) - correction
     
     # TODO NEXT:
     # - 60x60, 80x80 or/and 100x100 ground truth map -> also the output of the model!
@@ -829,10 +838,12 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     
     # visualize the ground truth:
     #map_labels_npy = np.asarray(labels_test_npy) # shape = (1,1,60,60) -> (60,60)
-    # visualize the imagination costmap: (should be black & white!)
+    # visualize the imagination costmap: (should be black & white!) choose the model!
     ##map_labels_npy = np.asarray(labels_prediction_npy_2760["occ_estimate"].detach()[0,0]) # shape = (1,1,60,60) -> (60,60) # it is colorful so it does not work, should be black & white!
-    map_labels_npy = np.asarray(imagination_map_2760_cv2_black_white) # shape = (1,1,60,60) -> (60,60)
-    map_reshaped = map_labels_npy.reshape(60,60)
+    #map_labels_npy = np.asarray(imagination_map_2760_cv2_black_white) # shape = (1,1,60,60) -> (60,60)
+    map_labels_npy = np.asarray(imagination_map_100_cv2_black_white) # TODO X
+    #map_reshaped = map_labels_npy.reshape(60,60)
+    map_reshaped = map_labels_npy.reshape(costmap_gt_range,costmap_gt_range) # could be 60/80/100..
     # convert an OccupancyGrid pixel order to an image order -> flip the OccupancyGrid array around the x axis!
     map_reshaped = flip_img_x_axis(map_reshaped)
 
@@ -946,15 +957,21 @@ def imagination(map_data, img_name): # TODO: get the raw data from an image and 
     # Important!: subscribing to the topic, updates the global_costmap image, otherwise it will remain showing only its initial state!!!
     rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, callback_global_costmap)
 
-    # cut temp_img_grey to the current, local 60x60 block:
+    # cut temp_img_grey to the current, local 60x60/80x80/100x100 block (with a variable size):
     temp_img_grey_part = temp_img_grey[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
-    pub = rospy.Publisher("/imagination", OccupancyGrid, queue_size=10) # (60,60)
+    pub = rospy.Publisher("/imagination", OccupancyGrid, queue_size=10) # (60,60)/(80,80)/(100,100)
     grid2 = OccupancyGrid()
     grid2.header.seq = 0
     grid2.header.stamp = rospy.Time.now()
     grid2.header.frame_id = ""
-    grid2.info = map_data.info # get info directly from the subscribed topic (it already has the right position, orientation, width and height!)
+    grid2.info = map_data.info # get info per default from the subscribed topic and then correct some of the parameters
+    grid2.info.width = costmap_gt_range # correct the width, could be 60/80/100/..
+    grid2.info.height = costmap_gt_range # correct the height, could be 60/80/100/..
+    # (TODO X) Important: 'correction' factor also here, but in meter, not in pixels => correction*local_costmap_resolution (for exaxmple: 20px*0.05=1m)
+    grid2.info.origin.position.x = map_data.info.origin.position.x - correction*local_costmap_resolution
+    grid2.info.origin.position.y = map_data.info.origin.position.y - correction*local_costmap_resolution
     map_array2 = []
+    print(temp_img_grey_part.shape)
     i = temp_img_grey_part.shape[0] - 1
     while i >=0:
         for j in range(temp_img_grey_part.shape[1]):
@@ -1085,6 +1102,7 @@ def save_img(data, img_name): # data.data[costmap, gt]
         # -> change the file name from _ground_truth_map to ground_truth_map_60x60 etc.
         # --> correct the part with deleting the paired black images
         if (img_name == "pair_part_60") or (img_name == "pair_part_80") or (img_name == "pair_part_100"):
+            costmap_gt_range = int(img_name.split("_")[2])
             i = 0
         #    while temp_time >= time_start + i*img_sec: # this check is now in laser_scan_data.py in callback_local_costmap() !
         #        if temp_time == time_start + i*img_sec:
@@ -1140,11 +1158,10 @@ def save_img(data, img_name): # data.data[costmap, gt]
                 # 
                 #movebase_client(position_global.x, position_global.y, pub_goal, 0, 0)
             
-            costmap_image = np.array(data.data[0].data).reshape(60, 60)
+            #costmap_image = np.array(data.data[0].data).reshape(60, 60)
+            costmap_image = np.array(data.data[0].data).reshape(costmap_gt_range, costmap_gt_range) # could be 60/80/100..
             #gt_image = np.array(data.data[1].data).reshape(60, 60)
-            if img_name == "pair_part_60": gt_image = np.array(data.data[1].data).reshape(60, 60)
-            if img_name == "pair_part_80": gt_image = np.array(data.data[1].data).reshape(80, 80)
-            if img_name == "pair_part_100": gt_image = np.array(data.data[1].data).reshape(100, 100)
+            gt_image = np.array(data.data[1].data).reshape(costmap_gt_range, costmap_gt_range) # could be 60/80/100..
             path_name_costmap = "training/" + str(rospy.get_rostime().secs) + "_costmap_part.png"
             path_name_gt = "training/" + str(rospy.get_rostime().secs) + "_ground_truth_map_part.png"
             # the saved part images themself should be also flipped around the x axis -> convert an OccupancyGrid pixel order to an image order
@@ -1153,7 +1170,7 @@ def save_img(data, img_name): # data.data[costmap, gt]
             # Important: in addition, to have it in color, get_color_from_id() should be used:
             cv2.imwrite(path_name_costmap, get_color_from_id_array(flip_img_x_axis(costmap_image)))
             cv2.imwrite(path_name_gt, get_color_from_id_array(flip_img_x_axis(gt_image)))
-            imagination(data.data[0], path_name_costmap)
+            imagination(data.data[0], path_name_costmap, costmap_gt_range) # TODO X
             print('The predicted imagination image has been created!')
             # TODO:
             pub_counter = rospy.Publisher("/imagination_counter", String, queue_size=10)
@@ -1227,7 +1244,7 @@ def save_img(data, img_name): # data.data[costmap, gt]
                     #cv_image2 = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
                     #cv2.imwrite("training/" + str(rospy.get_rostime().secs) + "_" + img_name + "TEST.png", cv_image2)
                     if img_name == "costmap_part": # TODO NEXT
-                        imagination(data, path_name)
+                        imagination(data, path_name, 60)
                         print('The predicted imagination image has been created!')
                     break
                 i += 1
