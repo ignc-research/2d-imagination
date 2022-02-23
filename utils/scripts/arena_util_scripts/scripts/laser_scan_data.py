@@ -562,6 +562,8 @@ def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
                 array_new[i,j] = 0 # make the area per default better black=free then grey, since we want to filter out the imagination!
                 if list_message[row-1-i,j][2] == 255 and list_message[row-1-i,j][1] == 255 and list_message[row-1-i,j][0] == 255:
                     array_new[i,j] = -1 # TODO X
+                if list_message[row-1-i,j][2] == 100 and list_message[row-1-i,j][1] == 100 and list_message[row-1-i,j][0] == 100:
+                    array_new[i,j] = 100 # TODO X # 1 or 100 (should be the same as 'GREY DEFAULT')
                 for elem in id_type_color_ar: # TODO: make it colorful
                     #print('RED from RGB: ' + str(int(elem['color'][0]*255)) + ' ' + str(BGR_color[0])) # for debugging
                     # Important: RGB vs. BGR!
