@@ -119,12 +119,19 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                 # -> color.a != 1
                 a  = marker.color.a # 1 for the legs of the tables and chairs, 0.5 for the rest (a way to filter out the obstacle parts)
                 
+                # TODO X: extend the gt data to ommit corridors (for example between the table and the chairs)
+                # => if a circle -> extend the radius
+                # => if a square -> extend the corners
+                gt_extension_bool = 0
+                extension_m = 0.1 # in meter # TODO X
+
                 # handle differently based on the type:
                 if marker.type == 7: # 'sphere list'
                     counter_spheres += 1
                     # there is only one element in the points[] list
                     scale_x = marker.scale.x # relevant only for the sphere, for the polygon and the line it should be always 1.0; should be the same as scale.y
                     radius = scale_x/2 # Important: the circle is in a square scale_x * scale_y => radius = scale_x/2
+                    if gt_extension_bool == 1: radius += extension_m # TODO X
                     radius_px = int(radius / resolution)
                     if radius_px > x_px_rel_max:
                         x_px_rel_max = y_px_rel_max = radius_px
@@ -143,6 +150,11 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     corners = marker.points
                     corners_array = []
                     for corner in corners:
+                        if gt_extension_bool == 1: # TODO X
+                            if corner.x > 0: corner.x += extension_m
+                            if corner.x < 0: corner.x -= extension_m
+                            if corner.y > 0: corner.y += extension_m
+                            if corner.y < 0: corner.y -= extension_m
                         x_temp = int(corner.x / resolution) + center_x_px # the points are relative to the center, so the origin should not be subtracted from them!
                         y_temp = int(corner.y / resolution) + center_y_px
                         corners_array.append([x_temp,row_big-1-y_temp])
