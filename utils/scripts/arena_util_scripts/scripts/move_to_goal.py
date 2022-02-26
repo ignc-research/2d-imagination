@@ -37,7 +37,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from torchvision.utils import save_image
 from rl.semantic_anticipator import SemAnt2D # the model
-import tensorflow
+import tensorflow as tf
 # change cv2.imread() to torch.load() and cv2.imwrite() to torch.save()!?
 # there is also np.save and np.load that always works
 # TODO SOLUTION: $ workon rosnav $ pip install opencv-contrib-python # with NO sourcing
@@ -444,8 +444,8 @@ def training_script():
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", Image, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", IntList, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", OccupancyGrid, callback_ground_truth_map_temp)
-            #sub_pair_map_60x60 = rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
-            #sub_pair_map_80x80 = rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
+        #    sub_pair_map_60x60 = rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
+        #    sub_pair_map_80x80 = rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
             sub_pair_map_100x100 = rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100) # TODO X
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", Image, callback_obstacles_map_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", IntList, callback_obstacles_map_temp)
@@ -503,7 +503,7 @@ def type_color_reference():
     return id_type_color_ar
 
 def delete_empty_images_get_raw_data():
-    # the next two lines are new, needed because of the synchronization (=> if you just need to run only this function, comment out the lines)
+    # the next two lines are new, needed because of the robot synchronization (only if turned on!) (=> if you just need to run only this function, comment out the lines)
     goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
     movebase_client(0, 0, goal_pub, 0, 0)
 
@@ -521,7 +521,7 @@ def delete_empty_images_get_raw_data():
     #container_dict = [] # TODO: use a dict instead, so that there is only one npz file (just appending costmap, gt, costmap, gt etc. won't work, since npz do not keep the order!?)
     #dict = {'costmap' : 'asarray(filename1)', 'ground_truth' : 'asarray(filename2)'}
     id_type_color_ar = type_color_reference()
-    
+
     # TODO NEXT: is it sure that the images are taken alphabetically? at least in pairs? -> sorted() ?!
     img_count = 0
     for filename in sorted(glob.glob(os.path.join(path, '*.png'))):
@@ -544,6 +544,10 @@ def delete_empty_images_get_raw_data():
                 for elem in id_type_color_ar:
                     #print('RED from RGB: ' + str(int(elem['color'][0]*255)) + ' ' + str(BGR_color[0])) # for debugging
                     # Important: RGB vs. BGR!
+                    if 100 == BGR_color[2] and 100 == BGR_color[1] and 100 == BGR_color[0]:
+                        id_temp = 100 # TODO: 100 or 1 .. (should be the same as 'GREY DEFAULT')
+                    if 255 == BGR_color[2] and 255 == BGR_color[1] and 255 == BGR_color[0]:
+                        id_temp = 50 # TODO X: 1/50/-1/..?
                     if int(elem['color'][0]*255) == BGR_color[2] and int(elem['color'][1]*255) == BGR_color[1] and int(elem['color'][2]*255) == BGR_color[0]:
                         id_temp = elem['id']
                         break
@@ -566,6 +570,20 @@ def delete_empty_images_get_raw_data():
             img_id_ar = asarray(img_id) # img_id_ar.shape = (60,60) # id
             #print(img_ar) # [[ 0  0  0] [ 0  0  0] ..., [ 0  0  0] [ 0  0  0]] # rgb color
             #print(img_id_ar) # [[ 0. 0. ..., 0. 0.] [ 0. 0. ..., 0. 0.] ..., [ 0. 0. ..., 0. 0.]] # id
+            
+            # TODO X: if the costmap and gt should be smaller (for example if it is 100x100, but should be 60x60 or 80x80)
+            img_range = img.shape[0] # 60/80/100
+            resize_big_to_small = 0
+            new_range = 60 # should be smaller then img_range (80/60)
+            step = int((img_range - new_range)/2)
+            if (resize_big_to_small == 1) and (img_range > new_range):
+                img_ar_new = [img_ar[i][step:img_range-step] for i in range(step,img_range-step)]
+                img_ar = asarray(img_ar_new)
+                img_id_ar_new = [img_id_ar[i][step:img_range-step] for i in range(step,img_range-step)]
+                img_id_ar = asarray(img_id_ar_new)
+                # overwrite also the images themselves (both costmap and gt)
+                cv2.imwrite(filename, img_ar) # img_ar is enough, img_id_ar is only internal
+
             if ''.join(filename.split('costmap')) != filename: # costmap
                 filename_paired = 'ground_truth_map'.join(filename.split('costmap'))
                 # TODO: check if the current image has a pair, if not - delete it!
@@ -628,7 +646,7 @@ def get_id_from_color(img_costmap_color):
             BGR_color = [img_costmap_color[i, j, 0], img_costmap_color[i, j, 1], img_costmap_color[i, j, 2]]
             id_temp = 0 # per default 0 = free = no obstacles
             if 100 == BGR_color[2] and 100 == BGR_color[1] and 100 == BGR_color[0]:
-                id_temp = 1 # TODO: 100 or 1 .. (should be the same as 'GREY DEFAULT')
+                id_temp = 100 # TODO: 100 or 1 .. (should be the same as 'GREY DEFAULT')
             if 255 == BGR_color[2] and 255 == BGR_color[1] and 255 == BGR_color[0]:
                 id_temp = -1 # TODO X: 1/50/-1/..?
             # map here the color to the id:
@@ -637,7 +655,7 @@ def get_id_from_color(img_costmap_color):
                 # Important: RGB vs. BGR!
                 if int(elem['color'][0]*255) == BGR_color[2] and int(elem['color'][1]*255) == BGR_color[1] and int(elem['color'][2]*255) == BGR_color[0]:
                     id_temp = elem['id']
-                    #id_temp = 1 # 1 or 100 (should be the same as 'GREY DEFAULT') # one layer for now! already done in CustomDatasetSingle() (TODO)
+                    #id_temp = 100 # 1 or 100 (should be the same as 'GREY DEFAULT') # one layer for now! already done in CustomDatasetSingle() (TODO)
                     break
             img_costmap_id[i,j] = id_temp
     return img_costmap_id
@@ -648,7 +666,7 @@ def get_color_from_id(id):
     black_ar = [0,0,0]
     white_ar = [255,255,255]
     color_BGR_temp = black_ar
-    if id == 100: color_BGR_temp = grey_ar
+    if id == 100: color_BGR_temp = grey_ar # 1 or 100 (should be the same as 'GREY DEFAULT')
     if id == -1: color_BGR_temp = white_ar # TODO X
     else:
         for elem in id_type_color_ar:
@@ -746,54 +764,137 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     #save_image(lidar_test_npy, path_name_lidar_png) # good! the same as the costmap image only in black and white
     ##print(labels_test_npy) # tensor() array with elements 0. or 1.
 
-    # /home/m-yordanova/.ros -> /home/m-yordanova/catkin_ws_ma/src/rosnav-imagination/example/temp_models2/model_100.pth
-    model_100 = torch.load("../catkin_ws_ma/src/rosnav-imagination/example/temp_models2/model_100.pth")
-    #print(model_100) # SemAnt2D(...)
-    model_100.eval()
-    labels_prediction_npy_100 = model_100(lidar_test_npy)
+    # TODO X: sort the collected data and the trained models in folders
+    # Load the model and get the prediction (the label)
+    group_number = 2 # 1 for group "models" & 2 for group "models_state_dict"
+    current_model_number = 0
+    if group_number == 1:
+        ## a model from group "models"
+        current_model_number = 300 # 100/300/1000/..
+        # /home/m-yordanova/.ros -> /home/m-yordanova/catkin_ws_ma/src/rosnav-imagination/example/models/model_100.pth
+        current_model = torch.load("../catkin_ws_ma/src/rosnav-imagination/example/models/model_" + str(current_model_number) + ".pth")
+        #print(current_model) # SemAnt2D(...)
+        current_model.eval()
+        current_model_labels_prediction_npy = current_model(lidar_test_npy)
+    else:
+        ## a model from group "models_state_dict"
+        current_model_number = 2760 # 2760/..
+        current_model_state_dict = torch.load("../catkin_ws_ma/src/rosnav-imagination/example/models_state_dict/model_" + str(current_model_number) + ".pth")
+        #print(current_model_state_dict) # tensor() arrays
+        anticipator.load_state_dict(current_model_state_dict['model_state_dict']) # ! otherwiese 'current_model_labels_prediction_npy = current_model_state_dict(lidar_test_npy)' gives an error that 'dict' object is not callable
+        #print(anticipator) # SemAnt2D(...)
+        anticipator.eval()
+        current_model_labels_prediction_npy = anticipator(lidar_test_npy) # anticipator() / current_model()
 
-    model_2760 = torch.load("../catkin_ws_ma/src/rosnav-imagination/example/temp_models/model_2760.pth")
-    #print(model_2760) # tensor() arrays
-    anticipator.load_state_dict(model_2760['model_state_dict']) # ! otherwiese 'labels_prediction_npy_2760 = model_2760(lidar_test_npy)' gives an error that 'dict' object is not callable
-    #print(anticipator) # SemAnt2D(...)
-    anticipator.eval()
-    labels_prediction_npy_2760 = anticipator(lidar_test_npy) # anticipator() / model_100()
-
-    # save the imagination costmap (the observation) as png and npy (cv2.imwrite, torch.save, np.save, save_image (black img as a result), plt.imsave (works!))
+    # save the imagination costmap (the observation) as png and npy file (cv2.imwrite, torch.save, np.save, save_image (black img as a result), plt.imsave (works!))
     #print(labels_test_npy.shape) # torch.Size([1, 1, 60, 60])
-    #print(labels_prediction_npy_100["occ_estimate"].detach()) # prediction # tensor() array with float elements # tensor([[[[1.3750e-06, 6.0028e-08, 2.5874e-08,  ..., 3.5876e-05, ...]]]])
-    path_name_imagination_map_100_id_png = 'imagination_map_100'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
-    path_name_imagination_map_100_id_png_grey = 'imagination_map_100_grey'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
-    path_name_imagination_map_100_id_png_black_white = 'imagination_map_100_black_white'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
-    path_name_imagination_map_100_id_npy = '.npy'.join(path_name_imagination_map_100_id_png.split('.png')) # imagination map = prediction map/costmap
-    #np.save(path_name_imagination_map_100_id_npy, labels_prediction_npy_100["occ_estimate"].detach().numpy())
-    plt.imsave(path_name_imagination_map_100_id_png, labels_prediction_npy_100["occ_estimate"].detach()[0,0]) # it works only with [0,0] at the end!?
-    # save in a greyscale:
-    imagination_map_100 = cv2.imread(path_name_imagination_map_100_id_png)
-    imagination_map_100_cv2_grey = cv2.cvtColor(imagination_map_100, cv2.COLOR_BGR2GRAY)
-    #cv2.imwrite(path_name_imagination_map_100_id_png_grey, imagination_map_100_cv2_grey)
-    # save it in black & white to be able to visualize in rviz -> if < 100 => = 0 (black=free), else => =255 (white=occupied):
-    imagination_map_100_cv2_black_white = np.zeros((imagination_map_100_cv2_grey.shape[0],imagination_map_100_cv2_grey.shape[1])) # (row,col) vs. (row,col,3)
-    for i in range(imagination_map_100_cv2_grey.shape[0]):
-        for j in range(imagination_map_100_cv2_grey.shape[1]):
-            if imagination_map_100_cv2_grey[i,j] >= 100: imagination_map_100_cv2_black_white[i,j] = 255
-    #cv2.imwrite(path_name_imagination_map_100_id_png_black_white, imagination_map_100_cv2_black_white)
+    #print(current_model_labels_prediction_npy["occ_estimate"].detach()) # prediction # tensor() array with float elements # tensor([[[[1.3750e-06, 6.0028e-08, 2.5874e-08,  ..., 3.5876e-05, ...]]]])
+    path_name_current_imagination_map_id_png = ('imagination_map_' + str(current_model_number)).join(img_name.split('costmap')) # imagination map = prediction map/costmap
+    plt.imsave(path_name_current_imagination_map_id_png, current_model_labels_prediction_npy["occ_estimate"].detach()[0,0]) # it works only with [0,0] at the end!?
+    imagination_map = cv2.imread(path_name_current_imagination_map_id_png)
+    #path_name_current_imagination_map_id_npy = '.npy'.join(path_name_current_imagination_map_id_png.split('.png')) # imagination map = prediction map/costmap
+    #np.save(path_name_current_imagination_map_id_npy, current_model_labels_prediction_npy["occ_estimate"].detach().numpy()) # not needed
+
+    # FILTER 1: try to filter out false imaginated parts from the output
+    # normalize the tensor torch array (get values between 0 and 1, to be able to filter some out)
+    imagination_filter1_normalized_value = 1
+    #print(imagination_map) # (100,100,3) # color ~ (84 1 68)
+    #print(current_model_labels_prediction_npy["occ_estimate"].detach()[0,0].shape) # torch.Size([100, 100]) # tensor([[2.4808e-05, 2.6347e-06, 1.5144e-06,  ..., 3.1066e-05, 6.4751e-05, 2.0734e-04], [...], ...])
+    inputs = current_model_labels_prediction_npy["occ_estimate"].detach()[0,0]
+    #inputs_normal = inputs/tf.reduce_max(tf.abs(inputs)) # doesn't work # TypeError: Cannot interpret 'tf.float32' as a data type
+    inputs_np = inputs.numpy() # [[2.4808e-05, 2.6347e-06, 1.5144e-06,  ..., 3.1066e-05, 6.4751e-05, 2.0734e-04], [...], ...]
+    inputs_np /= np.max(inputs_np) # works # [[0.6392533  0.64117384 0.6324189  ... 0.34298816 0.3978336  0.5802038 ], ... ,[1. 1. 1. ... 1. 1. 1.]]
+    #path_name_imagination_map_id_png_np = 'imagination_map_np'.join(img_name.split('costmap'))
+    #plt.imsave(path_name_imagination_map_id_png_np, inputs_np) # looks exactly like imagination_map, so just like before the transformation from torch to np array
+    if imagination_filter1_normalized_value == 1:
+        filter_factor = 0.3 # 0.2/0.3/0.4/0.5/.. # probability between 0.0 and 1.0 TODO X: tune the number
+        for i in range(img_costmap_color.shape[0]):
+            for j in range(img_costmap_color.shape[1]):
+                if inputs_np[i,j] < filter_factor: inputs_np[i,j] = 0 # filter out values < filter_factor (make them = 0)
+        # save the filtered image to compare with the original imagination
+        path_name_imagination_map_id_png_filtered_value = 'imagination_map_filtered_value'.join(img_name.split('costmap'))
+        #plt.imsave(path_name_imagination_map_id_png_filtered_value, inputs_np) # for debugging
+        #inputs_torch = torch.from_numpy(inputs_np) # is the same image as inputs_np
+        # filter the image (overwrite both the imagination variable and the saved imagination image)
+        plt.imsave(path_name_current_imagination_map_id_png, inputs_np)
+        imagination_map = cv2.imread(path_name_current_imagination_map_id_png) # TODO: write and read to get the right folrm!?
     
-    path_name_imagination_map_2760_id_png = 'imagination_map_2760'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
-    path_name_imagination_map_2760_id_png_grey = 'imagination_map_2760_test_grey'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
-    path_name_imagination_map_2760_id_png_black_white = 'imagination_map_2760_black_white'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
-    path_name_imagination_map_2760_id_npy = '.npy'.join(path_name_imagination_map_2760_id_png.split('.png')) # imagination map = prediction map/costmap
-    plt.imsave(path_name_imagination_map_2760_id_png, labels_prediction_npy_2760["occ_estimate"].detach()[0,0])
+    # FILTER 2: draw a circle around every colored pixel in the laser scan (TODO X)
+    # -> check img_costmap_color for a color different then black and white
+    # -> save the (x,y) and create a mask (black image at the beginning) with a filled white circle around every point with a certain radius
+    # --> at the beginning draw not filled colored circles for debuging
+    # -> use the mask on top of the imagination image to filter it
+    imagination_mask_filter_circles_bool = 1
+    if imagination_mask_filter_circles_bool == 1:
+        indexes_center_filter_circles_ar = []
+        for i in range(img_costmap_color.shape[0]):
+            for j in range(img_costmap_color.shape[1]):
+                if img_costmap_color[i,j][0] == 0 and img_costmap_color[i,j][1] == 0 and img_costmap_color[i,j][2] == 0: # black = free
+                    continue
+                elif img_costmap_color[i,j][0] == 255 and img_costmap_color[i,j][1] == 255 and img_costmap_color[i,j][2] == 255: # white = the border
+                    continue
+                else:
+                    indexes_center_filter_circles_ar.append([i,j])
+        #print(indexes_center_filter_circles_ar) # for debuging
+        #print(len(indexes_center_filter_circles_ar)) # for debuging
+        image_filter = np.zeros((img_costmap_color.shape[0],img_costmap_color.shape[1],3)) # (row,col) vs. (row,col,3)
+        # draw a white filled circle with a center at each collected index in the array
+        filter_circle_radius_px = 10 # radius = 0.5m (with a resolution 0.05 => 10 px)
+        for index in range(len(indexes_center_filter_circles_ar)):
+            cv2.circle(image_filter, (indexes_center_filter_circles_ar[index][1],indexes_center_filter_circles_ar[index][0]), filter_circle_radius_px, (255,255,255), -1)
+        # draw a red not filled circle with a center at each collected index in the array for debugging
+    #    filter_circle_radius_px = 10 # radius = 0.5m (with a resolution 0.05 => 10 px)
+    #    for index in range(len(indexes_center_filter_circles_ar)):
+    #        cv2.circle(image_filter, (indexes_center_filter_circles_ar[index][1],indexes_center_filter_circles_ar[index][0]), filter_circle_radius_px, (255,0,0), 1)
+        # TODO: write & read the ROI image to get the right form etc. !? (needed)
+        cv2.imwrite('roi_filter2.png', image_filter)
+        image_filter_roi = cv2.imread('roi_filter2.png')
+        # create the mask (image_filter is 3-channel, mask must be single channel => cvtColor())
+        image_filter_roi2gray = cv2.cvtColor(image_filter_roi,cv2.COLOR_BGR2GRAY)
+        ret, mask1 = cv2.threshold(image_filter_roi2gray, 10, 255, cv2.THRESH_BINARY)
+    #    path_name_imagination_map_filter2_png = 'imagination_map_filter2'.join(img_name.split('costmap'))
+    #    cv2.imwrite(path_name_imagination_map_filter2_png, image_filter) # for debugging
+        # filter/mask the image
+        imagination_map = cv2.bitwise_and(imagination_map,imagination_map,mask = mask1)
+        cv2.imwrite(path_name_current_imagination_map_id_png, imagination_map)
+    
+    # - FILTER 3 (not used) (TODO X): do imagination only in a circle with radius A around the robot, so the false imaginations on the edges will be filtered out
+    # -> the robot is always in the middle of the model input images
+    # -> use an opencv mask and the function cv2.bitwise_and()
+    imagination_mask_filter_bool = 0
+    if imagination_mask_filter_bool == 1:
+        x=y=costmap_gt_range # could be 60/80/100/..
+        image_filter = np.zeros((x,y,3)) # ROI (region of interest)
+        filter_circle_radius_px = int(costmap_gt_range/2)-10 # 10 / 20 / .. / int(costmap_gt_range/2)=max
+        # draw a white filled circle in the middle with a variable radius
+        cv2.circle(image_filter, (int(x/2),int(y/2)), filter_circle_radius_px, (255,255,255), -1)
+        # TODO: write & read the ROI image to get the right form etc. !? (needed)
+        cv2.imwrite('roi.png', image_filter)
+        image_filter_roi = cv2.imread('roi.png')
+        # create the mask (image_filter is 3-channel, mask must be single channel => cvtColor())
+        image_filter_roi2gray = cv2.cvtColor(image_filter_roi,cv2.COLOR_BGR2GRAY)
+        ret, mask2 = cv2.threshold(image_filter_roi2gray, 10, 255, cv2.THRESH_BINARY)
+        #cv2.imwrite('roi_mask.png', mask2) # = 'roi.png'
+        # TODO X: mask the image, black-out/filter-out the area outside of the circle with a variable radius around the robot
+        imagination_map = cv2.bitwise_and(imagination_map,imagination_map,mask = mask2)
+        cv2.imwrite(path_name_current_imagination_map_id_png, imagination_map)
+
     # save in a greyscale:
-    imagination_map_2760 = cv2.imread(path_name_imagination_map_2760_id_png)
-    imagination_map_2760_cv2_grey = cv2.cvtColor(imagination_map_2760, cv2.COLOR_BGR2GRAY)
-    #cv2.imwrite(path_name_imagination_map_2760_id_png_grey, imagination_map_2760_cv2_grey)
-    # save it in black & white to be able to visualize in rviz -> if < 100 => = 0 (black=free), else => =255 (white=occupied):
-    imagination_map_2760_cv2_black_white = np.zeros((imagination_map_2760_cv2_grey.shape[0],imagination_map_2760_cv2_grey.shape[1])) # (row,col) vs. (row,col,3)
-    for i in range(imagination_map_2760_cv2_grey.shape[0]):
-        for j in range(imagination_map_2760_cv2_grey.shape[1]):
-            if imagination_map_2760_cv2_grey[i,j] >= 100 : imagination_map_2760_cv2_black_white[i,j] = 255
-    #cv2.imwrite(path_name_imagination_map_2760_id_png_black_white, imagination_map_2760_cv2_black_white)
+    imagination_map_cv2_grey = cv2.cvtColor(imagination_map, cv2.COLOR_BGR2GRAY)
+    path_name_current_imagination_map_id_png_grey = 'imagination_map_grey'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
+    #cv2.imwrite(path_name_current_imagination_map_id_png_grey, imagination_map_cv2_grey) # for debugging
+    # save in black (free) & white (occupied) scale to be able to visualize in rviz:
+    imagination_map_cv2_black_white = np.zeros((imagination_map_cv2_grey.shape[0],imagination_map_cv2_grey.shape[1])) # (row,col) vs. (row,col,3)
+    for i in range(imagination_map_cv2_grey.shape[0]):
+        for j in range(imagination_map_cv2_grey.shape[1]):
+            # - find the smallest value of the grey scale image
+            # -> works only without having the circle filtering since then black=0 will be the smallest value and not the one we are searching for
+            # -> as an alternative maybe normalize the grey image, so that the free space is indeed black!?!)
+            #grey_factor = imagination_map_cv2_grey.min() # >0 not enough & > 100 is a further filtering that may not be wanted => imagination_map_cv2_grey.min() (=30!)
+            grey_factor = 30
+            if imagination_map_cv2_grey[i,j] > grey_factor: imagination_map_cv2_black_white[i,j] = 255
+    path_name_current_imagination_map_id_png_black_white = 'imagination_map_black_white'.join(img_name.split('costmap')) # imagination map = prediction map/costmap
+    #cv2.imwrite(path_name_current_imagination_map_id_png_black_white, imagination_map_cv2_black_white) # for debugging
 
     # continuously update from the local (for example 60x60) imagination costmap the global map!
     # -> only the observation lidar costmap could be get send directly from laser_scan_data.py
@@ -839,9 +940,8 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     # visualize the ground truth:
     #map_labels_npy = np.asarray(labels_test_npy) # shape = (1,1,60,60) -> (60,60)
     # visualize the imagination costmap: (should be black & white!) choose the model!
-    ##map_labels_npy = np.asarray(labels_prediction_npy_2760["occ_estimate"].detach()[0,0]) # shape = (1,1,60,60) -> (60,60) # it is colorful so it does not work, should be black & white!
-    #map_labels_npy = np.asarray(imagination_map_2760_cv2_black_white) # shape = (1,1,60,60) -> (60,60)
-    map_labels_npy = np.asarray(imagination_map_100_cv2_black_white) # TODO X
+    ##map_labels_npy = np.asarray(current_model_labels_prediction_npy["occ_estimate"].detach()[0,0]) # shape = (1,1,60,60) -> (60,60) # it is colorful so it does not work, should be black & white!
+    map_labels_npy = np.asarray(imagination_map_cv2_black_white) # shape = (1,1,60,60) -> (60,60)
     #map_reshaped = map_labels_npy.reshape(60,60)
     map_reshaped = map_labels_npy.reshape(costmap_gt_range,costmap_gt_range) # could be 60/80/100..
     # convert an OccupancyGrid pixel order to an image order -> flip the OccupancyGrid array around the x axis!
