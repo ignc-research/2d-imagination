@@ -219,7 +219,7 @@ def tables_test():
     # -> for a chair: '[global_nummer]_table[nummer]_chair[nummer]_counter'
 
     models = []
-    scenario1(models)
+    scenario6(models)
     response = spawn_model_srv.call(models)
     print("successfully spawned model" if response.success else "failed")
 

@@ -28,9 +28,11 @@ from arena_plan_msgs.msg import IntList, ListIntList, ListListIntList, ListOccup
 from std_msgs.msg import String
 import time
 
-sys.path.insert(0,'/home/m-yordanova/python_env/rosnav/lib/python3.6/site-packages/cv2/qt/plugins')
+# Important: adjust the local paths! (or copy the 'models' folder into arena-rosnav (TODO))
+#sys.path.insert(0,'/home/m-yordanova/python_env/rosnav/lib/python3.6/site-packages/cv2/qt/plugins') # TODO: not needed?
+imagination_path = '/home/m-yordanova/catkin_ws_ma/src/rosnav-imagination' # where the repository "https://github.com/ignc-research/rosnav-imagination" has been cloned
+sys.path.insert(0,imagination_path)
 
-sys.path.insert(0,'/home/m-yordanova/catkin_ws_ma/src/rosnav-imagination')
 import torch # works in (rosnav), but there cv2 does not work, as well as tf
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
@@ -340,7 +342,9 @@ def training_script():
     # -/+> the robot should move in each direction with the same velocity (leave it small and just make more 'images')
     
     # TODO: json and not yaml as output!?
-    with open("/home/m-yordanova/catkin_ws_ma/src/arena-rosnav/simulator_setup/training/scenario1_idea2.yaml", 'r') as stream:
+    rospack = rospkg.RosPack()
+    yaml_file = os.path.join(rospack.get_path("simulator_setup"), "training", "scenario1_idea2.yaml")
+    with open(yaml_file, 'r') as stream:
     #with open("$(find simulator_setup)/training/scenario1_idea2.yaml", 'r') as stream:
         try:
             doc = yaml.safe_load(stream)
@@ -365,8 +369,9 @@ def training_script():
     # One json file per scenario map!
     # TODO: change the json file to a get a different path # TODO X: scenario1_eval.json
     # TODO X: the planer should be better tuned, it still planes to go trought a really small path etc.; the robot should drive slower etc.
-    with open("/home/m-yordanova/catkin_ws_ma/src/arena-rosnav/simulator_setup/training/scenario1.json", 'r') as stream:
-    #with open("$(find simulator_setup)/training/test.json", 'r') as stream:
+    json_file = "scenario6.json"
+    json_file_path = os.path.join(rospack.get_path("simulator_setup"), "training", json_file)
+    with open(json_file_path, 'r') as stream:
         doc = json.load(stream)
         print('json file content:\n' + str(doc) + '\n')
         # example: {u'num_images': 101, ...}
@@ -375,7 +380,13 @@ def training_script():
         # all points in the json file already are correctly scaled and transformed, so they are in meters, not in pixels and ready to be used with move_base without any change!
         # that is why we also do not need the parameters 'resolution' and 'origin'
         map = doc['map_path'] # TODO: with or without a path? (in the gui the yaml file for the map should be selected)
-        
+        # TODO: 'map' will be a relative path to the yaml file, but
+        # first we need the json (for example for scenario1: "scenario1/map.yaml" given, but "scenario1/map_scenario.png" wanted!)
+        # and second we need an universal path working from every machine
+        # => for example: "/home/m-yordanova/catkin_ws_ma/src/arena-rosnav/simulator_setup/maps/scenario6/map.yaml" -> "scenario6/map.json"
+        #map_path = os.path.join(rospack.get_path("simulator_setup"), "maps", map)
+        #map_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "scenario1/map_scenario.png")
+
         # run $ roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26 map_file:=scenario1
         # TODO Question: do not load a scenario from pedsim_test.py -> comment it out in the launch file!?
         # -> if so, obstacles_amount should be changed or something for local costmap to work/be corect/ly!?
@@ -766,20 +777,21 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
 
     # TODO X: sort the collected data and the trained models in folders
     # Load the model and get the prediction (the label)
-    group_number = 2 # 1 for group "models" & 2 for group "models_state_dict"
+    group_number = 1 # 1 for group "models" & 2 for group "models_state_dict"
     current_model_number = 0
     if group_number == 1:
         ## a model from group "models"
-        current_model_number = 300 # 100/300/1000/..
-        # /home/m-yordanova/.ros -> /home/m-yordanova/catkin_ws_ma/src/rosnav-imagination/example/models/model_100.pth
-        current_model = torch.load("../catkin_ws_ma/src/rosnav-imagination/example/models/model_" + str(current_model_number) + ".pth")
+        current_model_number = 300 # 100/300/1000/.../9900
+        # TODO Important: CPU vs. GPU -> set map_location!
+        current_model = torch.load(imagination_path + "/example/models/model_" + str(current_model_number) + ".pth", map_location=torch.device('cpu'))
         #print(current_model) # SemAnt2D(...)
         current_model.eval()
         current_model_labels_prediction_npy = current_model(lidar_test_npy)
     else:
         ## a model from group "models_state_dict"
-        current_model_number = 2760 # 2760/..
-        current_model_state_dict = torch.load("../catkin_ws_ma/src/rosnav-imagination/example/models_state_dict/model_" + str(current_model_number) + ".pth")
+        current_model_number = 2760 # 2760/...
+        # TODO Important: CPU vs. GPU -> set map_location!
+        current_model_state_dict = torch.load(imagination_path + "/example/models_state_dict/model_" + str(current_model_number) + ".pth", map_location=torch.device('cpu'))
         #print(current_model_state_dict) # tensor() arrays
         anticipator.load_state_dict(current_model_state_dict['model_state_dict']) # ! otherwiese 'current_model_labels_prediction_npy = current_model_state_dict(lidar_test_npy)' gives an error that 'dict' object is not callable
         #print(anticipator) # SemAnt2D(...)
