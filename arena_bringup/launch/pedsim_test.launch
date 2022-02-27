@@ -71,6 +71,9 @@
     <arg name="ns" value="/" />
   </include>
 
+
+ 
+  
   <!-- publish labels for pedsim agents -->
   <include file="$(find arena_bringup)/launch/sublaunch/show_pedsim_labels.launch" if="$(arg show_pedsim_labels)">
     <arg name="ns" value="/" />
@@ -121,13 +124,14 @@
   <node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
   </node>
 
+ 
   <!-- Parameters for the data recorder -->
   <arg name="waypoint_generator" default="classic"/>
   <arg name="use_recorder" default="false"/>
   <arg name="record_only_planner" default="true"/>
   <arg name="scenario_file" default="ignc_obs05.json"/> 
-  <arg name="local_planner" default="rosnav"/>
-  <arg name="model" default="turtlebot3_burger" />
+  
+  <arg name="model" default="test" />
 
   <!-- data recorder -->
   <group if="$(eval arg('use_recorder') == true)">
@@ -138,7 +142,6 @@
     <param name="scenario_file" value="$(arg scenario_file)"/>
     <param name="model" value="$(arg model)"/>
   </group>
-  
 
   <!--<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />-->
 
