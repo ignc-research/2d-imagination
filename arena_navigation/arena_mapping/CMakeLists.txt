@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(arena_mapping)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+# add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -133,7 +133,7 @@ include_directories(
   ${PCL_INCLUDE_DIRS} 
 )
 link_directories(${PCL_LIBRARY_DIRS})
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -O3 -Wall")
+set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} -O3 -Wall")
 
 # Declare a C++ library
 add_library(arena_mapping

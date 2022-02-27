@@ -121,6 +121,25 @@
   <node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
   </node>
 
+  <!-- Parameters for the data recorder -->
+  <arg name="waypoint_generator" default="classic"/>
+  <arg name="use_recorder" default="false"/>
+  <arg name="record_only_planner" default="true"/>
+  <arg name="scenario_file" default="ignc_obs05.json"/> 
+  <arg name="local_planner" default="rosnav"/>
+  <arg name="model" default="turtlebot3_burger" />
+
+  <!-- data recorder -->
+  <group if="$(eval arg('use_recorder') == true)">
+    <node pkg="arena_evaluation" name="data_recorder_node" type="data_recorder_node.py" />
+    <param name="local_planner" value="$(arg local_planner)"/>
+    <param name="waypoint_generator" value="$(arg waypoint_generator)"/>
+    <param name="record_only_planner" value="$(arg record_only_planner)"/>
+    <param name="scenario_file" value="$(arg scenario_file)"/>
+    <param name="model" value="$(arg model)"/>
+  </group>
+  
+
   <!--<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />-->
 
   <!-- static_transform_publisher is a command line tool for sending static transforms -->
