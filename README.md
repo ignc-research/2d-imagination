@@ -1,3 +1,37 @@
+# Imagination
+
+### General information
+For more information about the imagination model see also the repository [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination).
+
+Temporary: Adjust the local path to [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) in the script move_to_goal.py!
+
+### How to run
+For generating the ground truth data for a chosen map:
+```bash
+roslaunch arena_bringup pedsim_test_gt.launch obstacles_amount:=26
+```
+For moving the robot with an imagination on a predifined path from a json file:
+```bash
+roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26
+```
+The parameter obstacles_amount is based on the number of spawned obstacles on the current map.
+Take a reference from the table below.
+
+| scenario | obstacles_amount |
+| -------- | -----------------|
+| 1        | 26               |
+| 2        | 44               |
+| 3        | 35               |
+| 4        | 47               |
+| 5        | 31               |
+| 6        | 31               |
+
+### Useful information
+1. To change the model, change the ```current_model_number``` variable in the ```move_to_goal.py``` script.
+2. To change the json file for the robot path, change the ```json_file``` variable in the ```move_to_goal.py``` script.
+3. To change the map ...
+4. ...
+
 # Multiprocessing branch
 This branch is under development to feacilitate multiprocessing and accelerate training and simulation. It works with additional plugins and changes to the flatland repository. If you want to use it, checkout to dev_multi_lei branch in src/forks/flatland folder and pip install -e . inside src/forks/stable-baselines3 folder. 
 

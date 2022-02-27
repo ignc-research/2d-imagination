@@ -1,5 +1,5 @@
 {
-    "map_path": "/home/m-yordanova/catkin_ws_ma/src/arena-rosnav/simulator_setup/maps/scenario6/map.yaml",
+    "map_path": "scenario6/map.yaml",
     "num_images": 20,
     "robot_paths": [
         {
