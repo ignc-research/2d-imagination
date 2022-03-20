@@ -3,7 +3,7 @@
 ### General information
 For more information about the imagination model see also the repository [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination).
 
-Temporary: Adjust the local path to [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) in the script move_to_goal.py!
+Temporary: Adjust the local path to [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) in the script ```move_to_goal.py```!
 
 ### How to run
 For generating the ground truth data for a chosen map:
@@ -14,8 +14,7 @@ For moving the robot with an imagination on a predifined path from a json file:
 ```bash
 roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26
 ```
-The parameter obstacles_amount is based on the number of spawned obstacles on the current map.
-Take a reference from the table below.
+The parameter obstacles_amount is based on the number of spawned obstacles on the current map. Use the table below as a reference.
 
 | scenario | obstacles_amount |
 | -------- | -----------------|

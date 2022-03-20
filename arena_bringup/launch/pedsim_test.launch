@@ -14,7 +14,7 @@
   <arg name="show_pedsim_walls" default="true"/>
   <arg name="republish_flatland_markers" default="true"/>
   <arg name="use_joystick" default="false"/>
-  <arg name="local_planner"   default="teb"/> <!-- teb/dwa -->
+  <arg name="local_planner"   default="dwa"/> <!-- teb/dwa -->
 
   <!-- Map parameters -->
   <arg name="map_file"        default="map_empty"/> <!-- map_empty vs. scenarioX -->

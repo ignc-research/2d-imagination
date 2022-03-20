@@ -314,7 +314,7 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Local_costmap
       Topic: /move_base/local_costmap/costmap
       Unreliable: false

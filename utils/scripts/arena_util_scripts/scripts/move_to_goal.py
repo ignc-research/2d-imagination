@@ -72,6 +72,9 @@ sub_goal = []
 
 global_speed = Twist()
 
+current_model = []
+anticipator = []
+
 def newOdom(msg):
     global x_global
     global y_global
@@ -369,7 +372,7 @@ def training_script():
     # One json file per scenario map!
     # TODO: change the json file to a get a different path # TODO X: scenario1_eval.json
     # TODO X: the planer should be better tuned, it still planes to go trought a really small path etc.; the robot should drive slower etc.
-    json_file = "scenario6.json"
+    json_file = "scenario8_eval.json"
     json_file_path = os.path.join(rospack.get_path("simulator_setup"), "training", json_file)
     with open(json_file_path, 'r') as stream:
         doc = json.load(stream)
@@ -757,8 +760,6 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     num_import_layers = 1
     num_output_layers = num_catagories # for now =1, extend later on!
     network_size = 32 # 16/32/64
-    anticipator = SemAnt2D(num_import_layers,num_output_layers,network_size).to(device) # init the model
-    optimizer = optim.SGD(anticipator.parameters(), lr=0.001, momentum=0.9) # init the optimizer
 
     #MapDatasetTestNPY = CustomDatasetSingle(img_ground_truth_id_npy, img_costmap_id_npy, num_catagories, catagories)
     MapDatasetTestNPY = CustomDatasetSingle(img_ground_truth_id_ar, img_costmap_id_ar, num_catagories, catagories)
@@ -779,23 +780,30 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     # Load the model and get the prediction (the label)
     group_number = 1 # 1 for group "models" & 2 for group "models_state_dict"
     current_model_number = 0
+    if imagination_counter == 0: # load the model only once! (TODO X)
+        if group_number == 1:
+            ## a model from group "models"
+            current_model_number = "3000_100_normal" # 100/300/1000/.../3000/9900/"9900_60x60"/"3000_100et" etc.
+            # TODO Important: CPU vs. GPU -> set map_location!
+            global current_model
+            current_model = torch.load(imagination_path + "/example/models/model_" + str(current_model_number) + ".pth", map_location=torch.device('cpu'))
+            #print(current_model) # SemAnt2D(...)
+            current_model.eval()
+        else:
+            ## a model from group "models_state_dict"
+            current_model_number = 2760 # 2760/...
+            # TODO Important: CPU vs. GPU -> set map_location!
+            current_model_state_dict = torch.load(imagination_path + "/example/models_state_dict/model_" + str(current_model_number) + ".pth", map_location=torch.device('cpu'))
+            #print(current_model_state_dict) # tensor() arrays
+            global anticipator
+            anticipator = SemAnt2D(num_import_layers,num_output_layers,network_size).to(device) # init the model
+            anticipator.load_state_dict(current_model_state_dict['model_state_dict']) # ! otherwiese 'current_model_labels_prediction_npy = current_model_state_dict(lidar_test_npy)' gives an error that 'dict' object is not callable
+            #print(anticipator) # SemAnt2D(...)
+            anticipator.eval()
+            current_model_labels_prediction_npy = anticipator(lidar_test_npy) # anticipator() / current_model()
     if group_number == 1:
-        ## a model from group "models"
-        current_model_number = 300 # 100/300/1000/.../9900
-        # TODO Important: CPU vs. GPU -> set map_location!
-        current_model = torch.load(imagination_path + "/example/models/model_" + str(current_model_number) + ".pth", map_location=torch.device('cpu'))
-        #print(current_model) # SemAnt2D(...)
-        current_model.eval()
         current_model_labels_prediction_npy = current_model(lidar_test_npy)
     else:
-        ## a model from group "models_state_dict"
-        current_model_number = 2760 # 2760/...
-        # TODO Important: CPU vs. GPU -> set map_location!
-        current_model_state_dict = torch.load(imagination_path + "/example/models_state_dict/model_" + str(current_model_number) + ".pth", map_location=torch.device('cpu'))
-        #print(current_model_state_dict) # tensor() arrays
-        anticipator.load_state_dict(current_model_state_dict['model_state_dict']) # ! otherwiese 'current_model_labels_prediction_npy = current_model_state_dict(lidar_test_npy)' gives an error that 'dict' object is not callable
-        #print(anticipator) # SemAnt2D(...)
-        anticipator.eval()
         current_model_labels_prediction_npy = anticipator(lidar_test_npy) # anticipator() / current_model()
 
     # save the imagination costmap (the observation) as png and npy file (cv2.imwrite, torch.save, np.save, save_image (black img as a result), plt.imsave (works!))
