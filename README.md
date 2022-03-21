@@ -10,7 +10,7 @@ Please refer to [Installation.md](docs/Installation.md) for detailed explanation
 
 It works both on Ubuntu 18.04 (with ROS-melodic) and on Ubuntu 20.04 (with ROS-noetic).
 
-1. Make sure that you are working in ```rosnav``` venv:
+1. First make sure that you are working in the ```rosnav``` venv:
 ```bash
 workon rosnav
 ```
@@ -18,20 +18,18 @@ workon rosnav
 ```bash
 roslaunch arena_bringup pedsim_test_gt.launch
 ```
-3. For moving the robot with an imagination on a predifined path from a json file:
-   
-   3.1. Version 1 (while moving the robot stops to wait for the laser scan data):
-```bash
-roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26 user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
-```
-   
-   3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
-```bash
-roslaunch arena_bringup semantic_imagination.launch obstacles_amount:=26 user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
-```
+3. For navigating with an imagination on a predifined path from a json file:
 
-Change the parameters ```user``` and ```workspace``` according to your local system.
-Set the parameter ```device``` according to your hardware. If you only have a CPU use ```'cpu'```. For a GPU use for example ```'cuda'```.
+   3.1. Version 1 (while moving the robot stops to wait for the laser scan data):
+   ```bash
+   roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26 user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   ```
+   3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
+   ```bash
+   roslaunch arena_bringup semantic_imagination.launch obstacles_amount:=26 user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   ```
+
+Change the parameters ```user``` and ```workspace``` according to your local system. Set the parameter ```device``` according to your hardware. If you only have a CPU use ```'cpu'```. For a GPU use for example ```'cuda'```.
 
 The parameter ```obstacles_amount``` is based on the number of spawned obstacles on the current map. Use the table below as a reference.
 
