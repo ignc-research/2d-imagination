@@ -3,18 +3,37 @@
 ### General information
 For more information about the imagination model see also the repository [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination).
 
-Temporary: Adjust the local path to [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) in the script ```move_to_goal.py```!
+Both github projects (this one and [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination)) should be located in the ```src``` folder of the same catkin workspace.
 
 ### How to run
-For generating the ground truth data for a chosen map:
+Please refer to [Installation.md](docs/Installation.md) for detailed explanations about the installation process.
+
+It works both on Ubuntu 18.04 (with ROS-melodic) and on Ubuntu 20.04 (with ROS-noetic).
+
+1. Make sure that you are working in ```rosnav``` venv:
 ```bash
-roslaunch arena_bringup pedsim_test_gt.launch obstacles_amount:=26
+workon rosnav
 ```
-For moving the robot with an imagination on a predifined path from a json file:
+2. For generating the ground truth data for a chosen map:
 ```bash
-roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26
+roslaunch arena_bringup pedsim_test_gt.launch
 ```
-The parameter obstacles_amount is based on the number of spawned obstacles on the current map. Use the table below as a reference.
+3. For moving the robot with an imagination on a predifined path from a json file:
+   
+   3.1. Version 1 (while moving the robot stops to wait for the laser scan data):
+```bash
+roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26 user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+```
+   
+   3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
+```bash
+roslaunch arena_bringup semantic_imagination.launch obstacles_amount:=26 user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+```
+
+Change the parameters ```user``` and ```workspace``` according to your local system.
+Set the parameter ```device``` according to your hardware. If you only have a CPU use ```'cpu'```. For a GPU use for example ```'cuda'```.
+
+The parameter ```obstacles_amount``` is based on the number of spawned obstacles on the current map. Use the table below as a reference.
 
 | scenario | obstacles_amount |
 | -------- | -----------------|
@@ -24,6 +43,8 @@ The parameter obstacles_amount is based on the number of spawned obstacles on th
 | 4        | 47               |
 | 5        | 31               |
 | 6        | 31               |
+| 7        | 21               |
+| 8        | 14               |
 
 ### Useful information
 1. To change the model, change the ```current_model_number``` variable in the ```move_to_goal.py``` script.
