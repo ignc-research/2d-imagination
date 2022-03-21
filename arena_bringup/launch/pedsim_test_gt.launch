@@ -33,7 +33,8 @@
   <param name="show_viz"      value="$(arg show_viz)"/>
 
   <!-- Scenarios -->
-  <arg name="obstacles_amount"  default="26"/> <!-- value="26" for scenario 1 --> <!-- amount of all obstacles, not obstacle types! -->
+  <arg name="scenario"          default="8"/> <!-- '1'/'8' -->
+  <!--<arg name="obstacles_amount"  default="26"/>--> <!-- value="26" for scenario1 --> <!-- amount of all obstacles, not obstacle types! -->
   
   <!-- Local paths -->
   <arg name="user"            default="m-yordanova"/> <!-- 'm-yordanova'/'henry' -->
@@ -110,14 +111,16 @@
   </include>
 
   <node name="pedsim_test" pkg="arena_util_scripts" type="pedsim_test.py" output="screen">
+   <param name="scenario"             value="$(arg scenario)"/>
   </node>
 
   <!--<node name="show_obstacle_types" pkg="arena_util_scripts" type="show_obstacle_types.py" output="screen">
-   <param name="obstacles_amount" value="$(arg obstacles_amount)"/>
+   <param name="scenario"             value="$(arg scenario)"/>
   </node>-->
 
   <node name="ground_truth_data" pkg="arena_util_scripts" type="create_ground_truth_map.py" output="screen">
-   <param name="obstacles_amount" value="$(arg obstacles_amount)"/>
+   <param name="scenario"             value="$(arg scenario)"/>
+   <!--<param name="obstacles_amount"     value="$(arg obstacles_amount)"/>-->
   </node>
 
   <!--<node name="zig_zag" pkg="arena_util_scripts" type="zig_zag_motion.py" output="screen">

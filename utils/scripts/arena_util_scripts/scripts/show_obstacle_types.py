@@ -105,7 +105,12 @@ def callback_flatland_markers(markers_data):
                     obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
     #amount_obstacles = len(markers_data.markers) # for working with amount of obstacle parts of all obstacles
     amount_obstacles = len(obstacle_markers) # for working with amount of all obstacles
-    node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
+    
+    #node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
+    scenarioReference = {"1" : 26, "2" : 44, "3" : 35, "4" : 47, "5" : 31, "6" : 31, "7" : 21, "8" : 14}
+    scenario = rospy.get_param('~scenario')
+    node_obstacles_amount = scenarioReference.get(str(scenario), 14) # give a default value to prevent an error
+    
     if amount_obstacles == node_obstacles_amount: # should be publishing the whole time from the point all obstacles have been loaded
         new_marker_array = MarkerArray()
         marker_array_table = MarkerArray()

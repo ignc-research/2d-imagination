@@ -74,7 +74,10 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
     # Important: it gets time for all obstacles (obstacle parts) to load, different for the different scenarios
     # -> Idea1: call this callback a lot (amount of calling = c) and only after that start with the calculations: easier way, since the obstacle parts do not have to be calculated, but slower and there is no guarantee that it is enough for other bigger scenarios
     # -> Idea2: set the parameter 'obstacles_amount' to the amount of obstacle parts for the current scenario by launching: all parts should be calculated, but once this is done, it will work with every scenario, also faster
-    node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
+    #node_obstacles_amount = rospy.get_param('~obstacles_amount') # roslaunch arena_bringup pedsim_test.launch obstacles_amount:=142
+    scenarioReference = {"1" : 26, "2" : 44, "3" : 35, "4" : 47, "5" : 31, "6" : 31, "7" : 21, "8" : 14}
+    scenario = rospy.get_param('~scenario')
+    node_obstacles_amount = scenarioReference.get(str(scenario), 14) # give a default value to prevent an error
     #if c == 100 and read_markers_info == 1: # Idea1
     #if amount_obstacles == node_obstacles_amount and read_markers_info == 1: # Idea2
     if len(obstacle_markers) == node_obstacles_amount and read_markers_info == 1 and len(obstacle_names) == node_obstacles_amount: # Idea2.2 consider the len(obstacle_markers) instead of amount_obstacles (also make sure that the correspondance color-type table is already ready, since this could also take a while)

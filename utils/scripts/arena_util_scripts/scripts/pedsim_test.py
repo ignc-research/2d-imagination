@@ -217,9 +217,20 @@ def tables_test():
     # Important: the obstacles should be name like this:
     # -> for a table: '[global_nummer]_table[nummer]_counter'
     # -> for a chair: '[global_nummer]_table[nummer]_chair[nummer]_counter'
+    # Important: if you want to add a scenario, don't forget to update the reference scenario-obstacles_amount (variable "scenarioReference") in the scripts show_obstacle_types.py and create_ground_truth_map.py
 
     models = []
-    scenario8(models)
+
+    scenario = rospy.get_param('~scenario')
+    if str(scenario) == "1": scenario1(models)
+    elif str(scenario) == "2": scenario2(models)
+    elif str(scenario) == "3": scenario3(models)
+    elif str(scenario) == "4": scenario4(models)
+    elif str(scenario) == "5": scenario5(models)
+    elif str(scenario) == "6": scenario6(models)
+    elif str(scenario) == "7": scenario7(models)
+    else: scenario8(models)
+
     response = spawn_model_srv.call(models)
     print("successfully spawned model" if response.success else "failed")
 
@@ -2783,6 +2794,7 @@ def follow_agent_test():
     spawn_peds_client.call([ped])
 
 if __name__ == '__main__':
+    rospy.init_node('pedsim_test', anonymous=True)
     #shelves_test()
     tables_test()
     # service_robot_test()

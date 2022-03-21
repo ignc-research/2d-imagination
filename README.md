@@ -16,24 +16,24 @@ workon rosnav
 ```
 2. For generating the ground truth data for a chosen map:
 ```bash
-roslaunch arena_bringup pedsim_test_gt.launch
+roslaunch arena_bringup pedsim_test_gt.launch scenario:=1
 ```
 3. For navigating with an imagination on a predifined path from a json file:
 
    3.1. Version 1 (while moving the robot stops to wait for the laser scan data):
    ```bash
-   roslaunch arena_bringup pedsim_test.launch obstacles_amount:=26 imagination_model:=3000 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination_model:=3000 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
    3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
    ```bash
-   roslaunch arena_bringup semantic_imagination.launch obstacles_amount:=26 imagination_model:=3000 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   roslaunch arena_bringup semantic_imagination.launch scenario:=1 imagination_model:=3000 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
 
 The parameter ```imagination_model``` should be set to a valid ```.pth``` file from the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository (folder ```/example/models/```). Just like the parameter ```json_file``` should be set to an existing ```.json``` file from the folder ```./simulator_setup/training/```.
 
 Change the parameters ```user``` and ```workspace``` according to your local system. Set the parameter ```device``` according to your hardware. If you only have a CPU use ```'cpu'```. For a GPU use for example ```'cuda'```.
 
-The parameter ```obstacles_amount``` is based on the number of spawned obstacles on the current map. Use the table below as a reference.
+The parameter ```scenario``` is needed to load the scenario (the compilation of tables and chairs) and to get the number of spawned obstacles through a reference table (see below). This number is needed for the visualization of the type (id) of the obstacles.
 
 | scenario | obstacles_amount |
 | -------- | -----------------|
@@ -47,12 +47,13 @@ The parameter ```obstacles_amount``` is based on the number of spawned obstacles
 | 8        | 14               |
 
 ### Useful information
-1. To change the model, change the ```current_model_number``` variable in the ```move_to_goal.py``` script (for version 1) or in the ```show_imagination.py``` script (for version 2).
-2. To change the json file for the robot path, change the ```json_file``` variable in the ```move_to_goal.py``` script (for version 1) or in the ```move_to_goal_imagination.py``` script (for version 2).
+1. (old) To change the model, change the ```current_model_number``` variable in the ```move_to_goal.py``` script (for version 1) or in the ```show_imagination.py``` script (for version 2).
+2. (old) To change the json file for the robot path, change the ```json_file``` variable in the ```move_to_goal.py``` script (for version 1) or in the ```move_to_goal_imagination.py``` script (for version 2).
 3. To change the ```map``` ...
 4. To change the ```scenario``` ...
-4. To change ```robot_size``` and ```inflation_radius``` ...
-5. ...
+5. To change ```robot_size``` and ```inflation_radius``` ...
+6. What to do if you want to add a new scenario: ... (update the scenario-obstacles_amount reference table etc.)
+7. ...
 
 # Multiprocessing branch
 This branch is under development to feacilitate multiprocessing and accelerate training and simulation. It works with additional plugins and changes to the flatland repository. If you want to use it, checkout to dev_multi_lei branch in src/forks/flatland folder and pip install -e . inside src/forks/stable-baselines3 folder. 
