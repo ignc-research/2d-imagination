@@ -40,7 +40,7 @@ import tensorflow as tf
 
 ## a model from group "models"
 # load the model for imagination
-current_model_number = 3000  # 100/300/1000/3000/9900..
+current_model_number = 3000  # 3000/"3000_60_normal"//rospy.get_param('~imagination_model')/...
 device = 'cpu' # 'cpu'/'cuda'/'cuda:0'/rospy.get_param('~device')
 # Important: adjust the local paths! (or copy the 'models' folder into arena-rosnav) (TODO)
 # For this to work should both github repositories (arena-rosnav & rosnav-imagination) be placed under src in a catkin workspace!
@@ -376,8 +376,9 @@ def training_script():
     # TODO: change the json file to a get a different path # TODO X: scenario1_eval.json
     # TODO X: the planer should be better tuned, it still planes to go trought a really small path etc.; the robot should drive slower etc.
     # TODO change the json folder more universal
-    json_file = os.path.join(rospack.get_path("simulator_setup"), "training", "scenario1.json")
-    with open(json_file, 'r') as stream:
+    json_file = rospy.get_param('~json_file') # "scenario1.json" / "scenario8_eval.json" / "map_center.json" / rospy.get_param('~json_file')
+    json_file_path = os.path.join(rospack.get_path("simulator_setup"), "training", json_file)
+    with open(json_file_path, 'r') as stream:
     #with open("$(find simulator_setup)/training/test.json", 'r') as stream:
         doc = json.load(stream)
         print('json file content:\n' + str(doc) + '\n')
@@ -764,6 +765,7 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     # save the imagination costmap (the observation) as png and npy file (cv2.imwrite, torch.save, np.save, save_image (black img as a result), plt.imsave (works!))
     #print(labels_test_npy.shape) # torch.Size([1, 1, 60, 60])
     #print(current_model_labels_prediction_npy.detach()) # prediction # tensor() array with float elements # tensor([[[[1.3750e-06, 6.0028e-08, 2.5874e-08,  ..., 3.5876e-05, ...]]]])
+    global current_model_number
     path_name_current_imagination_map_id_png = ('imagination_map_' + str(current_model_number)).join(img_name.split('costmap')) # imagination map = prediction map/costmap
     plt.imsave(path_name_current_imagination_map_id_png, current_model_labels_prediction_npy.detach()[0,0]) # it works only with [0,0] at the end!?
     imagination_map = cv2.imread(path_name_current_imagination_map_id_png)

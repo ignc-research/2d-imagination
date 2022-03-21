@@ -43,7 +43,7 @@ def callback_odom(data):
 # read scenario config file
 def main():
     rospack = rospkg.RosPack()
-    json_file = "map_center.json" # scenario1.json / map_center.json
+    json_file = rospy.get_param('~json_file') # "scenario1.json" / "scenario8_eval.json" / "map_center.json" / rospy.get_param('~json_file')
     scenario_path = os.path.join(rospack.get_path("simulator_setup"), "training", json_file)
     stream = open(scenario_path, 'r')
     config = json.load(stream)

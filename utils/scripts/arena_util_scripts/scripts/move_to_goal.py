@@ -373,7 +373,7 @@ def training_script():
     # One json file per scenario map!
     # TODO: change the json file to a get a different path # TODO X: scenario1_eval.json
     # TODO X: the planer should be better tuned, it still planes to go trought a really small path etc.; the robot should drive slower etc.
-    json_file = "scenario8_eval.json"
+    json_file = rospy.get_param('~json_file') # "scenario1.json" / "scenario8_eval.json" / "map_center.json" / rospy.get_param('~json_file')
     json_file_path = os.path.join(rospack.get_path("simulator_setup"), "training", json_file)
     with open(json_file_path, 'r') as stream:
         doc = json.load(stream)
@@ -794,14 +794,14 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     if imagination_counter == 0: # load the model only once! (TODO X)
         if group_number == 1:
             ## a model from group "models"
-            current_model_number = "3000_100_normal" # 100/300/1000/.../3000/9900/"9900_60x60"/"3000_100et" etc.
+            current_model_number = rospy.get_param('~imagination_model') # "3000"/"3000_60_normal"/"3000_100_normal"/rospy.get_param('~imagination_model')...
             # Important: CPU vs. GPU!
             global current_model
             if device == 'cpu': current_model = torch.load(imagination_path + "/example/models/model_" + str(current_model_number) + ".pth", map_location=torch.device(device)) # CPU
             else: current_model = torch.load(imagination_path + "/example/models/model_" + str(current_model_number) + ".pth").to(device) # GPU
             #print(current_model) # SemAnt2D(...)
             current_model.eval()
-        else:
+        else: # now it is used only for testing purposes
             ## a model from group "models_state_dict"
             current_model_number = 2760 # 2760/...
             # Important: CPU vs. GPU!

@@ -41,7 +41,11 @@
 
   <!-- CPU vs. GPU -->
   <arg name="device"       default="cpu"/> <!-- 'cpu'/'cuda'/'cuda:0' -->
-  
+
+  <!-- Imagination & Navigation -->
+  <arg name="imagination_model"       default="3000"/> <!-- "3000"/"3000_60_normal"/... -->
+  <arg name="json_file"               default="scenario1.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
+
   <!-- URDF -->
   <!-- <arg name="urdf_file" default="$(find simulator_setup)/robot/myrobot.urdf" /> -->
   <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find simulator_setup)/robot/thisrobot.urdf.xacro'" />
@@ -123,9 +127,11 @@
   </node>-->
 
   <!--<node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
-   <param name="user" value="$(arg user)"/>
-   <param name="workspace" value="$(arg workspace)"/>
-   <param name="device" value="$(arg device)"/>
+   <param name="user"                 value="$(arg user)"/>
+   <param name="workspace"            value="$(arg workspace)"/>
+   <param name="device"               value="$(arg device)"/>
+   <param name="imagination_model"    value="$(arg imagination_model)"/>
+   <param name="json_file"            value="$(arg json_file)"/>
   </node>-->
   
   <!--<node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">

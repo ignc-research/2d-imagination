@@ -1,26 +1,26 @@
 <launch>
-  <env name="ROSCONSOLE_FORMAT" value="[${severity} ${time} ${logger}]: ${message}" />
+  <env name="ROSCONSOLE_FORMAT"             value="[${severity} ${time} ${logger}]: ${message}" />
     
-  <param name="use_sim_time" value="true"/>
-  <arg name="rviz_file"       default="pedsim_test_imagination"/>
-  <arg name="train_mode"      default="false"/>
-  <param name="train_mode"    value="$(arg train_mode)"/>
-  <arg name="step_size" default="0.01"/>
-  <param name="step_size" value="$(arg step_size)" /> 
-  <param name="use_wall_mode" value="true" /> 
-  <arg name="show_pedsim_forces" default="true"/>
-  <arg name="show_pedsim_labels" default="true"/>
-  <arg name="show_pedsim_waypoints" default="true"/>
-  <arg name="show_pedsim_walls" default="true"/>
-  <arg name="republish_flatland_markers" default="true"/>
-  <arg name="use_joystick" default="false"/>
-  <arg name="local_planner"   default="dwa"/> <!-- teb/dwa -->
+  <param name="use_sim_time"                value="true"/>
+  <arg name="rviz_file"                     default="pedsim_test_imagination"/>
+  <arg name="train_mode"                    default="false"/>
+  <param name="train_mode"                  value="$(arg train_mode)"/>
+  <arg name="step_size"                     default="0.01"/>
+  <param name="step_size"                   value="$(arg step_size)" /> 
+  <param name="use_wall_mode"               value="true" /> 
+  <arg name="show_pedsim_forces"            default="true"/>
+  <arg name="show_pedsim_labels"            default="true"/>
+  <arg name="show_pedsim_waypoints"         default="true"/>
+  <arg name="show_pedsim_walls"             default="true"/>
+  <arg name="republish_flatland_markers"    default="true"/>
+  <arg name="use_joystick"                  default="false"/>
+  <arg name="local_planner"                 default="dwa"/> <!-- teb/dwa -->
 
   <!-- Map parameters -->
-  <arg name="map_file"        default="map_empty"/> <!-- map_empty vs. scenarioX -->
-  <arg name="map_path"        default="$(find simulator_setup)/maps/$(arg map_file)/map.yaml"/>
-  <arg name="world_path"      default="$(find simulator_setup)/maps/$(arg map_file)/map.world.yaml"/>
-  <param name="world_path" value="$(find simulator_setup)/maps/$(arg map_file)/map.world.yaml" />
+  <arg name="map_file"          default="map_empty"/> <!-- map_empty vs. scenarioX -->
+  <arg name="map_path"          default="$(find simulator_setup)/maps/$(arg map_file)/map.yaml"/>
+  <arg name="world_path"        default="$(find simulator_setup)/maps/$(arg map_file)/map.world.yaml"/>
+  <param name="world_path"      value="$(find simulator_setup)/maps/$(arg map_file)/map.world.yaml" />
 
   <arg name="global_frame_id"   value="map"/>
   <arg name="odom_frame_id"     value="odom"/>
@@ -28,9 +28,9 @@
   <arg name="odom_ground_truth" default="/odometry/ground_truth"/>
 
   <!-- Visualization -->
-  <arg name="use_rviz"        default="true"/>  # controls wether to use rviz or flatland-rviz
-  <arg name="show_viz"        default="true"/>  # controls wether flatland publishes markers for its models
-  <param name="show_viz"      value="$(arg show_viz)"/>
+  <arg name="use_rviz"          default="true"/>  <!-- controls wether to use rviz or flatland-rviz -->
+  <arg name="show_viz"          default="true"/>  <!-- controls wether flatland publishes markers for its models -->
+  <param name="show_viz"        value="$(arg show_viz)"/>
 
   <!-- Scenarios -->
   <arg name="obstacles_amount"  default="26"/> <!-- value="26" for scenario 1 --> <!-- amount of all obstacles, not obstacle types! -->
@@ -40,29 +40,33 @@
   <arg name="workspace"         default="catkin_ws_ma"/> <!-- 'catkin_ws_ma'/'arena_ws' -->
 
   <!-- CPU vs. GPU -->
-  <arg name="device"       default="cpu"/> <!-- 'cpu'/'cuda'/'cuda:0' -->
+  <arg name="device"            default="cpu"/> <!-- 'cpu'/'cuda'/'cuda:0' -->
+
+  <!-- Imagination & Navigation -->
+  <arg name="imagination_model"       default="3000"/> <!-- "3000"/"3000_60_normal"/... -->
+  <arg name="json_file"               default="scenario1.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
 
   <!-- URDF -->
-  <!-- <arg name="urdf_file" default="$(find simulator_setup)/robot/myrobot.urdf" /> -->
-  <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find simulator_setup)/robot/thisrobot.urdf.xacro'" />
-  <param name="robot_description" command="$(arg urdf_file)" />
+  <!-- <arg name="urdf_file"               default="$(find simulator_setup)/robot/myrobot.urdf" /> -->
+  <arg name="urdf_file"               default="$(find xacro)/xacro --inorder '$(find simulator_setup)/robot/thisrobot.urdf.xacro'" />
+  <param name="robot_description"     command="$(arg urdf_file)" />
 
   <!-- Parameters for the data recorder -->
-  <arg name="waypoint_generator" default="classic"/>
-  <arg name="use_recorder" default="false"/>
-  <arg name="record_only_planner" default="true"/>
-  <arg name="scenario_file" default="ignc_obs05.json"/> 
+  <arg name="waypoint_generator"      default="classic"/>
+  <arg name="use_recorder"            default="false"/>
+  <arg name="record_only_planner"     default="true"/>
+  <arg name="scenario_file"           default="ignc_obs05.json"/> 
   
-  <arg name="model" default="test" />
+  <arg name="model"                   default="test" />
 
   <!-- data recorder -->
   <group if="$(eval arg('use_recorder') == true)">
     <node pkg="arena_evaluation" name="data_recorder_node" type="data_recorder_node.py" />
-    <param name="local_planner" value="$(arg local_planner)"/>
-    <param name="waypoint_generator" value="$(arg waypoint_generator)"/>
+    <param name="local_planner"       value="$(arg local_planner)"/>
+    <param name="waypoint_generator"  value="$(arg waypoint_generator)"/>
     <param name="record_only_planner" value="$(arg record_only_planner)"/>
-    <param name="scenario_file" value="$(arg scenario_file)"/>
-    <param name="model" value="$(arg model)"/>
+    <param name="scenario_file"       value="$(arg scenario_file)"/>
+    <param name="model"               value="$(arg model)"/>
   </group>
   
  <!-- use flatland simulator and rviz-->
@@ -141,18 +145,22 @@
   </node>-->
   
   <node name="show_imagination" pkg="arena_util_scripts" type="show_imagination.py" output="screen">
-   <param name="user" value="$(arg user)"/>
-   <param name="workspace" value="$(arg workspace)"/>
-   <param name="device" value="$(arg device)"/>
+   <param name="user"                 value="$(arg user)"/>
+   <param name="workspace"            value="$(arg workspace)"/>
+   <param name="device"               value="$(arg device)"/>
+   <param name="imagination_model"    value="$(arg imagination_model)"/>
   </node>
 
   <node name="reach_goal_imagination" pkg="arena_util_scripts" type="move_to_goal_imagination.py" output="screen">
+   <param name="json_file"            value="$(arg json_file)"/>
   </node>
 
   <!--<node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
-   <param name="user" value="$(arg user)"/>
-   <param name="workspace" value="$(arg workspace)"/>
-   <param name="device" value="$(arg device)"/>
+   <param name="user"                 value="$(arg user)"/>
+   <param name="workspace"            value="$(arg workspace)"/>
+   <param name="device"               value="$(arg device)"/>
+   <param name="imagination_model"    value="$(arg imagination_model)"/>
+   <param name="json_file"            value="$(arg json_file)"/>
   </node>-->
   
   <!--<node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">

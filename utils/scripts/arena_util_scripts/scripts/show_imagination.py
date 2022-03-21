@@ -58,7 +58,7 @@ class node_show_imagination():
         #rospack = rospkg.RosPack() # alternative
         #imagination_path = os.path.join(rospack.get_path("arena_bringup"), "../../rosnav-imagination") # where the repository "https://github.com/ignc-research/rosnav-imagination" has been cloned
         sys.path.insert(0,self.imagination_path)
-        self.current_model_number = "3000"
+        self.current_model_number = rospy.get_param('~imagination_model') # "3000"/"3000_60_normal"/...
         self.model_path = self.imagination_path + "/example/models/model_" + str(self.current_model_number) + ".pth"
         #self.model_path = "./models/60x60-ext/model_3000.pth"
         self.device = rospy.get_param('~device') # 'cpu'/'cuda'/'cuda:0'
