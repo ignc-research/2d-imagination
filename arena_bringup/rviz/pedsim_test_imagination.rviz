@@ -5,8 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-      Splitter Ratio: 0.6185818910598755
-    Tree Height: 532
+      Splitter Ratio: 0.5707316994667053
+    Tree Height: 529
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -281,14 +281,44 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 8
+      Size (Pixels): 4
       Size (m): 0.009999999776482582
       Style: Points
-      Topic: /scan
+      Topic: /imagination_laser_scan
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 19; 109
+      Max Intensity: 4096
+      Min Color: 247; 11; 62
+      Min Intensity: 0
+      Name: LaserScan
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 5
+      Style: Points
+      Topic: /imagination_laser_scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: false
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
@@ -308,28 +338,18 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Local_costmap
       Topic: /move_base/local_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
       Enabled: true
-      Name: Imagination_local_costmap
-      Topic: /imagination
-      Unreliable: false
-      Use Timestamp: false
-      Value: true
-    - Alpha: 0.699999988079071
-      Class: rviz/Map
-      Color Scheme: map
-      Draw Behind: false
-      Enabled: true
-      Name: Imagination_global_costmap
+      Name: Imagination_costmap
       Topic: /imagination_global
       Unreliable: false
       Use Timestamp: false
@@ -546,29 +566,6 @@ Visualization Manager:
       Topic: /goal
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic: /move_base/DWAPlannerROS/local_plan
-      Unreliable: false
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -595,7 +592,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -6.2849650382995605
+      Angle: -6.284970283508301
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -605,19 +602,19 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 24.912572860717773
+      Scale: 25.087360382080078
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 10.647269248962402
-      Y: 7.041924953460693
+      X: 10.583076477050781
+      Y: 7.006896495819092
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 755
+  Height: 752
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000019b0000029dfc0200000005fb0000001200530065006c0065006300740069006f006e000000003d000002990000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000029d000000c700ffffff000000010000010f00000299fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d00000299000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000042700fffffffb0000000800540069006d006501000000000000045000000000000000000000036e0000029d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000019c0000029afc0200000005fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000029a000000c700ffffff000000010000010f00000270fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000270000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000042700fffffffb0000000800540069006d00650100000000000004500000000000000000000003750000029a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -626,6 +623,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1295
-  X: 138
-  Y: 38
+  Width: 1303
+  X: 143
+  Y: 47

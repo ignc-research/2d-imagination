@@ -35,6 +35,13 @@
   <!-- Scenarios -->
   <arg name="obstacles_amount"  default="26"/> <!-- value="26" for scenario 1 --> <!-- amount of all obstacles, not obstacle types! -->
   
+  <!-- Local paths -->
+  <arg name="user"            default="m-yordanova"/> <!-- 'm-yordanova'/'henry' -->
+  <arg name="workspace"       default="catkin_ws_ma"/> <!-- 'catkin_ws_ma'/'arena_ws' -->
+
+  <!-- CPU vs. GPU -->
+  <arg name="device"       default="cpu"/> <!-- 'cpu'/'cuda'/'cuda:0' -->
+  
   <!-- URDF -->
   <!-- <arg name="urdf_file" default="$(find simulator_setup)/robot/myrobot.urdf" /> -->
   <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find simulator_setup)/robot/thisrobot.urdf.xacro'" />
@@ -116,6 +123,9 @@
   </node>-->
 
   <!--<node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
+   <param name="user" value="$(arg user)"/>
+   <param name="workspace" value="$(arg workspace)"/>
+   <param name="device" value="$(arg device)"/>
   </node>-->
   
   <!--<node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">

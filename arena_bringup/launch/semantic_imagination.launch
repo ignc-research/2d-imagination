@@ -2,7 +2,7 @@
   <env name="ROSCONSOLE_FORMAT" value="[${severity} ${time} ${logger}]: ${message}" />
     
   <param name="use_sim_time" value="true"/>
-  <arg name="rviz_file"       default="pedsim_test"/>
+  <arg name="rviz_file"       default="pedsim_test_imagination"/>
   <arg name="train_mode"      default="false"/>
   <param name="train_mode"    value="$(arg train_mode)"/>
   <arg name="step_size" default="0.01"/>
@@ -14,7 +14,7 @@
   <arg name="show_pedsim_walls" default="true"/>
   <arg name="republish_flatland_markers" default="true"/>
   <arg name="use_joystick" default="false"/>
-  <arg name="local_planner"   default="teb"/> <!-- teb/dwa -->
+  <arg name="local_planner"   default="dwa"/> <!-- teb/dwa -->
 
   <!-- Map parameters -->
   <arg name="map_file"        default="map_empty"/> <!-- map_empty vs. scenarioX -->
@@ -36,8 +36,8 @@
   <arg name="obstacles_amount"  default="26"/> <!-- value="26" for scenario 1 --> <!-- amount of all obstacles, not obstacle types! -->
   
   <!-- Local paths -->
-  <arg name="user"            default="m-yordanova"/> <!-- 'm-yordanova'/'henry' -->
-  <arg name="workspace"       default="catkin_ws_ma"/> <!-- 'catkin_ws_ma'/'arena_ws' -->
+  <arg name="user"              default="m-yordanova"/> <!-- 'm-yordanova'/'henry' -->
+  <arg name="workspace"         default="catkin_ws_ma"/> <!-- 'catkin_ws_ma'/'arena_ws' -->
 
   <!-- CPU vs. GPU -->
   <arg name="device"       default="cpu"/> <!-- 'cpu'/'cuda'/'cuda:0' -->
@@ -120,7 +120,7 @@
   <include file="$(find arena_bringup)/launch/sublaunch/pedsim.launch">
   </include>
 
-  <include file="$(find arena_bringup)/launch/sublaunch/move_base/move_base_$(arg local_planner).launch">
+  <include file="$(find arena_bringup)/launch/sublaunch/move_base/move_base_$(arg local_planner)_sem.launch">
   </include>
 
   <node name="pedsim_test" pkg="arena_util_scripts" type="pedsim_test.py" output="screen">
@@ -140,26 +140,23 @@
   <!--<node name="show_goal" pkg="arena_util_scripts" type="show_goal.py" output="screen">
   </node>-->
   
-  <!--<node name="show_imagination" pkg="arena_util_scripts" type="show_imagination.py" output="screen">
-  </node>-->
-
-  <!--<node name="reach_goal_imagination" pkg="arena_util_scripts" type="move_to_goal_imagination.py" output="screen">
-  </node>-->
-
-  <!--<node name="reach_goal_2" pkg="arena_util_scripts" type="move_to_goal_2.py" output="screen">
-   <param name="user" value="$(arg user)"/>
-   <param name="workspace" value="$(arg workspace)"/>
-   <param name="device" value="$(arg device)"/>
-  </node>-->
-
-  <node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
+  <node name="show_imagination" pkg="arena_util_scripts" type="show_imagination.py" output="screen">
    <param name="user" value="$(arg user)"/>
    <param name="workspace" value="$(arg workspace)"/>
    <param name="device" value="$(arg device)"/>
   </node>
+
+  <node name="reach_goal_imagination" pkg="arena_util_scripts" type="move_to_goal_imagination.py" output="screen">
+  </node>
+
+  <!--<node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
+   <param name="user" value="$(arg user)"/>
+   <param name="workspace" value="$(arg workspace)"/>
+   <param name="device" value="$(arg device)"/>
+  </node>-->
   
-  <node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
-  </node>
+  <!--<node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
+  </node>-->
 
   <!--<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />-->
 
