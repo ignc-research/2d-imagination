@@ -35,7 +35,7 @@
   <!-- Scenarios -->
   <arg name="scenario"                default="8"/> <!-- '1'/'8' -->
   <!--<arg name="obstacles_amount"        default="26"/>--> <!-- value="26" for scenario 1 --> <!-- amount of all obstacles, not obstacle types! -->
-  <arg name="json_file"               default="scenario1.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
+  <arg name="json_file"               default="map_center.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
   <arg name="gt_extension"            default="0"/> <!-- in meter: '0' without extension | '0.1'/'0.2' with extension -->
   
   <!-- Local paths -->
@@ -45,8 +45,11 @@
   <!-- CPU vs. GPU -->
   <arg name="device"                  default="cpu"/> <!-- 'cpu'/'cuda'/'cuda:0' -->
 
-  <!-- Imagination & Navigation -->
+  <!-- Imagination -->
   <arg name="imagination_model"       default="3000"/> <!-- "3000"/"3000_60_normal"/... -->
+  <arg name="imagination_size"        default="100"/> <!-- "60"/"80"/"100" -->
+  <arg name="imagination_filter1_threshold" default="0.2"/> <!-- value between 0 and 1: "0.1"/"0.2"/"0.3"/... -->
+  <arg name="imagination_filter2_range"     default="10"/> <!-- value in pixels: "5px=0.25m/10px=0.5m/15px=0.75m"/... -->
   
   <!-- URDF -->
   <!-- <arg name="urdf_file"               default="$(find simulator_setup)/robot/myrobot.urdf" /> -->
@@ -154,6 +157,8 @@
    <param name="workspace"            value="$(arg workspace)"/>
    <param name="device"               value="$(arg device)"/>
    <param name="imagination_model"    value="$(arg imagination_model)"/>
+   <param name="imagination_size"     value="$(arg imagination_size)"/>
+   <param name="imagination_filter1_threshold" value="$(arg imagination_filter1_threshold)"/>
   </node>
 
   <node name="reach_goal_imagination" pkg="arena_util_scripts" type="move_to_goal_imagination.py" output="screen">
@@ -165,6 +170,9 @@
    <param name="workspace"            value="$(arg workspace)"/>
    <param name="device"               value="$(arg device)"/>
    <param name="imagination_model"    value="$(arg imagination_model)"/>
+   <param name="imagination_size"     value="$(arg imagination_size)"/>
+   <param name="imagination_filter1_threshold"  value="$(arg imagination_filter1_threshold)"/>
+   <param name="imagination_filter2_range"      value="$(arg imagination_filter2_range)"/>
    <param name="json_file"            value="$(arg json_file)"/>
   </node>-->
   

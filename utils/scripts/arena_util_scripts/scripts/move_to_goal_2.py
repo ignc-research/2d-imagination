@@ -457,9 +457,12 @@ def training_script():
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", Image, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", IntList, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", OccupancyGrid, callback_ground_truth_map_temp)
-            sub_pair_map_60x60 = rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
-        #    sub_pair_map_80x80 = rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
-            #sub_pair_map_100x100 = rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100) # TODO X
+
+            imagination_size = int(rospy.get_param('~imagination_size')) # 60/80/100 # TODO X
+            if imagination_size == 60: rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
+            if imagination_size == 80: rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
+            if imagination_size == 100: rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100)
+            
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", Image, callback_obstacles_map_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", IntList, callback_obstacles_map_temp)
             global sub_goal

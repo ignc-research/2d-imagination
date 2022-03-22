@@ -459,9 +459,12 @@ def training_script():
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", Image, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", IntList, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", OccupancyGrid, callback_ground_truth_map_temp)
-        #    sub_pair_map_60x60 = rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
-        #    sub_pair_map_80x80 = rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
-            sub_pair_map_100x100 = rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100) # TODO X
+
+            imagination_size = int(rospy.get_param('~imagination_size')) # 60/80/100 # TODO X
+            if imagination_size == 60: rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
+            if imagination_size == 80: rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
+            if imagination_size == 100: rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100)
+            
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", Image, callback_obstacles_map_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", IntList, callback_obstacles_map_temp)
             global sub_goal
@@ -830,7 +833,7 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
 
     # FILTER 1: try to filter out false imaginated parts from the output
     # normalize the tensor torch array (get values between 0 and 1, to be able to filter some out)
-    imagination_filter1_normalized_value = 1
+    imagination_filter1_threshold = rospy.get_param('~imagination_filter1_threshold') # 0.1/0.2/0.3 # probability between 0.0 and 1.0 TODO X: tune the number
     #print(imagination_map) # (100,100,3) # color ~ (84 1 68)
     #print(current_model_labels_prediction_npy["occ_estimate"].detach()[0,0].shape) # torch.Size([100, 100]) # tensor([[2.4808e-05, 2.6347e-06, 1.5144e-06,  ..., 3.1066e-05, 6.4751e-05, 2.0734e-04], [...], ...])
     inputs = current_model_labels_prediction_npy["occ_estimate"].detach()[0,0]
@@ -839,11 +842,10 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     inputs_np /= np.max(inputs_np) # works # [[0.6392533  0.64117384 0.6324189  ... 0.34298816 0.3978336  0.5802038 ], ... ,[1. 1. 1. ... 1. 1. 1.]]
     #path_name_imagination_map_id_png_np = 'imagination_map_np'.join(img_name.split('costmap'))
     #plt.imsave(path_name_imagination_map_id_png_np, inputs_np) # looks exactly like imagination_map, so just like before the transformation from torch to np array
-    if imagination_filter1_normalized_value == 1:
-        filter_factor = 0.3 # 0.2/0.3/0.4/0.5/.. # probability between 0.0 and 1.0 TODO X: tune the number
+    if imagination_filter1_threshold > 0:
         for i in range(img_costmap_color.shape[0]):
             for j in range(img_costmap_color.shape[1]):
-                if inputs_np[i,j] < filter_factor: inputs_np[i,j] = 0 # filter out values < filter_factor (make them = 0)
+                if inputs_np[i,j] < imagination_filter1_threshold: inputs_np[i,j] = 0 # filter out values < imagination_filter1_threshold (make them = 0)
         # save the filtered image to compare with the original imagination
         path_name_imagination_map_id_png_filtered_value = 'imagination_map_filtered_value'.join(img_name.split('costmap'))
         #plt.imsave(path_name_imagination_map_id_png_filtered_value, inputs_np) # for debugging
@@ -857,8 +859,8 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     # -> save the (x,y) and create a mask (black image at the beginning) with a filled white circle around every point with a certain radius
     # --> at the beginning draw not filled colored circles for debuging
     # -> use the mask on top of the imagination image to filter it
-    imagination_mask_filter_circles_bool = 1
-    if imagination_mask_filter_circles_bool == 1:
+    imagination_filter2_range = rospy.get_param('~imagination_filter2_range') # radius 10 px = 0.5 m
+    if imagination_filter2_range > 0:
         indexes_center_filter_circles_ar = []
         for i in range(img_costmap_color.shape[0]):
             for j in range(img_costmap_color.shape[1]):
@@ -872,13 +874,11 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
         #print(len(indexes_center_filter_circles_ar)) # for debuging
         image_filter = np.zeros((img_costmap_color.shape[0],img_costmap_color.shape[1],3)) # (row,col) vs. (row,col,3)
         # draw a white filled circle with a center at each collected index in the array
-        filter_circle_radius_px = 10 # radius = 0.5m (with a resolution 0.05 => 10 px)
         for index in range(len(indexes_center_filter_circles_ar)):
-            cv2.circle(image_filter, (indexes_center_filter_circles_ar[index][1],indexes_center_filter_circles_ar[index][0]), filter_circle_radius_px, (255,255,255), -1)
+            cv2.circle(image_filter, (indexes_center_filter_circles_ar[index][1],indexes_center_filter_circles_ar[index][0]), imagination_filter2_range, (255,255,255), -1)
         # draw a red not filled circle with a center at each collected index in the array for debugging
-    #    filter_circle_radius_px = 10 # radius = 0.5m (with a resolution 0.05 => 10 px)
     #    for index in range(len(indexes_center_filter_circles_ar)):
-    #        cv2.circle(image_filter, (indexes_center_filter_circles_ar[index][1],indexes_center_filter_circles_ar[index][0]), filter_circle_radius_px, (255,0,0), 1)
+    #        cv2.circle(image_filter, (indexes_center_filter_circles_ar[index][1],indexes_center_filter_circles_ar[index][0]), imagination_filter2_range, (255,0,0), 1)
         # TODO: write & read the ROI image to get the right form etc. !? (needed)
         cv2.imwrite('roi_filter2.png', image_filter)
         image_filter_roi = cv2.imread('roi_filter2.png')

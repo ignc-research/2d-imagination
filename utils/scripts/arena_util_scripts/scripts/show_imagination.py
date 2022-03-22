@@ -11,7 +11,7 @@ from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import LaserScan
 
 class node_show_imagination():
-    def __init__(self, se_gt_map_path = "./map_ground_truth_semantic.png" , map_resolution = 0.05, x_max = 521, y_max = 666, x_offset = 6, y_offset = 6, imagination_size = 101):
+    def __init__(self, se_gt_map_path = "./map_ground_truth_semantic.png" , map_resolution = 0.05, x_max = 521, y_max = 666, x_offset = 6, y_offset = 6):
         self.imagination_global_pub = rospy.Publisher("/imagination_global", OccupancyGrid, queue_size=10) 
         self.counter = 0
         self.LaserData = []
@@ -21,8 +21,8 @@ class node_show_imagination():
         self.x_max = x_max
         self.y_max = y_max
 
-        self.imagination_size = imagination_size
-        self.map_extend_len = imagination_size - 1
+        self.imagination_size = int(rospy.get_param('~imagination_size')) + 1 # 60+1/80+1/100+1
+        self.map_extend_len = self.imagination_size - 1
         self.map_extend_len_half = int(self.map_extend_len/2)
         
         self.imagination_global_map_bool= np.zeros((self.x_max+self.map_extend_len, self.y_max + self.map_extend_len))*255
@@ -170,7 +170,8 @@ class node_show_imagination():
 
     def imagination_to_laser_data(self, imagination, LaserData):
         kernel = np.ones((5,5),np.uint8)
-        obs = np.array(self.normalized(imagination.astype(np.float32)) > 0.2).astype(np.float32)
+        imagination_filter1_threshold = rospy.get_param('~imagination_filter1_threshold') # 0.1/0.2/0.3
+        obs = np.array(self.normalized(imagination.astype(np.float32)) > imagination_filter1_threshold).astype(np.float32)
         obs = (cv2.morphologyEx(obs, cv2.MORPH_CLOSE, kernel))
         #plt.imsave('MORPH_CLOSE.png', obs)
 
