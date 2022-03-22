@@ -125,8 +125,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                 # TODO X: extend the gt data to ommit corridors (for example between the table and the chairs)
                 # => if a circle -> extend the radius
                 # => if a square -> extend the corners
-                gt_extension_bool = 0
-                extension_m = 0.1 # in meter # TODO X
+                extension = float(rospy.get_param('~gt_extension')) # 0 == without extension / > 0 == with extension => in meter 0.1m=2px/0.2m=4px/0.25m=5px # TODO: tune!
 
                 # handle differently based on the type:
                 if marker.type == 7: # 'sphere list'
@@ -134,7 +133,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     # there is only one element in the points[] list
                     scale_x = marker.scale.x # relevant only for the sphere, for the polygon and the line it should be always 1.0; should be the same as scale.y
                     radius = scale_x/2 # Important: the circle is in a square scale_x * scale_y => radius = scale_x/2
-                    if gt_extension_bool == 1: radius += extension_m # TODO X
+                    if extension > 0: radius += extension # TODO X
                     radius_px = int(radius / resolution)
                     if radius_px > x_px_rel_max:
                         x_px_rel_max = y_px_rel_max = radius_px
@@ -153,11 +152,11 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     corners = marker.points
                     corners_array = []
                     for corner in corners:
-                        if gt_extension_bool == 1: # TODO X
-                            if corner.x > 0: corner.x += extension_m
-                            if corner.x < 0: corner.x -= extension_m
-                            if corner.y > 0: corner.y += extension_m
-                            if corner.y < 0: corner.y -= extension_m
+                        if extension > 0: # TODO X
+                            if corner.x > 0: corner.x += extension
+                            if corner.x < 0: corner.x -= extension
+                            if corner.y > 0: corner.y += extension
+                            if corner.y < 0: corner.y -= extension
                         x_temp = int(corner.x / resolution) + center_x_px # the points are relative to the center, so the origin should not be subtracted from them!
                         y_temp = int(corner.y / resolution) + center_y_px
                         corners_array.append([x_temp,row_big-1-y_temp])

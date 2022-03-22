@@ -16,7 +16,7 @@ workon rosnav
 ```
 2. For generating the ground truth data for a chosen map:
 ```bash
-roslaunch arena_bringup pedsim_test_gt.launch scenario:=1
+roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
 ```
 3. For navigating with an imagination on a predifined path from a json file:
 
@@ -45,6 +45,8 @@ The parameter ```scenario``` is needed to load the scenario (the compilation of 
 | 6        | 31               |
 | 7        | 21               |
 | 8        | 14               |
+
+If you want you can generate the ground truth image, extending the size of each obstacle with a certain amount of meters. Launch ```pedsim_test_gt.launch``` with the parameter ```gt_extension``` set to the desired extension value such as ```0.1|0.2|0.25``` to have an extension or to ```0``` for no extension.
 
 ### System design
 
