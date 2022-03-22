@@ -1,4 +1,4 @@
-# Imagination
+# Imagination-augmented Navigation Based on 2D Laser Sensor Observations
 
 ### General information
 For more information about the imagination model see also the repository [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination).
@@ -46,14 +46,55 @@ The parameter ```scenario``` is needed to load the scenario (the compilation of 
 | 7        | 21               |
 | 8        | 14               |
 
+### System design
+
+(upload diagrams for both versions)
+
+### Execution steps
+
+(explain all the steps)
+
+1. Add a scenario
+   1. manually or with a GUI
+   2. ...
+   3. update the reference scenario-obstacles_amount (variable ```scenarioReference```) in the scripts ```show_obstacle_types.py``` and ```create_ground_truth_map.py```
+   4. ...
+2. Collect training data
+   1. draw the paths on a GUI
+   2. let the robot drive them
+   3. ...
+3. Train an imagination module
+   1. see the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository
+   2. ...
+4. Navigate with imagination
+   1. see both versions
+   2. ...
+
+### Possible evaluation runs
+
+(show a table with possible parameter variations (scenario, model, local planner etc.))
+
+(explain how to record the data for the evaluation)
+
+### Scripts
+
+(explain all new scripts)
+
+1. ```pedsim_test.py```
+2. ```show_obstacle_types.py```
+3. ```create_ground_truth_map.py```
+4. ```laser_scan_data.py``` (only for version 1)
+5. ```show_imagination.py``` (only for version 2)
+6. ```move_to_goal.py``` (only for version 1)
+7. ```move_to_goal_imagination.py``` (only for version 2)
+
 ### Useful information
-1. (old) To change the model, change the ```current_model_number``` variable in the ```move_to_goal.py``` script (for version 1) or in the ```show_imagination.py``` script (for version 2).
-2. (old) To change the json file for the robot path, change the ```json_file``` variable in the ```move_to_goal.py``` script (for version 1) or in the ```move_to_goal_imagination.py``` script (for version 2).
-3. To change the ```map``` ...
-4. To change the ```scenario``` ...
-5. To change ```robot_size``` and ```inflation_radius``` ...
-6. What to do if you want to add a new scenario: ... (update the scenario-obstacles_amount reference table etc.)
-7. ...
+1. To change the ```map``` ...
+2. To change ```robot_size``` and ```inflation_radius``` ...
+3. To change the laser scan size ...
+4. To change turn the ground truth extension on/off ...
+5. To turn the filters on/off ...
+6. ...
 
 # Multiprocessing branch
 This branch is under development to feacilitate multiprocessing and accelerate training and simulation. It works with additional plugins and changes to the flatland repository. If you want to use it, checkout to dev_multi_lei branch in src/forks/flatland folder and pip install -e . inside src/forks/stable-baselines3 folder. 
