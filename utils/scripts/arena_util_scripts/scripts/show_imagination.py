@@ -4,6 +4,7 @@ import sys
 import rospy
 import cv2
 import numpy as np
+import yaml
 import rospkg
 import torch
 from nav_msgs.msg import Odometry, OccupancyGrid
@@ -11,15 +12,31 @@ from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import LaserScan
 
 class node_show_imagination():
-    def __init__(self, se_gt_map_path = "./map_ground_truth_semantic.png" , map_resolution = 0.05, x_max = 521, y_max = 666, x_offset = 6, y_offset = 6):
+    def __init__(self):
+        
+        rospack = rospkg.RosPack()
+        # get the parameters map_resolution, x_max, y_max, x_offset, y_offset directly from the chosen map
+        self.map_file = rospy.get_param('~map_file') # "map_empty"
+        self.map_path = rospy.get_param('~map_path')
+        # parse the .yaml file
+        with open(self.map_path, 'r') as stream:
+            try:
+                self.doc = yaml.safe_load(stream)
+                self.map_resolution = float(self.doc['resolution']) # resolution: 0.05
+                self.x_offset = float(self.doc['origin'][0]) # origin: [-6.0, -6.0, 0.0]
+                self.y_offset = float(self.doc['origin'][1])
+                self.image = self.doc['image'] # image: map_small.png
+                # read the image and get its dimensions
+                self.map_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", self.map_file, self.image)
+                self.map_img = cv2.imread(self.map_img_path)
+                self.x_max = self.map_img.shape[0] # 521
+                self.y_max = self.map_img.shape[1] # 666
+            except yaml.YAMLError as exc:
+                print(exc)
+        
         self.imagination_global_pub = rospy.Publisher("/imagination_global", OccupancyGrid, queue_size=10) 
         self.counter = 0
         self.LaserData = []
-        self.se_gt_map_path = se_gt_map_path
-        self.map_resolution = map_resolution
-
-        self.x_max = x_max
-        self.y_max = y_max
 
         self.imagination_size = int(rospy.get_param('~imagination_size')) + 1 # 60+1/80+1/100+1
         self.map_extend_len = self.imagination_size - 1
@@ -34,12 +51,15 @@ class node_show_imagination():
         self.theta = 0
 
         #gt map
+        self.se_gt_map_path = "./map_ground_truth_semantic.png"
+        #self.se_gt_map_path = "./map_ground_truth_semantic_big.png" # for debugging purposes
         self.gt_map = cv2.imread(self.se_gt_map_path)
         self.gt_map = cv2.cvtColor(self.gt_map, cv2.COLOR_BGR2RGB)
         self.gt_map = np.around(self.gt_map/255,1)
 
         # colour reference
-        self.colourReference = {(0.3,0.0,0.1) : 1,
+        self.colourReference = {
+            (0.3,0.0,0.1) : 1,
             (0.0,0.6,0.1) : 2,
             (0.1,0.6,1.0) : 3,
             (0.4,0.0,0.5) : 4,
@@ -55,8 +75,7 @@ class node_show_imagination():
         self.node_user = rospy.get_param('~user')
         self.node_workspace = rospy.get_param('~workspace')
         self.imagination_path = '/home/' + self.node_user + '/' + self.node_workspace + '/src/rosnav-imagination' # where the repository "https://github.com/ignc-research/rosnav-imagination" has been cloned
-        #rospack = rospkg.RosPack() # alternative
-        #imagination_path = os.path.join(rospack.get_path("arena_bringup"), "../../rosnav-imagination") # where the repository "https://github.com/ignc-research/rosnav-imagination" has been cloned
+        #imagination_path = os.path.join(rospack.get_path("arena_bringup"), "../../rosnav-imagination") # alternative # where the repository "https://github.com/ignc-research/rosnav-imagination" has been cloned
         sys.path.insert(0,self.imagination_path)
         self.current_model_number = rospy.get_param('~imagination_model') # "3000"/"3000_60_normal"/...
         self.model_path = self.imagination_path + "/example/models/model_" + str(self.current_model_number) + ".pth"
@@ -111,9 +130,9 @@ class node_show_imagination():
 
     def ros_to_img_coord(self, robot_pos):
         robot_pos[:, 1] = -robot_pos[:, 1]
-        x_max = self.x_max*0.05
-        y_max = self.y_max*0.05
-        offset = np.array([6,x_max - 6])
+        x_max = self.x_max*self.map_resolution
+        y_max = self.y_max*self.map_resolution
+        offset = np.array([abs(self.y_offset),x_max - abs(self.x_offset)])
         map_pos = (robot_pos/self.map_resolution + offset/self.map_resolution).astype(int)
         return np.array([map_pos[:,1], map_pos[:,0]]).T
 
@@ -180,8 +199,8 @@ class node_show_imagination():
 
         index = np.array(np.where(sobely > 0)).T 
         index_ros = np.zeros(index.shape)
-        index_ros[:,0] = index[:,1]*0.05 - 0.05*self.map_extend_len_half
-        index_ros[:,1] = -index[:,0]*0.05 + 0.05*self.map_extend_len_half
+        index_ros[:,0] = index[:,1]*self.map_resolution - self.map_resolution*self.map_extend_len_half
+        index_ros[:,1] = -index[:,0]*self.map_resolution + self.map_resolution*self.map_extend_len_half
         r = np.sqrt(index_ros[:,0]**2+index_ros[:,1]**2)
         t = np.arctan2(index_ros[:,1],index_ros[:,0])
 
@@ -236,14 +255,14 @@ class node_show_imagination():
             # get info directly from the subscribed topic, but change width, hight and position!
             grid.info.width = self.imagination_global_map.shape[1] # 666 !
             grid.info.height = self.imagination_global_map.shape[0] # 521 !
-            grid.info.resolution = 0.05
+            grid.info.resolution = self.map_resolution
             #grid.info.map_load_time = map_data.info.map_load_time
             grid.info.origin.orientation.x = 0
             grid.info.origin.orientation.y = 0
             grid.info.origin.orientation.z = 0
             grid.info.origin.orientation.w = 1
-            grid.info.origin.position.x = -6 # !
-            grid.info.origin.position.y = -6 # !
+            grid.info.origin.position.x = self.x_offset # !
+            grid.info.origin.position.y = self.y_offset # !
             grid.info.origin.position.z = 0
             grid.data = self.grey_img_to_grid(self.imagination_global_map)
             self.imagination_global_pub.publish(grid)

@@ -26,6 +26,7 @@ from cv_bridge import CvBridge
 from arena_plan_msgs.msg import IntList, ListIntList, ListListIntList, ListOccupancyGrid
 import threading
 from std_msgs.msg import String
+import yaml
 
 lp = lg.LaserProjection()
 read_laser_scan_info = 1
@@ -39,6 +40,12 @@ map_topic_2darray = [] # 521x666
 time_start = 0.0
 temp_time = 0.0
 img_sec = 1 # default
+
+#map_resolution = 0.0
+#x_offset = 0
+#y_offset = 0
+#x_max = 0
+#y_max = 0
 
 def calculate_avg_x_y_value(point_generator):
     sum_temp_x = 0.0
@@ -57,18 +64,24 @@ def calculate_avg_x_y_value(point_generator):
     print('avg y value: ' + str(sum_temp_y/num_temp_y)) # calculate avg y value
 
 def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #map_resolution = 0.05
+    #x_offset = -6
+    #y_offset = -6
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+
     # (TODO) take data only every ten seconds for example
     point_list_abs = []
-    resolution = 0.05 # the resolution of the currently used map
-    origin_x_y = -6 # the origin of the currently used map is (-6,-6)
     AbsPoint = namedtuple("AbsPoint", "x y")
     point_x_max = point_y_max = 0 # find the biggest x and y -> column and row end
     point_x_min = point_y_min = 1000 # find the smallest x and y -> column and row start
     for point in point_list:
         x_abs = point.x + r_pos_x # TODO: check!
         y_abs = point.y + r_pos_y
-        x_px = int((x_abs - origin_x_y) / resolution)
-        y_px = int((y_abs - origin_x_y) / resolution)
+        x_px = int((x_abs - x_offset) / map_resolution)
+        y_px = int((y_abs - y_offset) / map_resolution)
         point_list_abs.append(AbsPoint(x_px, y_px)) # ({'x': x_px, 'y': y_px})
         if x_px > point_x_max: point_x_max = x_px
         if y_px > point_y_max: point_y_max = y_px
@@ -80,10 +93,8 @@ def viualize_laser_scan_data(point_list, r_pos_x, r_pos_y, r_angle):
     print('ROW(' + str(point_y_min) + ',' + str(point_y_max) + ') & COL(' + str(point_x_min) + ',' + str(point_x_max) + ')')
     # TODO: sometimes the colums are > 700, even tought max 665/666
 
-    rospack = rospkg.RosPack()
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    row_big,col_big,val = used_map_image.shape
+    row_big = x_max
+    col_big = y_max
 
     # for the map and the robot the origin (0,0) is in the left down corner; for an image it is always the upper left corner => mirror the pixels regarding the x axis to be right
     temp_small = np.zeros((row,col)) # (row,col) vs. (row,col,3)
@@ -235,6 +246,13 @@ def callback_local_costmap(map_data):
         i += 1
 
 def local_costmap(map_data):
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #x_offset = -6
+    #y_offset = -6
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+
     # calculate how much it takes to save the local_costmap as the desired map image
     time_A = rospy.get_rostime()
 
@@ -244,7 +262,8 @@ def local_costmap(map_data):
     local_costmap_resolution = map_data.info.resolution # 0.05 # width: 666 [px] * 0.05 (resolution) = 33.3 [m]
     local_costmap_width = map_data.info.width # 60 => 60 [px] * 0.05 (resolution) = 3.0 [m]
     local_costmap_height = map_data.info.height # 60
-    robot_map_origin_x = robot_map_origin_y = -6
+    robot_map_origin_x = x_offset # -6
+    robot_map_origin_y = y_offset # -6
     # robot_pos_x, robot_pos_y come from /odom, not perfect/entirely correct on time!?!
     robot_pos_px_x = int((robot_pos_x - robot_map_origin_x) / local_costmap_resolution)
     robot_pos_px_y = int((robot_pos_y - robot_map_origin_y) / local_costmap_resolution)
@@ -270,14 +289,8 @@ def local_costmap(map_data):
 
     optimization = 1 # TODO X: optimize further, reduce some of the not necessarily generated images in /.ros
 
-    if optimization == 0:
-        rospack = rospkg.RosPack()
-        relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-        used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-        row_big,col_big,val = used_map_image.shape
-    else:
-        row_big = 521 # height
-        col_big = 666 # width
+    row_big = x_max # height = 521
+    col_big = y_max # width = 666
 
     # Important: for rviz origin is on the bottom left, for an image is always on the top left; bottom left corner is for this map (-6,-6)! => corect the robot's position so that it is always positive
     # TODO: get params like resolution, origin etc. directly from the map yaml file instead of hard-coding them
@@ -636,6 +649,11 @@ def image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, bl
     return ground_truth_map_PXxPX
 
 def callback_map(map_data):
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+    
     # TODO: wait for the obstacles to be spawned!?
     #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
     map_data_array = asarray([map_data.data])
@@ -653,11 +671,8 @@ def callback_map(map_data):
     print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
 
     # save the map as a grey image (black = free; grey = occupied; unknown = white):
-    rospack = rospkg.RosPack()
     map_data_array2 = np.array(map_data.data) # array of size 346986
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    map_reshaped = map_data_array2.reshape((x_max,y_max))
     global map_topic_2darray
     map_topic_2darray = map_reshaped
     print("map: " + str(map_reshaped))
@@ -675,6 +690,11 @@ def callback_map(map_data):
     #cv2.waitKey(0)
 
 def callback_global_costmap(map_data): # TODO: it does not update itself when the robots is moving, even though it does in rviz!?
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+    
     print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length as the one from /map), but different info: it updates globally with the info from the obstacles while the robot is moving)
     #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
     map_data_array = asarray([map_data.data])
@@ -692,11 +712,8 @@ def callback_global_costmap(map_data): # TODO: it does not update itself when th
     print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # should be updating
 
     # save the map as a grey image (black = free; grey = occupied; unknown = white):
-    rospack = rospkg.RosPack()
     map_data_array2 = np.array(map_data.data) # array of size 346986
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    map_reshaped = map_data_array2.reshape((x_max, y_max))
     print(map_reshaped)
     row,col = map_reshaped.shape
     temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
@@ -768,11 +785,38 @@ def callback_global_costmap_updates(map_data):
 def callback_mapping(data):
     print(data)
 
+def get_map_parameters():
+    rospack = rospkg.RosPack()
+    # get the parameters map_resolution, x_max, y_max, x_offset, y_offset directly from the chosen map
+    map_file = rospy.get_param('~map_file') # "map_empty"
+    map_path = rospy.get_param('~map_path')
+    # parse the .yaml file
+    with open(map_path, 'r') as stream:
+        try:
+            doc = yaml.safe_load(stream)
+            map_resolution = float(doc['resolution']) # resolution: 0.05
+            x_offset = float(doc['origin'][0]) # origin: [-6.0, -6.0, 0.0]
+            y_offset = float(doc['origin'][1])
+            image = doc['image'] # image: map_small.png
+            # read the image and get its dimensions
+            map_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", map_file, image)
+            map_img = cv2.imread(map_img_path)
+            x_max = map_img.shape[0] # 521
+            y_max = map_img.shape[1] # 666
+        except yaml.YAMLError as exc:
+            print(exc)
+    return map_resolution, x_offset, y_offset, x_max, y_max
+
 def laser_scan_data_listener():
     rospy.init_node('scan_values')
 
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+
     # init the global images of the local costmap as black images, so that every roslaunch rewrites them
-    temp_black_img = np.zeros((521,666,3)) # (row,col) vs. (row,col,3)
+    temp_black_img = np.zeros((x_max,y_max,3)) # (row,col) vs. (row,col,3) # (521,666) vs. (521,666,3)
     cv2.imwrite("map_local_costmap.png", temp_black_img)
     cv2.imwrite("map_local_costmap_grey.png", temp_black_img)
 

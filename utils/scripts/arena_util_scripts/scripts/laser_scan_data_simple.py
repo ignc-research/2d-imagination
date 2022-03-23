@@ -1,30 +1,5 @@
-from ctypes import Array
-from array import ArrayType
 import rospy
-import os
-import math
-import time
-import rospkg
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-import PIL
-from pathlib import Path
-from numpy import asarray, savetxt
-from collections import namedtuple
 from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import OccupancyGrid, Odometry
-from geometry_msgs.msg import Twist
-import sensor_msgs.point_cloud2 as pc2
-import laser_geometry.laser_geometry as lg
-from visualization_msgs.msg import MarkerArray
-from map_msgs.msg import OccupancyGridUpdate
-from std_msgs.msg import Float64
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-from arena_plan_msgs.msg import IntList, ListIntList, ListListIntList, ListOccupancyGrid
-import threading
-from std_msgs.msg import String
 
 def callback(laser_data):
     print('Laser scan info:\n')

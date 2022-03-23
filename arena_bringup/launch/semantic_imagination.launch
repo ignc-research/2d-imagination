@@ -159,10 +159,14 @@
    <param name="imagination_model"    value="$(arg imagination_model)"/>
    <param name="imagination_size"     value="$(arg imagination_size)"/>
    <param name="imagination_filter1_threshold" value="$(arg imagination_filter1_threshold)"/>
+   <param name="map_file"             value="$(arg map_file)"/>
+   <param name="map_path"             value="$(arg map_path)"/>
   </node>
 
   <node name="reach_goal_imagination" pkg="arena_util_scripts" type="move_to_goal_imagination.py" output="screen">
    <param name="json_file"            value="$(arg json_file)"/>
+   <param name="map_file"             value="$(arg map_file)"/>
+   <param name="map_path"             value="$(arg map_path)"/>
   </node>
 
   <!--<node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">

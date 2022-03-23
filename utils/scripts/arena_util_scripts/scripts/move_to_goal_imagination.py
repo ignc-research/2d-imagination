@@ -5,6 +5,7 @@ import os
 import time
 import numpy as np
 import cv2 # does not work in (rosnav)
+import yaml
 import rospkg
 import actionlib
 from nav_msgs.msg import Odometry, OccupancyGrid
@@ -85,8 +86,19 @@ def callback_map(map_data):
 
     rospack = rospkg.RosPack()
     map_data_array2 = np.array(map_data.data) # array of size 346986
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
+
+    # get the size of the used map image: width x height = 666 x 521
+    map_file = rospy.get_param('~map_file') # "map_empty"
+    map_path = rospy.get_param('~map_path')
+    with open(map_path, 'r') as stream:
+        try:
+            doc = yaml.safe_load(stream)
+            image = doc['image'] # map_small.png
+            map_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", map_file, image)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    used_map_image = cv2.imread(map_img_path)
     map_shape = (used_map_image.shape[0],used_map_image.shape[1])
     map_reshaped = map_data_array2.reshape(map_shape)
     temp = np.ones(map_reshaped.shape)*255

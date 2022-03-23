@@ -35,7 +35,7 @@
   <!-- Scenarios & Data -->
   <arg name="scenario"                default="8"/> <!-- '1'/'8' -->
   <!--<arg name="obstacles_amount"        default="26"/>--> <!-- value="26" for scenario1 --> <!-- amount of all obstacles, not obstacle types! -->
-  <arg name="json_file"               default="scenario1.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
+  <arg name="json_file"               default="scenario8.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
   <arg name="gt_extension"            default="0"/> <!-- in meter: '0' without extension | '0.1'/'0.2' with extension -->
 
   <!-- Local paths -->
@@ -126,6 +126,8 @@
    <param name="scenario"             value="$(arg scenario)"/>
    <!--<param name="obstacles_amount"     value="$(arg obstacles_amount)"/>-->
    <param name="gt_extension"         value="$(arg gt_extension)"/>
+   <param name="map_file"             value="$(arg map_file)"/>
+   <param name="map_path"             value="$(arg map_path)"/>
   </node>
 
   <!--<node name="zig_zag" pkg="arena_util_scripts" type="zig_zag_motion.py" output="screen">

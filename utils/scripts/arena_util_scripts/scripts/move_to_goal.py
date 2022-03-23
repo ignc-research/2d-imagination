@@ -76,6 +76,12 @@ global_speed = Twist()
 current_model = []
 anticipator = []
 
+#map_resolution = 0.0
+#x_offset = 0
+#y_offset = 0
+#x_max = 0
+#y_max = 0
+
 def newOdom(msg):
     global x_global
     global y_global
@@ -254,16 +260,16 @@ def goal_publisher_move_base_client():
 
     # move zig-zag from left to right
     # the robot automatically waits until the current goal has been reached before pursuing the next one
-    x_min = -3
-    x_max = 25
-    y_min = 0
-    y_max = 17.5
-    y_step = 2.5
-    y_temp = y_min
-    while y_temp <= y_max - y_step:
-        movebase_client(x_max, y_temp, goal_pub, 0, 0)
-        y_temp += y_step
-        movebase_client(x_min, y_temp, goal_pub, 0, 0)
+    x__min = -3
+    x__max = 25
+    y__min = 0
+    y__max = 17.5
+    y__step = 2.5
+    y__temp = y__min
+    while y__temp <= y__max - y__step:
+        movebase_client(x__max, y__temp, goal_pub, 0, 0)
+        y__temp += y__step
+        movebase_client(x__min, y__temp, goal_pub, 0, 0)
 
     # TODO DEBUGGING gmapping (for scenario 1):
     #movebase_client(5, -1, goal_pub, 0, 0)
@@ -280,10 +286,18 @@ def goal_publisher_move_base_client():
     #movebase_client(5, 0, goal_pub, 0, 0)
 
 def imagination_global_init():
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #map_resolution = 0.05
+    #x_offset = -6
+    #y_offset = -6
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+
     # TODO: at the beginning /imagination_global != /map (init /imagination_global with /map topic)
     white_ar = [255,255,255]
     black_ar = [0,0,0]
-    temp_img_grey = np.zeros((521,666))
+    temp_img_grey = np.zeros((x_max,y_max)) # (521,666)
     #temp_img_grey = cv2.imread("map_topic.png")
     #temp_img_grey = cv2.imread("map_global_costmap.png")
     cv2.imwrite("imagination_map_global.png", temp_img_grey)
@@ -299,14 +313,14 @@ def imagination_global_init():
     # get info directly from the subscribed topic, but change width, hight and position!
     grid.info.width = temp_img_grey.shape[1] # 666 !
     grid.info.height = temp_img_grey.shape[0] # 521 !
-    grid.info.resolution = 0.05
+    grid.info.resolution = map_resolution # 0.05
     #grid.info.map_load_time = map_data.info.map_load_time
     grid.info.origin.orientation.x = 0
     grid.info.origin.orientation.y = 0
     grid.info.origin.orientation.z = 0
     grid.info.origin.orientation.w = 1
-    grid.info.origin.position.x = -6 # !
-    grid.info.origin.position.y = -6 # !
+    grid.info.origin.position.x = x_offset # ! # -6
+    grid.info.origin.position.y = y_offset # ! # -6
     grid.info.origin.position.z = 0
     map_array = []
     i = temp_img_grey.shape[0] - 1
@@ -326,7 +340,32 @@ def imagination_global_init():
     grid.data = map_array
     pub2.publish(grid)
 
+def get_map_parameters():
+    rospack = rospkg.RosPack()
+    # get the parameters map_resolution, x_max, y_max, x_offset, y_offset directly from the chosen map
+    map_file = rospy.get_param('~map_file') # "map_empty"
+    map_path = rospy.get_param('~map_path')
+    # parse the .yaml file
+    with open(map_path, 'r') as stream:
+        try:
+            doc = yaml.safe_load(stream)
+            map_resolution = float(doc['resolution']) # resolution: 0.05
+            x_offset = float(doc['origin'][0]) # origin: [-6.0, -6.0, 0.0]
+            y_offset = float(doc['origin'][1])
+            image = doc['image'] # image: map_small.png
+            # read the image and get its dimensions
+            map_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", map_file, image)
+            map_img = cv2.imread(map_img_path)
+            x_max = map_img.shape[0] # 521
+            y_max = map_img.shape[1] # 666
+        except yaml.YAMLError as exc:
+            print(exc)
+    return map_resolution, x_offset, y_offset, x_max, y_max
+
 def training_script():
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+    
     goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
     
     # TODO: at the beginning /imagination_global != /map (init /imagination_global with /map topic)
@@ -727,6 +766,13 @@ class CustomDatasetSingle(Dataset): # (TODO) test dataset generator for a single
 # TODO NEXT: put the imagination part in a separate function, so that it could be called for testing but commented out while collecting training data
 # get_single_raw_data -> imagination
 def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data from an image and save it into a npy file
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #x_offset = -6
+    #y_offset = -6
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+    
     print('\nImagination in process ...\n')
     # costmap_color, ground_truth_color, costmap_id, ground_truth_id
     img_costmap_color = cv2.imread(img_name)
@@ -931,10 +977,8 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
 
     # continuously update from the local (for example 60x60) imagination costmap the global map!
     # -> only the observation lidar costmap could be get send directly from laser_scan_data.py
-    rospack = rospkg.RosPack()
-    img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "scenario1", "map_scenario1.png")
-    map_image = cv2.imread(img_path)
-    row_big,col_big,val = map_image.shape
+    row_big = x_max
+    col_big = y_max
     white_ar = [255,255,255]
     grey_ar = [100,100,100]
     black_ar = [0,0,0]
@@ -954,8 +998,8 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
 
     # Important: for rviz origin is on the bottom left, for an image is always on the top left; bottom left corner is for this map (-6,-6)! => corect the robot's position so that it is always positive
     # TODO: get params like resolution, origin etc. directly from the map yaml file instead of hard-coding them
-    robot_position_x += 6
-    robot_position_y += 6
+    robot_position_x += abs(x_offset)
+    robot_position_y += abs(y_offset)
     # (TODO X) Important: the 'correction' is needed to adjust the parameters of the default map of size 60x60 to another one of size like 80x80 or 100x100
     correction = int((local_costmap_width - local_costmap_width_default)/2) # int((100-60)/2)=20; int((80-60)/2)=10; int((60-60)/2)=0
     block_abs_width_left_rviz = int(robot_position_x / local_costmap_resolution) - correction
@@ -1056,8 +1100,8 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     grid.info.resolution = map_data.info.resolution
     grid.info.map_load_time = map_data.info.map_load_time
     grid.info.origin.orientation = map_data.info.origin.orientation
-    grid.info.origin.position.x = -6 # !
-    grid.info.origin.position.y = -6 # !
+    grid.info.origin.position.x = x_offset # ! # -6
+    grid.info.origin.position.y = y_offset # ! # -6
     grid.info.origin.position.z = 0
     map_array = []
     i = temp_img_grey.shape[0] - 1
@@ -1131,6 +1175,11 @@ def imagination(map_data, img_name, costmap_gt_range): # TODO: get the raw data 
     # TODO: this new imagination costmap image (the prediction) should also be checked while deleting the black images!
 
 def callback_global_costmap(map_data): # TODO: it does not update itself when the robots is moving, even though it does in rviz!?
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+    
     print('GLOBAL COSTMAP: ' + str(len(map_data.data))) # 346986 (the same length as the one from /map), but different info: it updates globally with the info from the obstacles while the robot is moving)
     #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
     map_data_array = asarray([map_data.data])
@@ -1148,11 +1197,8 @@ def callback_global_costmap(map_data): # TODO: it does not update itself when th
     print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # should be updating
 
     # save the map as a grey image (black = free; grey = occupied; unknown = white):
-    rospack = rospkg.RosPack()
     map_data_array2 = np.array(map_data.data) # array of size 346986
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    map_reshaped = map_data_array2.reshape((x_max,y_max))
     print(map_reshaped)
     row,col = map_reshaped.shape
     temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
@@ -1168,6 +1214,11 @@ def callback_global_costmap(map_data): # TODO: it does not update itself when th
     #cv2.waitKey(0)
 
 def callback_map(map_data):
+    #global map_resolution, x_offset, y_offset, x_max, y_max
+    #x_max = 521
+    #y_max = 666
+    map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+    
     # TODO: wait for the obstacles to be spawned!?
     #print(map_data) # consists of a header, metadata info and a data array, where 0 = free, 100 = occupied, -1 = unknown # whiter pixels are free, blacker pixels are occupied, and pixels in between are unknown
     map_data_array = asarray([map_data.data])
@@ -1185,11 +1236,8 @@ def callback_map(map_data):
     #print("MAP - FREE: " + str(free_amount) + ", UNKNOWN: " + str(unknown_amount) + ", OCCUPIED: " + str(ocupied_amount)) # FREE: 278156, UNKNOWN: 2134, OCCUPIED: 66696
 
     # save the map as a grey image (black = free; grey = occupied; unknown = white):
-    rospack = rospkg.RosPack()
     map_data_array2 = np.array(map_data.data) # array of size 346986
-    relative_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
-    used_map_image = cv2.imread(relative_img_path) # get the size of the used map image: width x height 666 x 521
-    map_reshaped = map_data_array2.reshape((used_map_image.shape[0],used_map_image.shape[1]))
+    map_reshaped = map_data_array2.reshape((x_max,y_max))
     print(map_reshaped)
     row,col = map_reshaped.shape
     temp = np.zeros((row,col)) # (row,col) vs. (row,col,3)
@@ -1410,16 +1458,19 @@ def callback_timer(data):
 
 if __name__ == '__main__':
     rospy.init_node('reach_goal', anonymous=True)
+
     rospy.Subscriber("/costmap_timer_done", String, callback_timer)
     rospy.Subscriber('/map', OccupancyGrid, callback_map)
     #rospy.Subscriber("/cmd_vel", Twist, callback_move) # TODO NEXT?
     #rospy.Subscriber("/odom", Odometry, callback_move) # TODO NEXT?
+    #rospy.Subscriber('/imagination_counter', String, callback_counter)
+
     # goal_publisher() # the robot moves to the goal, but does not avoid obstacles
     # goal_publisher_move_base() # the robot doeas not move (theoretically it should avoid the obstacles)
-    #goal_publisher_move_base_client() # the robot moves to goal and avoids the obstacles
+    # goal_publisher_move_base_client() # the robot moves to goal and avoids the obstacles
     training_script()
     #delete_empty_images_get_raw_data()
-    #rospy.Subscriber('/imagination_counter', String, callback_counter)
+
     #rospy.spin()
 
 # %%

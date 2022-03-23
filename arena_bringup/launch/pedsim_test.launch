@@ -35,7 +35,7 @@
   <!-- Scenarios -->
   <arg name="scenario"                default="8"/> <!-- '1'/'8' -->
   <!--<arg name="obstacles_amount"        default="26"/>--> <!-- value="26" for scenario1 --> <!-- amount of all obstacles, not obstacle types! -->
-  <arg name="json_file"               default="scenario1.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
+  <arg name="json_file"               default="scenario8.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
   <arg name="gt_extension"            default="0"/> <!-- in meter: '0' without extension | '0.1'/'0.2' with extension -->
 
   <!-- Local paths -->
@@ -174,6 +174,8 @@
    <param name="imagination_filter1_threshold"  value="$(arg imagination_filter1_threshold)"/>
    <param name="imagination_filter2_range"      value="$(arg imagination_filter2_range)"/>
    <param name="json_file"            value="$(arg json_file)"/>
+   <param name="map_file"             value="$(arg map_file)"/>
+   <param name="map_path"             value="$(arg map_path)"/>
   </node>-->
 
   <node name="reach_goal" pkg="arena_util_scripts" type="move_to_goal.py" output="screen">
@@ -185,9 +187,13 @@
    <param name="imagination_filter1_threshold"  value="$(arg imagination_filter1_threshold)"/>
    <param name="imagination_filter2_range"      value="$(arg imagination_filter2_range)"/>
    <param name="json_file"            value="$(arg json_file)"/>
+   <param name="map_file"             value="$(arg map_file)"/>
+   <param name="map_path"             value="$(arg map_path)"/>
   </node>
   
   <node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
+   <param name="map_file"             value="$(arg map_file)"/>
+   <param name="map_path"             value="$(arg map_path)"/>
   </node>
 
   <!--<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />-->

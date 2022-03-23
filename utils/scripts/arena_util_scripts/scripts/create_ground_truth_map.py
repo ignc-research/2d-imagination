@@ -4,6 +4,7 @@ import os
 import math
 import time
 import rospkg
+import yaml
 import cv2
 import numpy as np
 from numpy import asarray, savetxt
@@ -22,10 +23,19 @@ c = 0
 robot_cur_pos_x = robot_cur_pos_y = robot_cur_pos_z = 0
 robot_color_r = robot_color_g = robot_color_b = 0
 
+map_resolution = 0.0
+x_offset = 0.0
+y_offset = 0.0
+x_max = 0
+y_max = 0
+map_file = ""
+image_name = ""
+
 def callback_flatland_markers(markers_data): # get the ground truth map and array
-    #print('MARKERS DATA: ' + str(markers_data))
+    global map_resolution, x_offset, y_offset, x_max, y_max, map_file, image_name
+    
     rospack = rospkg.RosPack()
-    img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", "map_empty", "map_small.png")
+    img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", map_file, image_name)
     used_map_image = cv2.imread(img_path)
     used_map_image_legs = cv2.imread(img_path)
     used_map_image_robot_map_more_points = cv2.imread(img_path)
@@ -38,9 +48,6 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
     counter_polygons = 0
     counter_others = 0
     counter_lines = 0
-    origin_x = -6
-    origin_y = -6
-    resolution = 0.05
     obstacle_markers = []
     ObstacleMarker = namedtuple("ObstacleMarker", "x y markers") # a struct per obstacle (center_x, center_y, markers_array)
 
@@ -65,7 +72,7 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             #if not(int(center_x) >= -tolerance and int(center_x) <= tolerance and int(center_y) >= -tolerance and int(center_y) <= tolerance): # idea1
             #if not(int(center_x) >= robot_cur_pos_x-tolerance and int(center_x) <= robot_cur_pos_x+tolerance and int(center_y) >= robot_cur_pos_y-tolerance and int(center_y) <= robot_cur_pos_y+tolerance): # idea2
             if not(marker.color.r == robot_color_r and marker.color.g == robot_color_g and marker.color.b == robot_color_b): # idea3
-                if not(center_x == origin_x and center_y == origin_y): # filter out also the type 'line' with center=origin (the walls)
+                if not(center_x == x_offset and center_y == y_offset): # filter out also the type 'line' with center=origin (the walls)
                     part_markers = [marker]
                     obstacle_markers.append(ObstacleMarker(center_x, center_y, part_markers)) # ({'x': center_x, 'y': center_y, 'markers': part_markers})
     #print('AMOUNT OF OBSTACLES: ' + str(len(obstacle_markers))) # 26 for scenario 1
@@ -93,8 +100,8 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
             q_z = obstacle.markers[0].pose.orientation.z
             q_w = obstacle.markers[0].pose.orientation.w
             # Important: origin in rviz is bottom left, but on an image is always (0,0) => (x,y) -> (x,row_big-1-y)
-            center_x_px = int((center_x - origin_x) / resolution) # x coordinate of the center of the whole obstacle
-            center_y_px = int((center_y - origin_y) / resolution)
+            center_x_px = int((center_x - x_offset) / map_resolution) # x coordinate of the center of the whole obstacle
+            center_y_px = int((center_y - y_offset) / map_resolution)
             x_px_rel_max = 0
             y_px_rel_max = 0
 
@@ -134,11 +141,11 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     scale_x = marker.scale.x # relevant only for the sphere, for the polygon and the line it should be always 1.0; should be the same as scale.y
                     radius = scale_x/2 # Important: the circle is in a square scale_x * scale_y => radius = scale_x/2
                     if extension > 0: radius += extension # TODO X
-                    radius_px = int(radius / resolution)
+                    radius_px = int(radius / map_resolution)
                     if radius_px > x_px_rel_max:
                         x_px_rel_max = y_px_rel_max = radius_px
-                    center_x_px_part_obstacle = int(((center_x + marker.points[0].x) - origin_x) / resolution) # x coordinate of the center of the current circle part of an obstacle
-                    center_y_px_part_obstacle = int(((center_y + marker.points[0].y) - origin_y) / resolution)
+                    center_x_px_part_obstacle = int(((center_x + marker.points[0].x) - x_offset) / map_resolution) # x coordinate of the center of the current circle part of an obstacle
+                    center_y_px_part_obstacle = int(((center_y + marker.points[0].y) - y_offset) / map_resolution)
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), 1) # a circle with red contours
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (0,0,255), -1) # a red filled circle
                     #cv2.circle(temp_image_for_obstacle_rotations,(center_x_px_part_obstacle,row_big-1-center_y_px_part_obstacle), radius_px, (100,100,100), -1) # a grey filled circle
@@ -157,13 +164,13 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                             if corner.x < 0: corner.x -= extension
                             if corner.y > 0: corner.y += extension
                             if corner.y < 0: corner.y -= extension
-                        x_temp = int(corner.x / resolution) + center_x_px # the points are relative to the center, so the origin should not be subtracted from them!
-                        y_temp = int(corner.y / resolution) + center_y_px
+                        x_temp = int(corner.x / map_resolution) + center_x_px # the points are relative to the center, so the origin should not be subtracted from them!
+                        y_temp = int(corner.y / map_resolution) + center_y_px
                         corners_array.append([x_temp,row_big-1-y_temp])
-                        if int(corner.x / resolution) > x_px_rel_max:
-                            x_px_rel_max = int(corner.x / resolution)
-                        if int(corner.y / resolution) > y_px_rel_max:
-                            y_px_rel_max = int(corner.y / resolution)
+                        if int(corner.x / map_resolution) > x_px_rel_max:
+                            x_px_rel_max = int(corner.x / map_resolution)
+                        if int(corner.y / map_resolution) > y_px_rel_max:
+                            y_px_rel_max = int(corner.y / map_resolution)
                     pts = np.array([corners_array], np.int32)
                     pts = pts.reshape((-1,1,2))
                     #cv2.polylines(temp_image_for_obstacle_rotations,[pts],True,(0,255,255)) # a polygon with yellow contours
@@ -181,10 +188,10 @@ def callback_flatland_markers(markers_data): # get the ground truth map and arra
                     first_elem_y = marker.points[0].y
                     last_elem_X = marker.points[len(marker.points)-1].x
                     last_elem_y = marker.points[len(marker.points)-1].y
-                    first_elem_x_px = int(first_elem_x / resolution) + center_x_px
-                    first_elem_y_px = int(first_elem_y / resolution) + center_y_px
-                    last_elem_x_px = int(last_elem_X / resolution) + center_x_px
-                    last_elem_y_px = int(last_elem_y / resolution) + center_y_px
+                    first_elem_x_px = int(first_elem_x / map_resolution) + center_x_px
+                    first_elem_y_px = int(first_elem_y / map_resolution) + center_y_px
+                    last_elem_x_px = int(last_elem_X / map_resolution) + center_x_px
+                    last_elem_y_px = int(last_elem_y / map_resolution) + center_y_px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(255,0,0),10) # a blue line with thickness of 10 px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(100,100,100),10) # a grey line with thickness of 10 px
                     #cv2.line(temp_image_for_obstacle_rotations,(first_elem_x_px,row_big-1-first_elem_y_px),(last_elem_x_px,row_big-1-last_elem_y_px),(0,0,0),10) # a black line with thickness of 10 px
@@ -505,6 +512,29 @@ def callback_myrobot(data):
 
 def create_ground_truth_data():
     rospy.init_node('ground_truth_data')
+
+    global map_resolution, x_offset, y_offset, x_max, y_max, map_file, image_name
+
+    rospack = rospkg.RosPack()
+    # get the parameters map_resolution, x_max, y_max, x_offset, y_offset directly from the chosen map
+    map_file = rospy.get_param('~map_file') # "map_empty"
+    map_path = rospy.get_param('~map_path')
+    # parse the .yaml file
+    with open(map_path, 'r') as stream:
+        try:
+            doc = yaml.safe_load(stream)
+            map_resolution = float(doc['resolution']) # resolution: 0.05
+            x_offset = float(doc['origin'][0]) # origin: [-6.0, -6.0, 0.0]
+            y_offset = float(doc['origin'][1])
+            image_name = doc['image'] # image: map_small.png
+            # read the image and get its dimensions
+            map_img_path = os.path.join(rospack.get_path("simulator_setup"), "maps", map_file, image_name)
+            map_img = cv2.imread(map_img_path)
+            x_max = map_img.shape[0] # 521
+            y_max = map_img.shape[1] # 666
+        except yaml.YAMLError as exc:
+            print(exc)
+
     #time.sleep(2) # wait for the obstacles to be spawned
     #rospy.Subscriber('/flatland_server/debug/model/table1', MarkerArray, callback)
     rospy.Subscriber('/flatland_server/debug/topics', DebugTopicList, callback_flatland_server)
