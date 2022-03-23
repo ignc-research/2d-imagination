@@ -52,7 +52,10 @@ class node_show_imagination():
 
         #gt map
         self.se_gt_map_path = "./map_ground_truth_semantic.png"
-        #self.se_gt_map_path = "./map_ground_truth_semantic_big.png" # for debugging purposes
+        if not(os.path.isfile(self.se_gt_map_path)):
+            error_msg = "\nThere is no ground truth data generated! Launch pedsim_test_gt.launch first.\nRun for example $ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0\n"
+            #sys.exit(error_msg)
+            raise rospy.ROSInternalException(error_msg)
         self.gt_map = cv2.imread(self.se_gt_map_path)
         self.gt_map = cv2.cvtColor(self.gt_map, cv2.COLOR_BGR2RGB)
         self.gt_map = np.around(self.gt_map/255,1)

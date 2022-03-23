@@ -179,11 +179,12 @@ def synchronization(start_path_arg, final_path_arg):
 
         # idea3: wait until the pair with the temp_time exists; we take an image every 3 seconds, so check around
         # Problem: the condition underneath is somehow always true, so not appropriate!?
-        #path_name_costmap = 'training/' + str(rospy.get_rostime().secs) + "_costmap_part.png"
+    #    directory = "./training/"
+        #path_name_costmap = directory + str(rospy.get_rostime().secs) + "_costmap_part.png"
         #path_name_costmap = 'training2/' + str(temp_time) + "_costmap_part.png"
-        path_name_costmap = 'training/' + str(temp_time) + "_costmap_part.png"
-        path_name_costmap2 = 'training/' + str(temp_time - 1) + "_costmap_part.png"
-        path_name_costmap3 = 'training/' + str(temp_time - 2) + "_costmap_part.png"
+    #    path_name_costmap = directory + str(temp_time) + "_costmap_part.png"
+    #    path_name_costmap2 = directory + str(temp_time - 1) + "_costmap_part.png"
+    #    path_name_costmap3 = directory + str(temp_time - 2) + "_costmap_part.png"
         #print(str(path_name_costmap) + " " + str(path_name_costmap2) + " " + str(path_name_costmap3))
         #print(str(rospy.get_rostime().secs) + " " + str(temp_time))
         #if (not os.path.isfile(path_name_costmap)) and (not os.path.isfile(path_name_costmap2)) and (not os.path.isfile(path_name_costmap3)) and (imagination_counter != 0):
@@ -365,6 +366,9 @@ def get_map_parameters():
 def training_script():
     #global map_resolution, x_offset, y_offset, x_max, y_max
     map_resolution, x_offset, y_offset, x_max, y_max = get_map_parameters()
+
+    directory = "./training/"
+    if not os.path.exists(directory): os.makedirs(directory)
     
     goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
     
@@ -571,6 +575,7 @@ def delete_empty_images_get_raw_data():
     # 2) get the raw data from every image and save it into a npy file
     print('\nPreparing the raw training data ...\n')
     path = './training'
+    directory = path
     container_costmap_color = [] # TODO: one for ground truth data and one for costmap data (both arrays should have the same order!)
     container_ground_truth_color = []
     container_costmap_id = []
@@ -658,31 +663,31 @@ def delete_empty_images_get_raw_data():
                     container_ground_truth_id.append(img_id_ar)
 
             # DEBUGGING: write/overwrite an image and then load it again to check how it is visualized
-            #np.save('training/00_test.npy', img_id_ar) # img_ar vs. img_id_ar
-            #img_loaded = np.load('training/00_test.npy')
+            #np.save(directory + '00_test.npy', img_id_ar) # img_ar vs. img_id_ar
+            #img_loaded = np.load(directory + '00_test.npy')
             #print(img_loaded) # the same as print(img_id_ar)
             #plt.imshow(img_loaded) # view the images
             #plt.show() # all correct, only different colors used, but that is because the id array was used!?!
 
     # color vs. id -> have both options saved!
-    np.savez('training/1_1_container_costmap_color.npz', *container_costmap_color)
-    np.savez('training/1_2_container_ground_truth_color.npz', *container_ground_truth_color)
-    np.savez('training/2_1_container_costmap_id.npz', *container_costmap_id)
-    np.savez('training/2_2_container_ground_truth_id.npz', *container_ground_truth_id)
+    np.savez(directory + '1_1_container_costmap_color.npz', *container_costmap_color)
+    np.savez(directory + '1_2_container_ground_truth_color.npz', *container_ground_truth_color)
+    np.savez(directory + '2_1_container_costmap_id.npz', *container_costmap_id)
+    np.savez(directory + '2_2_container_ground_truth_id.npz', *container_ground_truth_id)
 
     # DEBUGGING: load an already existing example image
-    #img_test = cv2.imread('training/01_test.png')
+    #img_test = cv2.imread(directory + '01_test.png')
     #img_test_ar = asarray(img_test)
-    #np.save('training/01_test.npy', img_test_ar)
-    #img_loaded_temp = np.load('training/01_test.npy')
+    #np.save(directory + '01_test.npy', img_test_ar)
+    #img_loaded_temp = np.load(directory + '01_test.npy')
     #print(img_loaded_temp)
     #plt.imshow(img_loaded_temp) # plt.imshow(img_loaded_temp, cmap='gray')
     #plt.show() # it is showing the same image as 01_test.png only not in RGB, but in BGR format (or the other way around)
 
     # TODO NEXT:
     # both files should display the costmap / the ground truth of the same image!
-#    file_2_1 = np.load('training/2_1_container_costmap_id.npz')
-#    file_2_2 = np.load('training/2_2_container_ground_truth_id.npz')
+#    file_2_1 = np.load(directory + '2_1_container_costmap_id.npz')
+#    file_2_2 = np.load(directory + '2_2_container_ground_truth_id.npz')
     #plt.imshow(file_2_1['arr_60'])
     #plt.show()
     #plt.imshow(file_2_2['arr_60'])
@@ -1275,6 +1280,7 @@ def callback_odom(data):
 def save_img(data, img_name): # data.data[costmap, gt]
     global temp_time, time_start, img_sec, start_path, final_path
     temp_time = rospy.get_rostime().secs
+    directory = "./training/"
 
     #rospy.Subscriber("/move_base_simple/goal", PoseStamped, callback_pose)
     #rospy.Subscriber("/odom", Odometry, callback_odom)
@@ -1348,8 +1354,8 @@ def save_img(data, img_name): # data.data[costmap, gt]
             costmap_image = np.array(data.data[0].data).reshape(costmap_gt_range, costmap_gt_range) # could be 60/80/100..
             #gt_image = np.array(data.data[1].data).reshape(60, 60)
             gt_image = np.array(data.data[1].data).reshape(costmap_gt_range, costmap_gt_range) # could be 60/80/100..
-            path_name_costmap = "training/" + str(rospy.get_rostime().secs) + "_costmap_part.png"
-            path_name_gt = "training/" + str(rospy.get_rostime().secs) + "_ground_truth_map_part.png"
+            path_name_costmap = directory + str(rospy.get_rostime().secs) + "_costmap_part.png"
+            path_name_gt = directory + str(rospy.get_rostime().secs) + "_ground_truth_map_part.png"
             # the saved part images themself should be also flipped around the x axis -> convert an OccupancyGrid pixel order to an image order
             #cv2.imwrite(path_name_costmap, flip_img_x_axis(costmap_image))
             #cv2.imwrite(path_name_gt, flip_img_x_axis(gt_image))
@@ -1423,13 +1429,13 @@ def save_img(data, img_name): # data.data[costmap, gt]
                     costmap_image = np.array(data.data).reshape(60, 60) # TODO - for OccupancyGrid
                     # save the image in the folder 'training' always with a different name (add _id or timestamp at the end for example)
                     # for now save also completely black images (even though they are not important for the training), they will be filtered out at the end by a separate function
-                    path_name = "training/" + str(rospy.get_rostime().secs) + "_" + img_name + ".png"
+                    path_name = directory + str(rospy.get_rostime().secs) + "_" + img_name + ".png"
                     #cv2.imwrite(path_name, cv_image) # TODO - for ListInt
                     # TODO: Convert an OccupancyGrid pixel order to an image order -> flip the OccupancyGrid array around the x axis!
                     cv2.imwrite(path_name, costmap_image) # TODO - for OccupancyGrid
                     #temp = cv2.imread(path_name)
                     #cv_image2 = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
-                    #cv2.imwrite("training/" + str(rospy.get_rostime().secs) + "_" + img_name + "TEST.png", cv_image2)
+                    #cv2.imwrite(directory + str(rospy.get_rostime().secs) + "_" + img_name + "TEST.png", cv_image2)
                     if img_name == "costmap_part": # TODO NEXT
                         imagination(data, path_name, 60)
                         print('The predicted imagination image has been created!')

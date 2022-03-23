@@ -29,6 +29,8 @@ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
    roslaunch arena_bringup semantic_imagination.launch scenario:=1 imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
 
+*Attention*: Generated files will be stored under ```/home/user/.ros```. After execution there you will find the generated ground truth map, the global imagination map etc. For collecting data refer to the newly generated subfolder ```training```.
+
 The parameter ```imagination``` could be used only with version 1 and could be set to ```yes``` or ```no```. If set to ```no```, no imagination will be used for the navigation, instead paired laser scan and ground truth data will be collected for training. The parameter ```imagination_size``` should be set to ```60 | 80 | 100``` for a ```60x60px | 80x80px | 100x100px``` imagination. The parameter ```imagination_model``` should be set to a valid ```.pth``` file from the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository (folder ```/example/models/```). Just like the parameter ```json_file``` should be set to an existing ```.json``` file from the folder ```./simulator_setup/training/```.
 
 Different filters are applied on the imagination module. The first one can be set via the parameter ```imagination_filter1_threshold``` to a normalized value between ```0``` and ```1```. The second one can be used only for version 1, setting the parameter ```imagination_filter2_range``` to a pixel value of for example ```10```, corresponding to ```0.5``` meters.
