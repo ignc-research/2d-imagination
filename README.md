@@ -22,14 +22,14 @@ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
 
    3.1. Version 1 (while moving the robot stops to wait for the laser scan data):
    ```bash
-   roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 imagination_filter2_range:=10 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=yes imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 imagination_filter2_range:=10 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
    3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
    ```bash
    roslaunch arena_bringup semantic_imagination.launch scenario:=1 imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
 
-The parameter ```imagination_size``` should be set to ```60 | 80 | 100``` for a ```60x60px | 80x80px | 100x100px``` imagination. The parameter ```imagination_model``` should be set to a valid ```.pth``` file from the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository (folder ```/example/models/```). Just like the parameter ```json_file``` should be set to an existing ```.json``` file from the folder ```./simulator_setup/training/```.
+The parameter ```imagination``` could be used only with version 1 and could be set to ```yes``` or ```no```. If set to ```no```, no imagination will be used for the navigation, instead paired laser scan and ground truth data will be collected for training. The parameter ```imagination_size``` should be set to ```60 | 80 | 100``` for a ```60x60px | 80x80px | 100x100px``` imagination. The parameter ```imagination_model``` should be set to a valid ```.pth``` file from the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository (folder ```/example/models/```). Just like the parameter ```json_file``` should be set to an existing ```.json``` file from the folder ```./simulator_setup/training/```.
 
 Different filters are applied on the imagination module. The first one can be set via the parameter ```imagination_filter1_threshold``` to a normalized value between ```0``` and ```1```. The second one can be used only for version 1, setting the parameter ```imagination_filter2_range``` to a pixel value of for example ```10```, corresponding to ```0.5``` meters.
 
@@ -49,6 +49,8 @@ The parameter ```scenario``` is needed to load the scenario (the compilation of 
 | 8        | 14               |
 
 If you want you can generate the ground truth image, extending the size of each obstacle with a certain amount of meters. Launch ```pedsim_test_gt.launch``` with the parameter ```gt_extension``` set to the desired extension value such as ```0.1|0.2|0.25``` to have an extension or to ```0``` for no extension.
+
+The map could be changed setting the parameter ```map_file```. Its dimensions, resolution and other parameters will be then automatically read and accordingly used. Check for example the maps ```map_empty``` and ```map_empty_big```.
 
 ### System design
 

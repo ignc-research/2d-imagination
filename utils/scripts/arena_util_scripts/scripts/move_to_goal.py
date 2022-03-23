@@ -1283,11 +1283,16 @@ def save_img(data, img_name): # data.data[costmap, gt]
         # -> change the file name from _ground_truth_map to ground_truth_map_60x60 etc.
         # --> correct the part with deleting the paired black images
         if (img_name == "pair_part_60") or (img_name == "pair_part_80") or (img_name == "pair_part_100"):
+            # TODO: make a difference if the script is used only for collecting data or also for navigation with imagination
+            # -> if only for collecting data, then the function imagination() shouldn't be called and sync_robot_step should be 0 (turned off)
+            if rospy.get_param('~imagination') == "no": imagination_bool = 0
+            else: imagination_bool = 1
+
             costmap_gt_range = int(img_name.split("_")[2])
             i = 0
         #    while temp_time >= time_start + i*img_sec: # this check is now in laser_scan_data.py in callback_local_costmap() !
         #        if temp_time == time_start + i*img_sec:
-            sync_robot_step = 1 # TODO X
+            sync_robot_step = imagination_bool # 0=off/1=on # TODO X
             # TODO NEXT: make the robot's movement slower the whole time!?
             # TODO NEXT: make the /cmd_vel has the same speed m/sec, as the needed time in sec for laser scan based on the path, so that the robot never stops, but just slows down!?
             # -> laser scan is taken every three seconds = img_sec (make img_Sec bigger then it should be faster!?)
@@ -1351,8 +1356,9 @@ def save_img(data, img_name): # data.data[costmap, gt]
             # Important: in addition, to have it in color, get_color_from_id() should be used:
             cv2.imwrite(path_name_costmap, get_color_from_id_array(flip_img_x_axis(costmap_image)))
             cv2.imwrite(path_name_gt, get_color_from_id_array(flip_img_x_axis(gt_image)))
-            imagination(data.data[0], path_name_costmap, costmap_gt_range) # TODO X
-            print('The predicted imagination image has been created!')
+            if imagination_bool == 1:
+                imagination(data.data[0], path_name_costmap, costmap_gt_range) # TODO X
+                print('The predicted imagination image has been created!')
             # TODO:
             pub_counter = rospy.Publisher("/imagination_counter", String, queue_size=10)
             global imagination_counter
