@@ -278,6 +278,10 @@ def local_costmap(map_data):
     map_data_length = len(map_data_array) # 3600
     print('LOCAL COSTMAP: \nlength: ' + str(map_data_length))
     #ground_truth_colored_map = cv2.imread("map_obstacles.png") # with white borders, but definetely not loosing data
+    if not(os.path.isfile("./map_ground_truth_semantic.png")):
+        error_msg = "\nThere is no ground truth data generated! Launch pedsim_test_gt.launch first.\nRun for example $ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0\n"
+        #sys.exit(error_msg)
+        raise rospy.ROSInternalException(error_msg)
     ground_truth_colored_map = cv2.imread("map_ground_truth_semantic.png") # ! with colored borders if everyhting works corectly (if a mistake occured, then grey or black)
     # Important: choose the same solution for the borders for both the local costmap data and ground truth data:
     # 'with white borders':
@@ -429,6 +433,10 @@ def local_costmap(map_data):
         ground_truth_map_part = ground_truth_map[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
         cv2.imwrite("map_obstacles_part.png", ground_truth_map_part)
     # 1) alternative: cut from the ground truth map
+    if not(os.path.isfile("./map_ground_truth_semantic.png")):
+        error_msg = "\nThere is no ground truth data generated! Launch pedsim_test_gt.launch first.\nRun for example $ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0\n"
+        #sys.exit(error_msg)
+        raise rospy.ROSInternalException(error_msg)
     ground_truth_map_2 = cv2.imread("map_ground_truth_semantic.png")
     ground_truth_map_2_part = ground_truth_map_2[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_2_part)
