@@ -66,7 +66,7 @@ In the following video on the left you can see how the navigation with imaginati
 
 The imagination will show up also when the robot is driven with ```teleoperation``` (see video on the right). Still, since in this case move-base is not used, the robot will drive through the imagination (as it also does through every part of the obstacles). So for this navigation choice, imagination can be used only for visualization purposes.
 
-| <img width="400" height="400" src="/img/imagination/imagination_version2_map_center_2d_nav_goal.gif"> | <img width="400" height="400" src="/img/imagination/imagination_version2_map_center_teleoperation.gif"> |
+| <img src="/img/imagination/imagination_version2_map_center_2d_nav_goal.gif"> | <img src="/img/imagination/imagination_version2_map_center_teleoperation.gif"> |
 |:--:| :--:| 
 | *Navigation with Imagination* | *Visualization of the Imagination* |
 
