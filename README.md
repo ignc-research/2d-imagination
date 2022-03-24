@@ -58,6 +58,18 @@ The map could be changed setting the parameter ```map_file```. Its dimensions, r
 
 (upload diagrams for both versions)
 
+#### Version 1
+
+#### Version 2
+
+In the following video on the left you can see how the navigation with imagination works - both with a predifined script with the goals and with the rviz feature ```2D Nav Goal```, where a goal could be directly given to the simulation from the user.
+
+The imagination will show up also when the robot is driven with ```teleoperation``` (see video on the right). Still, since in this case move-base is not used, the robot will drive through the imagination (as it also does through every part of the obstacles). So for this navigation choice, imagination can be used only for visualization purposes.
+
+| <img width="400" height="400" src="/img/imagination/imagination_version2_map_center_2d_nav_goal.gif"> | <img width="400" height="400" src="/img/imagination/imagination_version2_map_center_teleoperation.gif"> |
+|:--:| :--:| 
+| *Navigation with Imagination* | *Visualization of the Imagination* |
+
 ### Execution steps
 
 (explain all the steps)

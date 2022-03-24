@@ -59,23 +59,26 @@ def main():
     goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10)
     
     for path in config['robot_paths']:
-        initial_pos = path['initial_pos'] # TODO: part from the json file, but not used here
-        # movebase_client(initial_pos[0], initial_pos[1], goal_pub)
+        initial_pos = path['initial_pos']
+        set_goal(initial_pos, goal_pub, radius, counter_reset, sleep_sec) # first move to the initial pose
         for subgoal in path['subgoals']:
-            rospy.Subscriber("/odom", Odometry, callback_odom)
-            robot_pos = np.array([position_global.x, position_global.y])
-            goal_distance = np.linalg.norm(robot_pos-subgoal)
+            set_goal(subgoal, goal_pub, radius, counter_reset, sleep_sec)
+
+def set_goal(subgoal, goal_pub, radius, counter_reset, sleep_sec):
+    rospy.Subscriber("/odom", Odometry, callback_odom)
+    robot_pos = np.array([position_global.x, position_global.y])
+    goal_distance = np.linalg.norm(robot_pos-subgoal)
+    movebase_client(subgoal[0], subgoal[1], goal_pub)
+    counter = 0
+    while goal_distance > radius*(1 + counter/100): # TODO
+        counter +=1
+        robot_pos = np.array([position_global.x, position_global.y])
+        goal_distance = np.linalg.norm(robot_pos-subgoal)
+        rospy.Subscriber("/odom", Odometry, callback_odom)
+        if counter % counter_reset == 0:
+            print('set the goal again')
             movebase_client(subgoal[0], subgoal[1], goal_pub)
-            counter = 0
-            while goal_distance > radius*(1 + counter/100): # TODO
-                counter +=1
-                robot_pos = np.array([position_global.x, position_global.y])
-                goal_distance = np.linalg.norm(robot_pos-subgoal)
-                rospy.Subscriber("/odom", Odometry, callback_odom)
-                if counter % counter_reset == 0:
-                    print('set the goal again')
-                    movebase_client(subgoal[0], subgoal[1], goal_pub)
-                time.sleep(sleep_sec)
+        time.sleep(sleep_sec)
 
 def callback_map(map_data):
     map_data_array = np.asarray([map_data.data])
