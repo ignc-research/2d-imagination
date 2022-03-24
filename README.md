@@ -56,9 +56,15 @@ The map could be changed setting the parameter ```map_file```. Its dimensions, r
 
 ### System design
 
-(upload diagrams for both versions)
+(upload diagrams, videos etc. for both versions)
 
 #### Version 1
+
+The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly.
+
+| <img src="/img/imagination/imagination_version1_map_center_2d_nav_goal.gif"> | <img src="/img/imagination/imagination_version1_scenario8.gif"> |
+|:--:|:--:|
+| *Navigation with Imagination* | *Visualization of the Imagination* |
 
 #### Version 2
 

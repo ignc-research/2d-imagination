@@ -35,7 +35,7 @@
   <!-- Scenarios -->
   <arg name="scenario"                default="8"/> <!-- '1'/'8' -->
   <!--<arg name="obstacles_amount"        default="26"/>--> <!-- value="26" for scenario1 --> <!-- amount of all obstacles, not obstacle types! -->
-  <arg name="json_file"               default="scenario8.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
+  <arg name="json_file"               default="map_center.json"/> <!-- "scenario1.json"/"scenario8_eval.json"/"map_center.json"/... -->
   <arg name="gt_extension"            default="0"/> <!-- in meter: '0' without extension | '0.1'/'0.2' with extension -->
 
   <!-- Local paths -->
