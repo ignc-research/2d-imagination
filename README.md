@@ -60,7 +60,7 @@ The map could be changed setting the parameter ```map_file```. Its dimensions, r
 
 #### Version 1
 
-The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly.
+The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly. Please note that with this version ```teleoperation``` and the rviz feature ```2D Nav Goal``` can not be used properly, since the imagination will be neither visualized nor taken into account by the planners.
 
 | <img src="/img/imagination/imagination_version1_map_center_2d_nav_goal.gif"> | <img src="/img/imagination/imagination_version1_scenario8.gif"> |
 |:--:|:--:|
@@ -81,18 +81,20 @@ The imagination will show up also when the robot is driven with ```teleoperation
 (explain all the steps)
 
 1. Add a scenario
-   1. manually or with a GUI
-   2. ...
-   3. update the reference scenario-obstacles_amount (variable ```scenarioReference```) in the scripts ```show_obstacle_types.py``` and ```create_ground_truth_map.py```
-   4. ...
-2. Collect training data
-   1. draw the paths on a GUI
-   2. let the robot drive them
-   3. ...
-3. Train an imagination module
-   1. see the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository
-   2. ...
-4. Navigate with imagination
+   1. Create a scenario manually (see the substeps below) or create a scenario with the [GUI](https://github.com/ignc-research/arena-tools)
+      1. Define a new scenario in the script ```pedsim_test.py``` as a new function (for example ```scenarioX()```).
+      2. Add the new scenario option to the scenario calling function in the function ```tables_test()```.
+   2. Count the number of obstacles (not obstacle types) in the new scenario and update the reference scenario-obstacles_amount (variable ```scenarioReference```) in the scripts ```create_ground_truth_map.py``` (for version 1) and ```show_obstacle_types.py``` (for version 2).
+   3. The used obstacles are described in .yaml files in the folder ```./simulator_setup/static_obstacles/```. If you want to create more obstacles, add additional files.
+2. Create the ground truth data
+3. Collect training data
+   1. Create a path with multiple goals for the robot to drive on. The paths should be created close enough to the obstacles to collect as much information as possible. The robot of course shouldn't behave in a way that is not supposed to later on with the imagination, like for example drive under the tables and chairs. The path can be easily created with the [GUI](https://github.com/ignc-research/arena-tools), exported as a ```json``` file and saved under ```./simulator_setup/training```.
+   2. Launch ```pedsim_test``` with the ```imagination``` parameter set to ```no``` and the ```json_file``` parameter set to the just created file with the path for the robot to drive on.
+   3. While the robot is moving, it will collect laser scan data and will generate image pairs of local observation and ground truth data in the folder ```/home/user/.ros/training```. Furthermore two paired npz files with all images will be generated that can be directly used by [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository) to train the model.
+4. Train an imagination module (see the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository)
+5. Create a ros map
+   1. ...
+6. Navigate with imagination
    1. see both versions
    2. ...
 
@@ -108,6 +110,8 @@ The imagination will show up also when the robot is driven with ```teleoperation
 
 1. ```pedsim_test.py```
 2. ```show_obstacle_types.py```
+   * Shows on top of each obstacle its id (from 1 to 10).
+   * Depends on the node ```ground_truth_data```. If not run yet, the unknown obstacles will have an id of 0.
 3. ```create_ground_truth_map.py```
 4. ```laser_scan_data.py``` (only for version 1)
 5. ```show_imagination.py``` (only for version 2)
