@@ -33,7 +33,7 @@ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
 
 The parameter ```imagination``` could be used only with version 1 and could be set to ```yes``` or ```no```. If set to ```no```, no imagination will be used for the navigation, instead paired laser scan and ground truth data will be collected for training. The parameter ```imagination_size``` should be set to ```60 | 80 | 100``` for a ```60x60px | 80x80px | 100x100px``` imagination. The parameter ```imagination_model``` should be set to a valid ```.pth``` file from the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository (folder ```/example/models/```). Just like the parameter ```json_file``` should be set to an existing ```.json``` file from the folder ```./simulator_setup/training/```.
 
-Different filters are applied on the imagination module. The first one can be set via the parameter ```imagination_filter1_threshold``` to a normalized value between ```0``` and ```1```. The second one can be used only for version 1, setting the parameter ```imagination_filter2_range``` to a pixel value of for example ```10```, corresponding to ```0.5``` meters.
+Different filters are applied on the imagination module. The first one can be set via the parameter ```imagination_filter1_threshold``` to a normalized value between ```0``` and ```1```. The second one can be used only for version 1, setting the parameter ```imagination_filter2_range``` to a pixel value of for example ```10```, corresponding to ```0.5``` meters. Version 2 also uses practically the same filter, but implemented as a 2d Gaussian distribution, which means that no range is needed to be set.
 
 Change the parameters ```user``` and ```workspace``` according to your local system. Set the parameter ```device``` according to your hardware. If you only have a CPU use ```'cpu'```. For a GPU use for example ```'cuda'```.
 
@@ -76,6 +76,26 @@ The imagination will show up also when the robot is driven with ```teleoperation
 |:--:| :--:| 
 | *Navigation with Imagination* | *Visualization of the Imagination* |
 
+### Scripts
+
+(explain all new scripts)
+
+1. ```pedsim_test.py```
+   * ...
+2. ```show_obstacle_types.py```
+   * Shows on top of each obstacle its id (from 1 to 10).
+   * Depends on the node ```ground_truth_data```. If not run yet, the unknown obstacles will have an id of 0.
+3. ```create_ground_truth_map.py```
+   * ...
+4. ```laser_scan_data.py``` (only for version 1)
+   * ...
+5. ```show_imagination.py``` (only for version 2)
+   * ...
+6. ```move_to_goal.py``` (only for version 1)
+   * ...
+7. ```move_to_goal_imagination.py``` (only for version 2)
+   * ...
+
 ### Execution steps
 
 1. Add a scenario
@@ -87,10 +107,10 @@ The imagination will show up also when the robot is driven with ```teleoperation
 2. Create the ground truth data: launch ```pedsim_test_gt```
 3. Collect training data
    1. Create a path with multiple goals for the robot to drive on. The paths should be created close enough to the obstacles to collect as much information as possible. The robot of course shouldn't behave in a way that is not supposed to later on with the imagination, like for example drive under the tables and chairs. The path can be easily created with the [GUI script PathCreator.py](https://github.com/ignc-research/arena-tools) (with ```map.yaml``` as an input), exported as a ```json``` file and saved under ```./simulator_setup/training```.
-   2. Launch ```pedsim_test``` with the ```imagination``` parameter set to ```no``` and the ```json_file``` parameter set to the just created file with the path for the robot to drive on. The used map can be also changed via the parameter ```map_file```. There are two ways of dealing with the map.
+   2. Launch ```pedsim_test``` with the ```imagination``` parameter set to ```no``` and the ```json_file``` parameter set to the just created file with the path for the robot to drive on. The used map can be also changed via the parameter ```map_file```. It will work with every map, no matter what size. There are two ways of dealing with the map.
       1. Load a map without the obstacles (chairs and tables) like for example ```map_empty``` and use the node ```pedsim_test``` for spawning the obstacles on to the map.
       2. Create a ros map from the scenario (combination of spawned obstacles) and directly pass it to the parameter ```map_file```. In this case you do not need the ```pedsim_test``` node anymore, even the ```show_obstacle_types``` node is redundant.
-         1. After launching ```pedsim_test_gt``` in the ```/home/user/.ros``` the file ```map_obstacles_legs``` will be generated. This ```png ```image can directly be used as the map image. Now only the files ```map.yaml``` and ```map.world.yaml``` are missing, that are pretty standard to write and contain information about the image. Take an example from the already available maps in the ```.\simulator_setup\maps\``` folder.
+         1. After launching ```pedsim_test_gt``` in the ```/home/user/.ros``` the file ```map_obstacles_legs``` will be generated. This ```png ```image can directly be used as the map image. Now only the files ```map.yaml``` and ```map.world.yaml``` are missing, that are pretty standard to write and contain information about the image such as resolution, origin etc. Take an example from the already available maps in the ```.\simulator_setup\maps\``` folder.
          2. Alternatively ```map_server``` could be used to save the map into a ```pgm``` image.
    3. While the robot is moving, it will collect laser scan data and will generate image pairs of local observation and ground truth data in the folder ```/home/user/.ros/training```. Furthermore two paired npz files with all images will be generated that can be directly used by [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository) to train the model.
 4. Train an imagination module (see the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository)
@@ -104,25 +124,7 @@ The imagination will show up also when the robot is driven with ```teleoperation
 
 (explain how to record the data for the evaluation)
 
-### Scripts
-
-(explain all new scripts)
-
-1. ```pedsim_test.py```
-2. ```show_obstacle_types.py```
-   * Shows on top of each obstacle its id (from 1 to 10).
-   * Depends on the node ```ground_truth_data```. If not run yet, the unknown obstacles will have an id of 0.
-3. ```create_ground_truth_map.py```
-4. ```laser_scan_data.py``` (only for version 1)
-5. ```show_imagination.py``` (only for version 2)
-6. ```move_to_goal.py``` (only for version 1)
-7. ```move_to_goal_imagination.py``` (only for version 2)
-
-### Useful information
-1. To change the ```map``` ...
-2. To change ```robot_size``` and ```inflation_radius``` ...
-3. To turn the filters on/off ...
-4. ...
+(explain how to change parameters like ```robot_size``` and ```inflation_radius```)
 
 # Multiprocessing branch
 This branch is under development to feacilitate multiprocessing and accelerate training and simulation. It works with additional plugins and changes to the flatland repository. If you want to use it, checkout to dev_multi_lei branch in src/forks/flatland folder and pip install -e . inside src/forks/stable-baselines3 folder. 
