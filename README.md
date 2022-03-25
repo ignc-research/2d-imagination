@@ -78,25 +78,25 @@ The imagination will show up also when the robot is driven with ```teleoperation
 
 ### Execution steps
 
-(explain all the steps)
-
 1. Add a scenario
    1. Create a scenario manually (see the substeps below) or create a scenario with the [GUI](https://github.com/ignc-research/arena-tools)
-      1. Define a new scenario in the script ```pedsim_test.py``` as a new function (for example ```scenarioX()```).
+      1. Define a new scenario (combination of spawned obstacles) in the script ```pedsim_test.py``` as a new function (for example ```scenarioX()```).
       2. Add the new scenario option to the scenario calling function in the function ```tables_test()```.
    2. Count the number of obstacles (not obstacle types) in the new scenario and update the reference scenario-obstacles_amount (variable ```scenarioReference```) in the scripts ```create_ground_truth_map.py``` (for version 1) and ```show_obstacle_types.py``` (for version 2).
    3. The used obstacles are described in .yaml files in the folder ```./simulator_setup/static_obstacles/```. If you want to create more obstacles, add additional files.
-2. Create the ground truth data
+2. Create the ground truth data: launch ```pedsim_test_gt```
 3. Collect training data
-   1. Create a path with multiple goals for the robot to drive on. The paths should be created close enough to the obstacles to collect as much information as possible. The robot of course shouldn't behave in a way that is not supposed to later on with the imagination, like for example drive under the tables and chairs. The path can be easily created with the [GUI](https://github.com/ignc-research/arena-tools), exported as a ```json``` file and saved under ```./simulator_setup/training```.
-   2. Launch ```pedsim_test``` with the ```imagination``` parameter set to ```no``` and the ```json_file``` parameter set to the just created file with the path for the robot to drive on.
+   1. Create a path with multiple goals for the robot to drive on. The paths should be created close enough to the obstacles to collect as much information as possible. The robot of course shouldn't behave in a way that is not supposed to later on with the imagination, like for example drive under the tables and chairs. The path can be easily created with the [GUI script PathCreator.py](https://github.com/ignc-research/arena-tools) (with ```map.yaml``` as an input), exported as a ```json``` file and saved under ```./simulator_setup/training```.
+   2. Launch ```pedsim_test``` with the ```imagination``` parameter set to ```no``` and the ```json_file``` parameter set to the just created file with the path for the robot to drive on. The used map can be also changed via the parameter ```map_file```. There are two ways of dealing with the map.
+      1. Load a map without the obstacles (chairs and tables) like for example ```map_empty``` and use the node ```pedsim_test``` for spawning the obstacles on to the map.
+      2. Create a ros map from the scenario (combination of spawned obstacles) and directly pass it to the parameter ```map_file```. In this case you do not need the ```pedsim_test``` node anymore, even the ```show_obstacle_types``` node is redundant.
+         1. After launching ```pedsim_test_gt``` in the ```/home/user/.ros``` the file ```map_obstacles_legs``` will be generated. This ```png ```image can directly be used as the map image. Now only the files ```map.yaml``` and ```map.world.yaml``` are missing, that are pretty standard to write and contain information about the image. Take an example from the already available maps in the ```.\simulator_setup\maps\``` folder.
+         2. Alternatively ```map_server``` could be used to save the map into a ```pgm``` image.
    3. While the robot is moving, it will collect laser scan data and will generate image pairs of local observation and ground truth data in the folder ```/home/user/.ros/training```. Furthermore two paired npz files with all images will be generated that can be directly used by [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository) to train the model.
 4. Train an imagination module (see the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository)
-5. Create a ros map
-   1. ...
-6. Navigate with imagination
-   1. see both versions
-   2. ...
+   1. Upload the generated ```npz``` files to the ```/rosnav-imagination/data/``` folder.
+   2. Load both datasets, correct their format and train the model for at least 1000 iterations. Then visualize example outputs of the model to check its correctness.
+6. Navigate with imagination (test an imagination module on a test scenario): launch ```pedsim_test.launch``` for version 1 or ```semantic_imagination.launch``` for version 2
 
 ### Possible evaluation runs
 
