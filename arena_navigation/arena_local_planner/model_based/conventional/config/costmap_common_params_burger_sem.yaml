@@ -76,6 +76,8 @@ imagination_global_layer: # TODO
   imagination_global:   {data_type: OccupancyGrid, topic: /imagination_global, marking: true, clearing: true}
   subscribe_to_updates: true
 
+  #use_maximum:          true
+
 imagination_local_layer: # TODO
   enabled:              true
   map_topic:            "/imagination"

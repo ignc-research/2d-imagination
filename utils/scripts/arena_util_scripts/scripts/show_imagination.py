@@ -232,10 +232,28 @@ class node_show_imagination():
         pub_laser_scan_imagination = rospy.Publisher("/imagination_laser_scan", LaserScan, queue_size=10) 
         pub_laser_scan_imagination.publish(laser_imagination)
         
+    def update_map_topic(self, grid):
+        # Important: since both the local_costmap and the global_costmap use the /map topic as a static_layer, they will also update themselves, just like the local and global planner
+        
+        pub_map = rospy.Publisher("/map", OccupancyGrid, queue_size=10)
+        grid_map_topic = OccupancyGrid()
+        grid_map_topic = grid
+        grid_map_topic.header.frame_id = "map"
+
+        # necessary to prevent the topic from loosing its initial data
+        # TODO: it is enough to be done once (after the init of map_topic.png)
+        map_topic_img = cv2.imread("map_topic.png")
+        imagination_map_global_img = cv2.imread("imagination_map_global.png") # self.imagination_global_map
+        map_topic_img_new = cv2.add(map_topic_img, imagination_map_global_img)
+        grid_map_topic.data = self.grey_img_to_grid(map_topic_img_new)
+
+        pub_map.publish(grid_map_topic)
+    
     def laser_scan_callback(self, LaserData):
         self.counter +=1
         #print(f'coumter: {self.counter} -Laser scan info received:\n')
-        if self.counter%4 == 0:
+        step = 4
+        if self.counter%step == 0:
             #print(f'imagination start:\n')
             imagination, robot_pos_map = self.points_to_semantic_input(LaserData)
 
@@ -270,6 +288,8 @@ class node_show_imagination():
             grid.data = self.grey_img_to_grid(self.imagination_global_map)
             self.imagination_global_pub.publish(grid)
             self.imagination_to_laser_data(imagination_area, LaserData)
+
+            self.update_map_topic(grid)
             
         '''
         else:

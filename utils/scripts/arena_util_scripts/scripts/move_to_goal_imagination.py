@@ -106,8 +106,10 @@ def callback_map(map_data):
     map_reshaped = map_data_array2.reshape(map_shape)
     temp = np.ones(map_reshaped.shape)*255
     temp[map_reshaped != -1] = map_reshaped[map_reshaped != -1]
+    # Important: the occupancy grid is in row-major order, starting with (0,0); our (0,0) is in the left down corner; for an image it is the upper left corner => mirror the pixels regarding the x axis to be right
+    temp_right_order = np.flipud(temp) # flip an array vertically (axis=0)
 
-    cv2.imwrite("map_topic.png", temp) # will be saved in folder $HOME\.ros
+    cv2.imwrite("map_topic.png", temp_right_order) # will be saved in folder $HOME\.ros
 
 if __name__ == '__main__':
     rospy.init_node('reach_goal_imagination', anonymous=True)
