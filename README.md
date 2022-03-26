@@ -54,9 +54,11 @@ If you want you can generate the ground truth image, extending the size of each 
 
 The map could be changed setting the parameter ```map_file```. Its dimensions, resolution and other parameters will be then automatically read and accordingly used. Check for example the maps ```map_empty``` and ```map_empty_big```.
 
-### System design
+### Approach / System design
 
-(upload diagrams, videos etc. for both versions)
+<img src="/img/imagination/system_design.png">
+
+### Results
 
 #### Version 1
 
@@ -133,13 +135,41 @@ Up until now the imagination was considered only by the additional laser scanner
    2. Load both datasets, correct their format and train the model for at least 1000 iterations. Then visualize example outputs of the model to check its correctness.
 6. Navigate with imagination (test an imagination module on a test scenario): launch ```pedsim_test.launch``` for version 1 or ```semantic_imagination.launch``` for version 2
 
-### Possible evaluation runs
+### Evaluation runs
 
-(show a table with possible parameter variations (scenario, imagination_size, imagination_model, local_planner etc.))
+#### Parameters
 
-(explain how to record the data for the evaluation)
+|  Fixed parameters             | Values                                                                |
+| ----------------------------- | ----------------------------------------------------------------------|
+| laser height                  | 0.2m                                                                  |
+| ground truth extension        | 0.25m = 5px                                                           |
 
-(explain how to change parameters like ```robot_size``` and ```inflation_radius```)
+|  Variable parameters          | Possible values                                                       |
+| ----------------------------- | ----------------------------------------------------------------------|
+| scenario                      | "1" / "2" / ... / "8"                                                 |
+| json_file                     | "scenario1.json"/"scenario8_eval.json"/"map_center.json"/...          |
+| gt_extension                  | "0"/"1"                                                               |
+| imagination_model             | "3000_60_normal"/"3000_80_normal"/"3000_100_normal"/"3000_60_ext"/"3000_80_ext"/"3000_100_ext" |
+| imagination_size              | "60"/"80"/"100"/"160"                                                 |
+| imagination_filter1_threshold | "0.1"/"0.2"/"0.3"/...                                                 |
+| imagination_filter2_range     | "5"/"10"/"15"/...                                                     |
+| local_planner                 | "dwa"/"teb"                                                           |
+| robot_radius                  | 0.3/0.1/0.01/...                                                      |
+
+All of the variable parameters can be set by launching, except for the ``robot_radius``. To change the size, multiple files should be updated:
+* ```./simulator_setup/robot/myrobot.model.yaml```
+* ```./simulator_setup/robot/thisrobot.urdf.xacro```
+* ```./arena-rosnav/arena_bringup/config/config_movebase/costmap_common_params.yaml```
+* ```./arena-rosnav/arena_bringup/config/config_movebase/costmap_common_params_sem.yaml```
+* ```./arena_navigation/arena_local_planner/model_based/conventional/config/costmap_common_params_burger.yaml```
+* ```./arena_navigation/arena_local_planner/model_based/conventional/config/costmap_common_params_burger_sem.yaml```
+* ```./arena_navigation/arena_local_planner/model_based/conventional/config/tb3/costmap_common_params_burger.yaml```
+* ```./arena_navigation/arena_local_planner/model_based/conventional/config/tb3/costmap_common_params_burger_sem.yaml```
+It is similar for parameters such as  ```inflation_radius```, ```cost_scaling_factor``` etc.
+
+#### How to record the data for the evaluation
+
+1. ...
 
 # Multiprocessing branch
 This branch is under development to feacilitate multiprocessing and accelerate training and simulation. It works with additional plugins and changes to the flatland repository. If you want to use it, checkout to dev_multi_lei branch in src/forks/flatland folder and pip install -e . inside src/forks/stable-baselines3 folder. 
