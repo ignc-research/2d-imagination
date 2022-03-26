@@ -56,7 +56,9 @@ The map could be changed setting the parameter ```map_file```. Its dimensions, r
 
 ### Approach / System design
 
-<img src="/img/imagination/system_design.png">
+<p align="center">
+   <img src="img/imagination/system_design.png">
+</p>
 
 ### Results
 
