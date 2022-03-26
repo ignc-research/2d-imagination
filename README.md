@@ -78,23 +78,32 @@ The imagination will show up also when the robot is driven with ```teleoperation
 
 ### Scripts
 
-(explain all new scripts)
-
 1. ```pedsim_test.py```
-   * ...
+   * A place for manually creating scenarios (combinations of spawned obstacles).
+   * Spawns the chosen scenario.
 2. ```show_obstacle_types.py```
    * Shows on top of each obstacle its id (from 1 to 10).
    * Depends on the node ```ground_truth_data```. If not run yet, the unknown obstacles will have an id of 0.
 3. ```create_ground_truth_map.py```
-   * ...
+   * Creates the semantic ground truth map with or without extending the size of the obstacles.
+   * The following nodes depend on this one.
 4. ```laser_scan_data.py``` (only for version 1)
-   * ...
-5. ```show_imagination.py``` (only for version 2)
-   * ...
-6. ```move_to_goal.py``` (only for version 1)
-   * ...
+   * Collects local laser scan data in form of local_costmaps in the wanted size and updates a global view of it.
+   * Expands the observation data with a semantic information, based on the already generated ground truth data.
+5. ```move_to_goal.py``` (only for version 1)
+   * Moves the robot on a predifined with a json file path.
+   * While moving collects pairs of semantic local costmaps and semantic local ground truth data in form of images and npz files ready to be used for training an imagination model.
+   * Visualizes a filtered imagination (=imagination_model(local_costmap)).
+   * Synchronizes the robot movement with receiving the local_costmap and its corresponding imagination, which could lead to robot waiting for receiving all the data before proceeding.
+   * Updates the local costmap with the imagination for the local planner to plan a new path avoiding it.
+   * The global costmap receives no imagination, so that there is a costmap with and without an imagination, to be able to distinguish which parts of the currently occupied areas are due to the legs of the obstacles (so because of the laser scan) and which are due to the imagination. This way the imagination module can keep getting only laser scan information without already imaginated areas.
+6. ```show_imagination.py``` (only for version 2)
+   * Collects semantic laser scan.
+   * Visualizes a filtered imagination (=imagination_model(semantic_laser_scan)).
+   * Publishes the laser scan with the imagination information on a new topic. So it uses two laser scan topics: one for collecting data for the imagination module (```/scan```) and one for visualizing the borders of the imagination (```/imagination_laser_scan```).
+   * Updates the local and global costmap with the imagination for the planners to plan a new path avoiding it.
 7. ```move_to_goal_imagination.py``` (only for version 2)
-   * ...
+   * Moves the robot on a predifined with a json file path.
 
 ### Execution steps
 
