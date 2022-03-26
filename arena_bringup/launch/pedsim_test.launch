@@ -197,6 +197,7 @@
   <node name="scan_values" pkg="arena_util_scripts" type="laser_scan_data.py" output="screen">
    <param name="map_file"             value="$(arg map_file)"/>
    <param name="map_path"             value="$(arg map_path)"/>
+   <param name="imagination_size"     value="$(arg imagination_size)"/>
   </node>
 
   <!--<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />-->

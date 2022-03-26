@@ -502,12 +502,7 @@ def training_script():
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", Image, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", IntList, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", OccupancyGrid, callback_ground_truth_map_temp)
-
-            imagination_size = int(rospy.get_param('~imagination_size')) # 60/80/100 # TODO X
-            if imagination_size == 60: rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
-            if imagination_size == 80: rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
-            if imagination_size == 100: rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100)
-            
+            rospy.Subscriber("pair_temp", ListOccupancyGrid, callback_pair_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", Image, callback_obstacles_map_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", IntList, callback_obstacles_map_temp)
             global sub_goal
@@ -574,8 +569,7 @@ def delete_empty_images_get_raw_data():
     # -> it is also better to run this function separately at the end once it was made sure that the image pairs are fine and final!
     # 2) get the raw data from every image and save it into a npy file
     print('\nPreparing the raw training data ...\n')
-    path = './training'
-    directory = path
+    directory = './training/'
     container_costmap_color = [] # TODO: one for ground truth data and one for costmap data (both arrays should have the same order!)
     container_ground_truth_color = []
     container_costmap_id = []
@@ -586,7 +580,7 @@ def delete_empty_images_get_raw_data():
 
     # TODO NEXT: is it sure that the images are taken alphabetically? at least in pairs? -> sorted() ?!
     img_count = 0
-    for filename in sorted(glob.glob(os.path.join(path, '*.png'))):
+    for filename in sorted(glob.glob(os.path.join(directory, '*.png'))):
         img = cv2.imread(filename)
         all_black = True
         black_ar = [0,0,0]
@@ -1288,13 +1282,13 @@ def save_img(data, img_name): # data.data[costmap, gt]
         # TODO: have not one of 60x60, 80x80, 100x100, but all of them
         # -> change the file name from _ground_truth_map to ground_truth_map_60x60 etc.
         # --> correct the part with deleting the paired black images
-        if (img_name == "pair_part_60") or (img_name == "pair_part_80") or (img_name == "pair_part_100"):
+        if (img_name == "pair_part"):
             # TODO: make a difference if the script is used only for collecting data or also for navigation with imagination
             # -> if only for collecting data, then the function imagination() shouldn't be called and sync_robot_step should be 0 (turned off)
             if rospy.get_param('~imagination') == "no": imagination_bool = 0
             else: imagination_bool = 1
 
-            costmap_gt_range = int(img_name.split("_")[2])
+            costmap_gt_range = int(rospy.get_param('~imagination_size')) # 60/80/100 # TODO X
             i = 0
         #    while temp_time >= time_start + i*img_sec: # this check is now in laser_scan_data.py in callback_local_costmap() !
         #        if temp_time == time_start + i*img_sec:
@@ -1448,14 +1442,8 @@ def callback_costmap_temp(data):
 def callback_ground_truth_map_temp(data):
     save_img(data, "ground_truth_map_part")
 
-def callback_pair_temp_60x60(data):
-    save_img(data, "pair_part_60")
-
-def callback_pair_temp_80x80(data):
-    save_img(data, "pair_part_80")
-
-def callback_pair_temp_100x100(data):
-    save_img(data, "pair_part_100")
+def callback_pair_temp(data):
+    save_img(data, "pair_part")
 
 def callback_obstacles_map_temp(data):
     save_img(data, "obstacles_map_part")

@@ -496,12 +496,7 @@ def training_script():
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", Image, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", IntList, callback_ground_truth_map_temp)
             #sub_ground_truth_map = rospy.Subscriber("ground_truth_map_temp", OccupancyGrid, callback_ground_truth_map_temp)
-
-            imagination_size = int(rospy.get_param('~imagination_size')) # 60/80/100 # TODO X
-            if imagination_size == 60: rospy.Subscriber("pair_temp_60x60", ListOccupancyGrid, callback_pair_temp_60x60)
-            if imagination_size == 80: rospy.Subscriber("pair_temp_80x80", ListOccupancyGrid, callback_pair_temp_80x80)
-            if imagination_size == 100: rospy.Subscriber("pair_temp_100x100", ListOccupancyGrid, callback_pair_temp_100x100)
-            
+            rospy.Subscriber("pair_temp", ListOccupancyGrid, callback_pair_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", Image, callback_obstacles_map_temp)
             #sub_obstacles_map = rospy.Subscriber("obstacles_map_temp", IntList, callback_obstacles_map_temp)
             global sub_goal
@@ -1225,8 +1220,8 @@ def save_img(data, img_name): # data.data[costmap, gt]
         # -> change the file name from _ground_truth_map to ground_truth_map_60x60 etc.
         # --> correct the part with deleting the paired black images
         print(f'++++++++++++++++++++{img_name}++++++++++++++++++++')
-        if (img_name == "pair_part_60") or (img_name == "pair_part_80") or (img_name == "pair_part_100"):
-            costmap_gt_range = int(img_name.split("_")[2])
+        if (img_name == "pair_part"):
+            costmap_gt_range = int(rospy.get_param('~imagination_size')) # 60/80/100 # TODO X
             i = 0
         #    while temp_time >= time_start + i*img_sec: # this check is now in laser_scan_data.py in callback_local_costmap() !
         #        if temp_time == time_start + i*img_sec:
@@ -1379,15 +1374,9 @@ def callback_costmap_temp(data):
 def callback_ground_truth_map_temp(data):
     save_img(data, "ground_truth_map_part")
 
-def callback_pair_temp_60x60(data):
-    save_img(data, "pair_part_60")
-
-def callback_pair_temp_80x80(data):
-    save_img(data, "pair_part_80")
-
-def callback_pair_temp_100x100(data):
-    print("++++++++++++++++++++callback_pair_temp_100x100++++++++++++++++++++")
-    save_img(data, "pair_part_100")
+def callback_pair_temp(data):
+    print("++++++++++++++++++++callback_pair_temp++++++++++++++++++++")
+    save_img(data, "pair_part")
 
 def callback_obstacles_map_temp(data):
     save_img(data, "obstacles_map_part")

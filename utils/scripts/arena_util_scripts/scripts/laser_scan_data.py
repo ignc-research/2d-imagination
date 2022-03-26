@@ -438,45 +438,34 @@ def local_costmap(map_data):
         #sys.exit(error_msg)
         raise rospy.ROSInternalException(error_msg)
     ground_truth_map_2 = cv2.imread("map_ground_truth_semantic.png")
-    ground_truth_map_2_part = ground_truth_map_2[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
-    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_2_part)
+    ground_truth_map_60x60 = ground_truth_map_2[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
+    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part.png", ground_truth_map_60x60)
     # 2) cut from the big colorful local cost map exactly the same 60x60 block
     local_costmap_60x60 = temp_img[row_big-1-block_abs_height_top_rviz+1:row_big-1-block_abs_height_bottom_rviz+1, block_abs_width_left_rviz+1:block_abs_width_right_rviz+1]
     if optimization == 0: cv2.imwrite("map_local_costmap_part_color.png", local_costmap_60x60)
     # 3) compare the local costmap part image with the ground truth part image: local_costmap_60x60 (real) vs. ground_truth_map_part (ideal)
     # -> multiple examples of such pairs are the input of the neural network for training the imagination unit
 
-    # TODO X: resize the observation 60x60 img to an 80x80/100x100 img with white color (unknown, id = -1?) from all sides (robot should be still in the middle), so that it could be used with a 80x80/100x100 ground truth image
+    # TODO X: resize the data from 60x60 to 80x80/100x100/160x160/...
+    imagination_size = int(rospy.get_param('~imagination_size')) # 60/80/100/160
+    #if imagination_size != 60:
     range_old = 60
-    range_new = 80
-    #local_costmap_80x80 = np.zeros((range_new,range_new,3)) # init with [0,0,0]=black
-    local_costmap_80x80 = np.full((range_new,range_new,3), 255) # init with [255,255,255]=white # optimization!
-    step = int((range_new - range_old)/2) # (80-60)/2=10
+    range_new = imagination_size
+
+    # resize the observation 60x60 img to an 80x80/100x100/... img with white color (unknown, id = -1?) from all sides (robot should be still in the middle), so that it could be used with a 80x80/100x100/... ground truth image
+    #local_costmap_resized = np.zeros((range_new,range_new,3)) # init with [0,0,0]=black
+    local_costmap_resized = np.full((range_new,range_new,3), 255) # init with [255,255,255]=white # optimization!
+    step = int((range_new - range_old)/2) # (80-60)/2=10 # [px] -> 10 [px] * 0.05 (resolution) = 0.5 [m]
     for i in range(range_new):
         for j in range(range_new):
             if not((i < step or i >= (range_old + step)) or (j < step or j >= (range_old + step))): # border from all sides: 0-9 & 70-79
-                local_costmap_80x80[i,j] = local_costmap_60x60[i-step,j-step] # take the color only in the middle, the inside of the borders
+                local_costmap_resized[i,j] = local_costmap_60x60[i-step,j-step] # take the color only in the middle, the inside of the borders
                 #print(str(i) + ' ' + str(j) + ' ' + str(i-step) + ' ' + str(j-step)) # debugging
-    range_new = 100
-    #local_costmap_100x100 = np.zeros((range_new,range_new,3)) # init with [0,0,0]=black
-    local_costmap_100x100 = np.full((range_new,range_new,3), 255) # init with [255,255,255]=white # optimization!
-    step = int((range_new - range_old)/2) # (100-60)/2=20
-    for i in range(range_new):
-        for j in range(range_new):
-            if not((i < step or i >= (range_old + step)) or (j < step or j >= (range_old + step))): # border from all sides: 0-19 & 80-99
-                local_costmap_100x100[i,j] = local_costmap_60x60[i-step,j-step] # take the color only in the middle, the inside of the borders
 
-    # TODO NEXT: cut blocks 60x60, 80x80 and 100x100 from the ground truth map
-    # TODO NEXT: make sure that the robot is in the middle of the block!?!
-    ground_truth_map_60x60 = ground_truth_map_2_part # already 60x60 (standard = laser data)
-    # 80x80 => -10px left, +10px right, +10px top, -10px bottom
-    border = 10 # [px] -> 10 [px] * 0.05 (resolution) = 0.5 [m]
-    ground_truth_map_80x80 = image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
-    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part_80x80.png", ground_truth_map_80x80)
-    # 80x80 => -20px left, +20px right, +20px top, -20px bottom
-    border = 20 # [px] -> 20 [px] * 0.05 (resolution) = 1.0 [m]
-    ground_truth_map_100x100 = image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
-    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part_100x100.png", ground_truth_map_100x100)
+    # cut 80x80/100x100/160x160 from the ground truth map & make sure that the robot is in the middle of the block 
+    # for example: 80x80 => -10px left, +10px right, +10px top, -10px bottom
+    ground_truth_map_resized = image_cut(ground_truth_map_2, step, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
+    if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part_resized.png", ground_truth_map_resized)
     
     # Important: to get the local costmap, also the teleoperation could be used to drive the robot manually around (could be faster then running a script to random go through the room)
 
@@ -490,27 +479,21 @@ def local_costmap(map_data):
     ## publish IntList - convert OpenCV images to user-defined array messages
     #publish_intlist('costmap_temp', local_costmap_60x60) # works # (60,60,3) -> (10800,1,1)
     ## publish OccupancyGrid
-    grid_costmap_60x60 = publish_occupancygrid('costmap_temp', local_costmap_60x60, map_data)
-    grid_costmap_80x80 = publish_occupancygrid('costmap_temp_80x80', local_costmap_80x80, map_data)
-    grid_costmap_100x100 = publish_occupancygrid('costmap_temp_100x100', local_costmap_100x100, map_data)
+    grid_costmap_60x60 = publish_occupancygrid('costmap_temp', local_costmap_resized, map_data)
 
     ## TODO: the whole global costmap, ("map_local_costmap.png", temp_img) vs. ("map_local_costmap_grey.png", temp_img_grey)
     #publish_intlist('costmap_global_temp', temp_img_grey) # works # (60,60,3) -> (10800,1,1)
 
     # II - map_ground_truth_semantic_part.png
     ## publish Image - converting OpenCV images to ROS image messages
-    #publish_image('ground_truth_map_temp', ground_truth_map_2_part) # works, but cvbridge does not work in rosnav python environment
+    #publish_image('ground_truth_map_temp', ground_truth_map_60x60) # works, but cvbridge does not work in rosnav python environment
     ## publish IntList - convert OpenCV images to user-defined array messages
-    #publish_intlist('ground_truth_map_temp', ground_truth_map_2_part) # works # (60,60,3) -> (10800,1,1)
+    #publish_intlist('ground_truth_map_temp', ground_truth_map_60x60) # works # (60,60,3) -> (10800,1,1)
     ## publish OccupancyGrid
-    grid_ground_truth_60x60 = publish_occupancygrid('ground_truth_map_temp', ground_truth_map_2_part, map_data)
-    grid_ground_truth_80x80 = publish_occupancygrid('ground_truth_map_temp_80x80', ground_truth_map_80x80, map_data)
-    grid_ground_truth_100x100 = publish_occupancygrid('ground_truth_map_temp_100x100', ground_truth_map_100x100, map_data)
+    grid_ground_truth_60x60 = publish_occupancygrid('ground_truth_map_temp', ground_truth_map_resized, map_data)
 
     ## publish the ground truth and costmap as a pair -> a list of OccupancyGrids
-    publish_pairoccupancygrid('pair_temp_60x60', grid_costmap_60x60, grid_ground_truth_60x60)
-    publish_pairoccupancygrid('pair_temp_80x80', grid_costmap_80x80, grid_ground_truth_80x80)
-    publish_pairoccupancygrid('pair_temp_100x100', grid_costmap_100x100, grid_ground_truth_100x100)
+    publish_pairoccupancygrid('pair_temp', grid_costmap_60x60, grid_ground_truth_60x60)
 
     if optimization == 0:
         # III - map_obstacles_part.png
@@ -554,7 +537,7 @@ def publish_intlist(publisher_name, temp_img_part):
     #print(list_message_int) # [0, 0, 0, ... 0, 0, 0]
     pub.publish(list_message_int)
 
-def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
+def publish_occupancygrid(publisher_name, map, map_data):
     ## publish OccupancyGrid
     pub = rospy.Publisher(publisher_name, OccupancyGrid, queue_size=10)
     grid = OccupancyGrid()
@@ -565,7 +548,7 @@ def publish_occupancygrid(publisher_name, ground_truth_map_2_part, map_data):
     # TODO: grid.data must be int8
     # TODO: the array int8[] includes IDs like 0=free, -1=unknown, 100=occupied, 1 to 10 for colored occupied
     # => take the grey image and from [0,0,0] => 0; [100,100,100] => 100
-    list_message = asarray(ground_truth_map_2_part)
+    list_message = asarray(map)
     #row,col,color = list_message.shape # (60,60,3) -> (60,60) # TODO: sometimes at the very beggining an error occures that the shape is (60,60) instead of (60,60,3)
     row = list_message.shape[0]
     col = list_message.shape[1]
