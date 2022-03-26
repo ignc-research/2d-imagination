@@ -76,6 +76,12 @@ The imagination will show up also when the robot is driven with ```teleoperation
 |:--:| :--:| 
 | *Navigation with Imagination* | *Visualization of the Imagination* |
 
+Up until now the imagination was considered only by the additional laser scanner. The following videos show even better navigation after we included the whole imagination area to the local and global costmap, which are used by the local and global planner. The video on the left is done with DWA as a local planner and for the one on the right was used TEB. The global costmap makes the imagination from grey to black and the local costmap is visualized in pink.
+
+| <img src="/img/imagination/imagination_version2_map_center_2d_nav_goal_new_costmaps_dwa.gif"> | <img src="/img/imagination/imagination_version2_map_center_2d_nav_goal_new_costmaps_teb.gif"> |
+|:--:| :--:| 
+| *Navigation with updated costmaps and DWA as a local planner* | *Navigation  with updated costmaps and TEB as a local planner* |
+
 ### Scripts
 
 1. ```pedsim_test.py```
