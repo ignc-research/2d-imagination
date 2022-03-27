@@ -8,40 +8,42 @@ Both github projects (this one and [rosnav-imagination](https://github.com/ignc-
 ### How to run
 Please refer to [Installation.md](docs/Installation.md) for detailed explanations about the installation process.
 
-It works both on Ubuntu 18.04 (with ROS-melodic) and on Ubuntu 20.04 (with ROS-noetic).
+It works on Ubuntu 18.04 (with ROS-melodic), but easily adaptable to Ubuntu 20.04 (with ROS-noetic).
 
 1. First make sure that you are working in the ```rosnav``` venv:
-```bash
-workon rosnav
-```
-2. For generating the ground truth data for a chosen map:
-```bash
-roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
-```
-3. For navigating with an imagination on a predifined path from a json file (the ground truth data should be available for this step):
-
-   3.1. Version 1 (while moving the robot stops to wait for the laser scan data):
-
-   *Imagination*:
    ```bash
-   roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=yes imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 imagination_filter2_range:=10 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   workon rosnav
    ```
-   *Collecting data*:
+
+2. For generating the ground truth data for a chosen map:
+   ```bash
+   roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
+   ```
+*Attention*: The ground truth data should be available for the next steps.
+
+3. For collecting data (pairs of observation and ground truth data) for the imagination module:
+
    ```bash
    roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=no imagination_size:=100 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
    *For collecting data with ```2D Nav Goal``` or ```teleoperation``` set the parameter ```json_file``` to ```empty.json```.*
 
-   3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
+4. For navigating with an imagination on a predifined path from a json file:
+
+   4.1. Approach 1 (while moving, the robot stops to wait for the laser scan data):
+   ```bash
+   roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=yes imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 imagination_filter2_range:=10 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   ```
+   4.2. Approach 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
    ```bash
    roslaunch arena_bringup semantic_imagination.launch scenario:=1 imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
 
 *Attention*: Generated files will be stored under ```/home/user/.ros```. After execution there you will find the generated ground truth map, the global imagination map etc. For collecting data refer to the newly generated subfolder ```training```.
 
-The parameter ```imagination``` could be used only with version 1 and could be set to ```yes``` or ```no```. If set to ```no```, no imagination will be used for the navigation, instead paired laser scan and ground truth data will be collected for training. The parameter ```imagination_size``` should be set to ```60 | 80 | 100``` for a ```60x60px | 80x80px | 100x100px``` laser scan data, ground truth data and imagination. The parameter ```imagination_model``` should be set to a valid ```.pth``` file from the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository (folder ```/example/models/```). Just like the parameter ```json_file``` should be set to an existing ```.json``` file from the folder ```./simulator_setup/training/```.
+The parameter ```imagination``` could be used only with approach 1 and could be set to ```yes``` or ```no```. If set to ```no```, no imagination will be used for the navigation, instead paired laser scan and ground truth data will be collected for training. The parameter ```imagination_size``` should be set to ```60 | 80 | 100``` for a ```60x60px | 80x80px | 100x100px``` laser scan data, ground truth data and imagination. The parameter ```imagination_model``` should be set to a valid ```.pth``` file from the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository (folder ```/example/models/```). Just like the parameter ```json_file``` should be set to an existing ```.json``` file from the folder ```./simulator_setup/training/```.
 
-Different filters are applied on the imagination module. The first one can be set via the parameter ```imagination_filter1_threshold``` to a normalized value between ```0``` and ```1```. The second one can be used only for version 1, setting the parameter ```imagination_filter2_range``` to a pixel value of for example ```10```, corresponding to ```0.5``` meters. Version 2 also uses practically the same filter, but implemented as a 2d Gaussian distribution, which means that no range is needed to be set.
+Different filters are applied on the imagination module. The first one can be set via the parameter ```imagination_filter1_threshold``` to a normalized value between ```0``` and ```1```. The second one can be used only for approach 1, setting the parameter ```imagination_filter2_range``` to a pixel value of for example ```10```, corresponding to ```0.5``` meters. Approach 2 also uses practically the same filter, but implemented as a 2d Gaussian distribution, which means that no range is needed to be set.
 
 Change the parameters ```user``` and ```workspace``` according to your local system. Set the parameter ```device``` according to your hardware. If you only have a CPU use ```'cpu'```. For a GPU use for example ```'cuda'```.
 
@@ -72,15 +74,15 @@ While using ```2D Nav Goal``` or ```teleoperation``` for collecting data, the ro
 
 ### Results
 
-#### Version 1
+#### Approach 1
 
-The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly. Please note that with this version ```teleoperation``` and the rviz feature ```2D Nav Goal``` can not be used properly, since the imagination will be neither visualized nor taken into account by the planners. Nevertheless, both navigation options could be still used for data collection.
+The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly. Please note that with this approach ```teleoperation``` and the rviz feature ```2D Nav Goal``` can not be used properly, since the imagination will be neither visualized nor taken into account by the planners. Nevertheless, both navigation options could be still used for data collection.
 
 | <img src="/img/imagination/imagination_version1_map_center_2d_nav_goal.gif"> | <img src="/img/imagination/imagination_version1_scenario8.gif"> |
 |:--:|:--:|
 | *Navigation with Imagination* | *Visualization of the Imagination* |
 
-#### Version 2
+#### Approach 2
 
 In the following video on the left you can see how the navigation with imagination works - both with a predifined script with the goals and with the rviz feature ```2D Nav Goal```, where a goal could be directly given to the simulation from the user.
 
@@ -107,22 +109,22 @@ Up until now the imagination was considered only by the additional laser scanner
 3. ```create_ground_truth_map.py```
    * Creates the semantic ground truth map with or without extending the size of the obstacles.
    * The following nodes depend on this one.
-4. ```laser_scan_data.py``` (only for version 1)
+4. ```laser_scan_data.py``` (only for approach 1)
    * Collects local laser scan data in form of local_costmaps in the wanted size and updates a global view of it.
    * Expands the observation data with a semantic information, based on the already generated ground truth data.
-5. ```move_to_goal.py``` (only for version 1)
+5. ```move_to_goal.py``` (only for approach 1)
    * Moves the robot on a predifined with a json file path.
    * While moving collects pairs of semantic local costmaps and semantic local ground truth data in form of images and npz files ready to be used for training an imagination model.
    * Visualizes a filtered imagination (=imagination_model(local_costmap)).
    * Synchronizes the robot movement with receiving the local_costmap and its corresponding imagination, which could lead to robot waiting for receiving all the data before proceeding.
    * Updates the local costmap with the imagination for the local planner to plan a new path avoiding it.
    * The global costmap receives no imagination, so that there is a costmap with and without an imagination, to be able to distinguish which parts of the currently occupied areas are due to the legs of the obstacles (so because of the laser scan) and which are due to the imagination. This way the imagination module can keep getting only laser scan information without already imaginated areas.
-6. ```show_imagination.py``` (only for version 2)
+6. ```show_imagination.py``` (only for approach 2)
    * Collects semantic laser scan.
    * Visualizes a filtered imagination (=imagination_model(semantic_laser_scan)).
    * Publishes the laser scan with the imagination information on a new topic. So it uses two laser scan topics: one for collecting data for the imagination module (```/scan```) and one for visualizing the borders of the imagination (```/imagination_laser_scan```).
    * Updates the local and global costmap with the imagination for the planners to plan a new path avoiding it.
-7. ```move_to_goal_imagination.py``` (only for version 2)
+7. ```move_to_goal_imagination.py``` (only for approach 2)
    * Moves the robot on a predifined with a json file path.
 
 ### Execution steps
@@ -131,7 +133,7 @@ Up until now the imagination was considered only by the additional laser scanner
    1. Create a scenario manually (see the substeps below) or create a scenario with the [GUI](https://github.com/ignc-research/arena-tools)
       1. Define a new scenario (combination of spawned obstacles) in the script ```pedsim_test.py``` as a new function (for example ```scenarioX()```).
       2. Add the new scenario option to the scenario calling function in the function ```tables_test()```.
-   2. Count the number of obstacles (not obstacle types) in the new scenario and update the reference scenario-obstacles_amount (variable ```scenarioReference```) in the scripts ```create_ground_truth_map.py``` (for version 1) and ```show_obstacle_types.py``` (for version 2).
+   2. Count the number of obstacles (not obstacle types) in the new scenario and update the reference scenario-obstacles_amount (variable ```scenarioReference```) in the scripts ```create_ground_truth_map.py``` (for approach 1) and ```show_obstacle_types.py``` (for approach 2).
    3. The used obstacles are described in .yaml files in the folder ```./simulator_setup/static_obstacles/```. If you want to create more obstacles, add additional files.
 2. Create the ground truth data: launch ```pedsim_test_gt```
 3. Collect training data
@@ -145,7 +147,7 @@ Up until now the imagination was considered only by the additional laser scanner
 4. Train an imagination module (see the [rosnav-imagination](https://github.com/ignc-research/rosnav-imagination) repository)
    1. Upload the generated ```npz``` files to the ```/rosnav-imagination/data/``` folder.
    2. Load both datasets, correct their format and train the model for at least 1000 iterations. Then visualize example outputs of the model to check its correctness.
-6. Navigate with imagination (test an imagination module on a test scenario): launch ```pedsim_test.launch``` for version 1 or ```semantic_imagination.launch``` for version 2
+6. Navigate with imagination (test an imagination module on a test scenario): launch ```pedsim_test.launch``` for approach 1 or ```semantic_imagination.launch``` for approach 2
 
 ### Evaluation runs
 
