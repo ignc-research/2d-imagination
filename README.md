@@ -78,7 +78,7 @@ While using ```2D Nav Goal``` or ```teleoperation``` for collecting data, the ro
 
 In the next videos is visualized data collecting. It can be done with a predefined path from a json script, with ```teleoperation``` or using ```2D Nav Goal```.
 
-| <img src="/img/imagination/imagination_version1_collecting_data_script.gif"> | <img src="/img/imagination/imagination_version1_collecting_data_script.png"> |
+| <img src="/img/imagination/imagination_version1_collecting_data_script.gif"> | <img src="/img/imagination/imagination_version1_collecting_data_script_gui.gif"> |
 |:--:|:--:|
 | *Collecting data with a predefined script* | *Setting the paths to move on with a GUI* |
 
