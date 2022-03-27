@@ -582,8 +582,9 @@ def delete_empty_images_get_raw_data():
     img_count = 0
     for filename in sorted(glob.glob(os.path.join(directory, '*.png'))):
         img = cv2.imread(filename)
-        all_black = True
+        all_black_or_white = True
         black_ar = [0,0,0]
+        white_ar = [255,255,255]
         #print(filename) # for debugging
         # skip the name of a file, which has already been deleted, because its paired, empty costmap or ground truth map has been deleted
         if img is None: continue
@@ -593,8 +594,8 @@ def delete_empty_images_get_raw_data():
             for j in range(img.shape[1]):
                 BGR_color = [img[i, j, 0], img[i, j, 1], img[i, j, 2]]
                 id_temp = 0 # per default 0 = free = no obstacles
-                if BGR_color != black_ar:
-                    all_black = False
+                if BGR_color != black_ar and BGR_color != white_ar:
+                    all_black_or_white = False
                     #print('COLORED PIXEL: ' + str(BGR_color)) # for debugging
                 # map here the color to the id:
                 for elem in id_type_color_ar:
@@ -609,7 +610,7 @@ def delete_empty_images_get_raw_data():
                         break
                 img_id[i,j] = id_temp
 
-        if all_black:
+        if all_black_or_white:
             os.remove(filename) # delete the image
             # TODO: delete also the second half of the pair!
             if ''.join(filename.split('costmap')) != filename: # costmap deleted -> delete ground truth
