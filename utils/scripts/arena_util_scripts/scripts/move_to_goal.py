@@ -559,9 +559,13 @@ def type_color_reference():
     return id_type_color_ar
 
 def delete_empty_images_get_raw_data():
-    # the next two lines are new, needed because of the robot synchronization (only if turned on!) (=> if you just need to run only this function, comment out the lines)
-    goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
-    movebase_client(0, 0, goal_pub, 0, 0)
+    # the next two lines are only needed with imagination because of the robot synchronization (only if turned on!)
+    # => if you just need to run only this function or you are collecting data, comment out the lines!
+    if rospy.get_param('~imagination') == "yes":
+        goal_pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=10) # shows the goals (their position and orientation with an arrow)
+        movebase_client(0, 0, goal_pub, 0, 0)
+
+    # TODO: at this point laser scan data is not needed anymore, so unsubscribe / stop node 'scan_values'
 
     # 1) open each img in the training folder and if it is complety black delete it, since they are not important/useful for the training
     # TODO NEXT: it could happen that the costmap is empty, but the gt pair is not, so either delete both or do not delete either of them!?!
@@ -693,7 +697,7 @@ def delete_empty_images_get_raw_data():
 #        plt.imshow(file_2_2['arr_' + str(i)])
 #        #plt.show()
 
-    print('DONE!')
+    print('\nDONE!\n')
 
 def get_id_from_color(img_costmap_color):
     img_costmap_id = np.zeros((img_costmap_color.shape[0],img_costmap_color.shape[1])) # (row,col) vs. (row,col,3)

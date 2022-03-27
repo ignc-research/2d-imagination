@@ -64,7 +64,7 @@ If you want you can generate the ground truth image, extending the size of each 
 
 The map could be changed setting the parameter ```map_file```. Its dimensions, resolution and other parameters will be then automatically read and accordingly used. Check for example the maps ```map_empty``` and ```map_empty_big```.
 
-While using ```2D Nav Goal``` or ```teleoperation``` for collecting data, the robot still needs a defined start and an end position. That's why at the beginning the new goal could have to be set twice for the robot to understand and at the end he will take over and drive to its origin (set in the file ```empty.json```). This allows the script to understand that the movement is finished, all of the wanted laser scan data is collected and he can generate the final ```npz``` files needed for the imagination module. Alternatively the node could be stopped and the ```npz``` files could be generated manually. Nevertheless, ```teleoperation``` is not recommended for data collection, since the robot can move everywhere (through obstacles), which makes the observation unrealistic.
+While using ```2D Nav Goal``` or ```teleoperation``` for collecting data, the robot still needs a defined start and an end position. That's why at the beginning the new goal could have to be set twice for the robot to understand and at the end he will take over and drive to its origin (set in the file ```empty.json```). This allows the script to understand that the movement is finished, all of the wanted laser scan data is collected and he can generate the final ```npz``` files needed for the imagination module. Alternatively the node could be stopped and the ```npz``` files could be generated manually. Both navigation methods have one more advantage over diving with a predefined script: the orientation can be freely chosen. Nevertheless, ```teleoperation``` is not recommended for data collection, since the robot can move everywhere (through obstacles), which makes the observation unrealistic.
 
 ### Approach / System design
 
@@ -76,7 +76,17 @@ While using ```2D Nav Goal``` or ```teleoperation``` for collecting data, the ro
 
 #### Approach 1
 
-The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly. Please note that with this approach ```teleoperation``` and the rviz feature ```2D Nav Goal``` can not be used properly, since the imagination will be neither visualized nor taken into account by the planners. Nevertheless, both navigation options could be still used for data collection.
+In the next videos is visualized data collecting. It can be done with a predefined path from a json script, with ```teleoperation``` or using ```2D Nav Goal```.
+
+| <img src="/img/imagination/imagination_version1_collecting_data_script.gif"> | <img src="/img/imagination/imagination_version1_collecting_data_script.png"> |
+|:--:|:--:|
+| *Collecting data with a predefined script* | *Setting the paths to move on with a GUI* |
+
+| <img src="/img/imagination/imagination_version1_collecting_data_teleoperation.gif"> | <img src="/img/imagination/imagination_version1_collecting_data_2dNavGoal.gif"> |
+|:--:|:--:|
+| *Collecting data with Teleoperation* | *Collecting data with 2D Nav Goal* |
+
+The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly. Please note that with this approach ```teleoperation``` and the rviz feature ```2D Nav Goal``` can not be used properly, since the imagination will be neither visualized nor taken into account by the planners.
 
 | <img src="/img/imagination/imagination_version1_map_center_2d_nav_goal.gif"> | <img src="/img/imagination/imagination_version1_scenario8.gif"> |
 |:--:|:--:|
