@@ -24,6 +24,9 @@ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
    ```bash
    roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=yes imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 imagination_filter2_range:=10 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
+   ```bash
+   roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=no imagination_size:=100 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
+   ```
    3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
    ```bash
    roslaunch arena_bringup semantic_imagination.launch scenario:=1 imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu

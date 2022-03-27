@@ -464,7 +464,7 @@ def local_costmap(map_data):
 
     # cut 80x80/100x100/160x160 from the ground truth map & make sure that the robot is in the middle of the block 
     # for example: 80x80 => -10px left, +10px right, +10px top, -10px bottom
-    ground_truth_map_resized = image_cut(ground_truth_map_2, step, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
+    ground_truth_map_resized = image_cut(ground_truth_map_2, range_new, step, x_max, y_max, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz)
     if optimization == 0: cv2.imwrite("map_ground_truth_semantic_part_resized.png", ground_truth_map_resized)
     
     # Important: to get the local costmap, also the teleoperation could be used to drive the robot manually around (could be faster then running a script to random go through the room)
@@ -631,13 +631,52 @@ def publish_pairoccupancygrid(publisher_name, grid1, grid2):
     array_pair = [grid1, grid2]
     pub_pair.publish(array_pair)
 
-def image_cut(ground_truth_map_2, border, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz):
+def image_cut(ground_truth_map_2, range_new, border, x_max, y_max, row_big, block_abs_width_left_rviz, block_abs_width_right_rviz, block_abs_height_bottom_rviz, block_abs_height_top_rviz):
     block_abs_width_left_rviz_PXxPX = block_abs_width_left_rviz - border
     block_abs_width_right_rviz_PXxPX = block_abs_width_right_rviz + border
     block_abs_height_bottom_rviz_PXxPX = block_abs_height_bottom_rviz - border
     block_abs_height_top_rviz_PXxPX = block_abs_height_top_rviz + border
-    ground_truth_map_PXxPX =  ground_truth_map_2[row_big-1-block_abs_height_top_rviz_PXxPX+1:row_big-1-block_abs_height_bottom_rviz_PXxPX+1, block_abs_width_left_rviz_PXxPX+1:block_abs_width_right_rviz_PXxPX+1]
-    return ground_truth_map_PXxPX
+    x_min_temp = row_big-1-block_abs_height_top_rviz_PXxPX+1
+    x_max_temp = row_big-1-block_abs_height_bottom_rviz_PXxPX+1
+    y_min_temp = block_abs_width_left_rviz_PXxPX+1
+    y_max_temp = block_abs_width_right_rviz_PXxPX+1
+    ground_truth_map_PXxPX =  ground_truth_map_2[x_min_temp:x_max_temp, y_min_temp:y_max_temp]
+    # print(ground_truth_map_PXxPX) # could be []!
+    # Important: if some of the parameters exceed the dimensions of the image, ground_truth_map_PXxPX will be either with other dimensions or even empty []!
+    
+    row,col,color = ground_truth_map_PXxPX.shape
+    if not(row == range_new and col == range_new): # if x_min_temp < 0 | x_max_temp >= x_max | y_min_temp < 0 | y_max_temp >= y_max
+        print("***The size for the img cut exceeds the img dimensions! It will be repaired! ***")
+
+        # check which parameter/s exceed/s the image dimensions
+        x_min_bool = y_min_bool = x_max_bool = y_max_bool = 0
+        if (x_min_temp) < 0: x_min_bool = 1
+        if (x_max_temp) >= x_max: x_max_bool = 1
+        if (y_min_temp) < 0: y_min_bool = 1
+        if (y_max_temp) >= y_max: y_max_bool = 1
+
+        # create a new array with variable dimensions, so that it always exists
+        x_min_step = abs(x_min_temp)*x_min_bool
+        x_max_step = abs(x_max-x_max_temp)*x_max_bool
+        y_min_step = abs(y_min_temp)*y_min_bool
+        y_max_step = abs(y_max-y_max_temp)*y_max_bool
+        ground_truth_map_PXxPX_new =  ground_truth_map_2[x_min_temp+x_min_step:x_max_temp-x_max_step, y_min_temp+y_min_step:y_max_temp-y_max_step]
+        
+        # create an array with the expected dimensions and init with [100,100,100] = grey = the color of the walls and everything different then tables and chairs
+        grey_map = np.full((range_new,range_new,3), 100)
+
+        range_x = range_new-x_min_step-x_max_step
+        range_y = range_new-y_min_step-y_max_step
+        # print("(x_min_temp,x_max_temp): (" + str(x_min_temp) + "," + str(x_max_temp) + "), (y_min_temp,y_max_temp): (" + str(y_min_temp) + "," + str(y_max_temp) + ")")
+        # print("(range_x, range_y): (" + str(range_x) + ", " + str(range_y) + ")")
+        # (x_min_temp,x_max_temp): (241,541), (y_min_temp,y_max_temp): (-9,291) # debugging with x_max=521 & y_max=666
+        # (range_x, range_y): (280, 291) # debugging with range_new=300
+        for i in range(range_x):
+            for j in range(range_y):
+                grey_map[i+x_min_step,j+y_min_step] = ground_truth_map_PXxPX_new[i,j]
+        return grey_map
+    else:
+        return ground_truth_map_PXxPX
 
 def callback_map(map_data):
     #global map_resolution, x_offset, y_offset, x_max, y_max
