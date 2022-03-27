@@ -21,12 +21,17 @@ roslaunch arena_bringup pedsim_test_gt.launch scenario:=1 gt_extension:=0
 3. For navigating with an imagination on a predifined path from a json file (the ground truth data should be available for this step):
 
    3.1. Version 1 (while moving the robot stops to wait for the laser scan data):
+
+   *Imagination*:
    ```bash
    roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=yes imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 imagination_filter2_range:=10 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
+   *Collecting data*:
    ```bash
    roslaunch arena_bringup pedsim_test.launch scenario:=1 imagination:=no imagination_size:=100 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
    ```
+   *For collecting data with ```2D Nav Goal``` or ```teleoperation``` set the parameter ```json_file``` to ```empty.json```.*
+
    3.2. Version 2 (the robot moves without interruptions because he is directly receiving semantic laser scan data):
    ```bash
    roslaunch arena_bringup semantic_imagination.launch scenario:=1 imagination_size:=100 imagination_model:=3000 imagination_filter1_threshold:=0.2 json_file:="scenario1.json" user:=m-yordanova workspace:=catkin_ws_ma device:=cpu
@@ -57,6 +62,8 @@ If you want you can generate the ground truth image, extending the size of each 
 
 The map could be changed setting the parameter ```map_file```. Its dimensions, resolution and other parameters will be then automatically read and accordingly used. Check for example the maps ```map_empty``` and ```map_empty_big```.
 
+While using ```2D Nav Goal``` or ```teleoperation``` for collecting data, the robot still needs a defined start and an end position. That's why at the beginning the new goal could have to be set twice for the robot to understand and at the end he will take over and drive to its origin (set in the file ```empty.json```). This allows the script to understand that the movement is finished, all of the wanted laser scan data is collected and he can generate the final ```npz``` files needed for the imagination module. Alternatively the node could be stopped and the ```npz``` files could be generated manually. Nevertheless, ```teleoperation``` is not recommended for data collection, since the robot can move everywhere (through obstacles), which makes the observation unrealistic.
+
 ### Approach / System design
 
 <p align="center">
@@ -67,7 +74,7 @@ The map could be changed setting the parameter ```map_file```. Its dimensions, r
 
 #### Version 1
 
-The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly. Please note that with this version ```teleoperation``` and the rviz feature ```2D Nav Goal``` can not be used properly, since the imagination will be neither visualized nor taken into account by the planners.
+The following videos show both how the imagination is being visualized and how it is considered an occupied area by the local planner, which using the local_costmap changes the robot's path accordingly. Please note that with this version ```teleoperation``` and the rviz feature ```2D Nav Goal``` can not be used properly, since the imagination will be neither visualized nor taken into account by the planners. Nevertheless, both navigation options could be still used for data collection.
 
 | <img src="/img/imagination/imagination_version1_map_center_2d_nav_goal.gif"> | <img src="/img/imagination/imagination_version1_scenario8.gif"> |
 |:--:|:--:|
